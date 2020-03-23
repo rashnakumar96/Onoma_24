@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body style="background-color:lightGrey">
+<h1>Name-Secure</h1>
+
+<button id="start">Start</button>
+<button id="stop">Stop</button>
+<button id="add">Add</button>
+<br>
+<a href="info.html">Info</a>
+
+</body>
+<script>
+document.getElementById("start").addEventListener("click", function() {
+    // This will send a message to GO
+    astilectron.sendMessage("start", function(message) {
+    });
+})
+document.getElementById("stop").addEventListener("click", function() {
+    // This will send a message to GO
+    astilectron.sendMessage("stop", function(message) {
+    });
+})
+document.getElementById("add").addEventListener("click", function() {
+    // This will send a message to GO
+    astilectron.sendMessage("add", function(message) {
+    });
+})
+</script>
+</html>

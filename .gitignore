@@ -1,0 +1,14 @@
+
+.DS_Store
+
+bin/*
+
+pkg/
+
+src/github.com
+src/golang.org
+src/gopkg.in
+
+vendor/
+
+*.log
