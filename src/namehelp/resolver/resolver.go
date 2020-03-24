@@ -87,10 +87,10 @@ func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.
 			"name server": nameserver}).Info("Failed to get a valid answer for query from nameserver")
 		if responseMessage.Rcode == dns.RcodeServerFailure {
 			// SERVFAIL: don't provide response because other DNS servers may have better luck
+			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Error("ServFail")
 			return
 		} else {
-			// NXDOMAIN and other failures: confirmed failure so provide the response
-			// (jump to end of function)
+			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Error("NXDOMAIN ERROR")
 		}
 	} else {
 		// success
@@ -128,7 +128,7 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 
 	qname := requestMessage.Question[0].Name
 	qType := requestMessage.Question[0].Qtype
-	fmt.Println("nameserver", nameserver)
+	log.WithFields(log.Fields{"nameserver": nameserver}).Info("DoH look up at Namehelp")
 
 	responseMessage, err := Client.Resolve(requestMessage, nameserver)
 
@@ -156,10 +156,10 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 			"name server": nameserver}).Info("Failed to get a valid answer for query from nameserver")
 		if responseMessage.Rcode == dns.RcodeServerFailure {
 			// SERVFAIL: don't provide response because other DNS servers may have better luck
-			fmt.Println("Going into ServFail")
+			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Error("ServFail")
 			return
 		} else {
-			fmt.Println("Going into NXDOMAIN ERROR")
+			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Error("NXDOMAIN ERROR")
 
 			// NXDOMAIN and other failures: confirmed failure so provide the response (jump to end of function)
 		}
