@@ -1,0 +1,855 @@
+// Handles DNS queries by forwarding them to one or more resolvers
+// based heavily upon github.com/kenshinx/godns/handler.go
+
+package handler
+
+import (
+	"errors"
+	"net"
+	"sync"
+	"time"
+
+	"namehelp/cache"
+	"namehelp/hosts"
+	"namehelp/network"
+	"namehelp/resolver"
+	"namehelp/settings"
+	"namehelp/utils"
+
+	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
+)
+
+// PublicDNSServers for DNS over UDP
+var PublicDNSServers = []string{
+	"8.8.8.8",        // Google
+	"4.2.2.5",        // Verizon (Level 3)
+	"208.67.222.222", // OpenDNS
+}
+
+// DNSQueryHandlerSettings specifies settings for query handlers
+type DNSQueryHandlerSettings struct {
+	isEnabledDirectResolution bool
+	isEnabledCache            bool
+	isEnabledHostsFile        bool
+	isEnabledCounter          bool
+	// whether to count the lookup for the purposes of tracking user's top sites
+}
+
+// DNSQueryHandler is the object for DNS query handler
+type DNSQueryHandler struct {
+	resolver      *resolver.Resolver
+	cache         cache.Cache
+	negativeCache cache.Cache
+	hosts         hosts.Hosts
+	settings      DNSQueryHandlerSettings
+	mutex         sync.Mutex
+	// topSites      *topsites.TopSites
+	doID int // for logging purposes (increment this every time do is called)
+}
+
+// NewHandler returns a new initialized handler
+func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
+	var (
+		clientConfig    *dns.ClientConfig
+		cacheConfig     settings.CacheSettings
+		handlerResolver *resolver.Resolver
+		handlerCache    cache.Cache
+		negativeCache   cache.Cache
+	)
+
+	dnsQueryHandlerSettings := DNSQueryHandlerSettings{
+		isEnabledDirectResolution: true,
+		isEnabledCache:            true,
+		isEnabledHostsFile:        true,
+		isEnabledCounter:          true,
+	}
+
+	resolvConfig := settings.NamehelpSettings.ResolvConfig
+
+	serversList := PublicDNSServers
+
+	// TODO add user's local DNS server (and their manually configured DNS too?)
+
+	serversList = addOriginalDNSServers(serversList, oldDNSServers)
+	localDNSServers := network.DhcpGetLocalDNSServers()
+	serversList = utils.UnionStringLists(serversList, localDNSServers)
+
+	clientConfig = &dns.ClientConfig{
+		Servers:  serversList,
+		Search:   []string{},
+		Port:     "53",
+		Ndots:    1,  // number of dots in name to trigger absolute lookup
+		Timeout:  5,  // seconds before giving up on packet
+		Attempts: -1, // lost packets before giving up on server, not used in the package dns
+
+	}
+
+	clientConfig.Timeout = resolvConfig.Timeout
+
+	handlerResolver = &resolver.Resolver{clientConfig}
+
+	cacheConfig = settings.NamehelpSettings.Cache
+	switch cacheConfig.Backend {
+	case "memory":
+		handlerCache = &cache.MemoryCache{
+			Backend:  make(map[string]cache.Mesg, cacheConfig.Maxcount),
+			Expire:   time.Duration(cacheConfig.Expire) * time.Second,
+			Maxcount: cacheConfig.Maxcount,
+		}
+		negativeCache = &cache.MemoryCache{
+			Backend:  make(map[string]cache.Mesg),
+			Expire:   time.Duration(cacheConfig.Expire) * time.Second / 2,
+			Maxcount: cacheConfig.Maxcount,
+		}
+	default:
+		//logger.Error("Invalid cache backend %s", cacheConfig.Backend)
+		panic("Invalid cache backend")
+	}
+
+	var handlerHosts hosts.Hosts
+	if settings.NamehelpSettings.Hosts.Enable {
+		handlerHosts = hosts.NewHosts(settings.NamehelpSettings.Hosts)
+	}
+
+	dnsQueryHandlerMutex := sync.Mutex{}
+
+	// alexaListPath := "data/alexa-top-30000-domains.txt"
+	// alexaListBytes, err := Asset(alexaListPath)
+	// if err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Asset": alexaListPath, "Error": err.Error()}).Error("Failed to go-bindata")
+	// 	alexaListBytes = []byte{}
+	// }
+
+	// topSites := topsites.NewTopSites(alexaListBytes)
+
+	dnsQueryHandler := DNSQueryHandler{
+		resolver:      handlerResolver,
+		cache:         handlerCache,
+		negativeCache: negativeCache,
+		hosts:         handlerHosts,
+		settings:      dnsQueryHandlerSettings,
+		mutex:         dnsQueryHandlerMutex,
+		// topSites:      topSites,
+		doID: 0,
+	}
+
+	return &dnsQueryHandler
+}
+
+func addOriginalDNSServers(serversList []string, originalDNSServersMap map[string][]string) []string {
+	for _, serversOnInterface := range originalDNSServersMap {
+		// loop through interfaces
+		for _, dnsServer := range serversOnInterface {
+			// loop through list of servers for this interface
+			_, alreadyInList := utils.ContainsString(serversList, dnsServer)
+			if alreadyInList {
+				continue
+			}
+			if dnsServer == "" || dnsServer == "empty" {
+				continue
+			}
+			if utils.IsLocalhost(dnsServer) {
+				continue
+			}
+
+			// add it to list
+			serversList = append(serversList, dnsServer)
+
+		}
+	}
+
+	return serversList
+}
+
+// EnableDirectResolution enables direct resolution
+func (handler *DNSQueryHandler) EnableDirectResolution() {
+	handler.settings.isEnabledDirectResolution = true
+}
+
+// DisableDirectResolution disables direct resolution
+func (handler *DNSQueryHandler) DisableDirectResolution() {
+	handler.settings.isEnabledDirectResolution = false
+}
+
+// EnableCache enables cache
+func (handler *DNSQueryHandler) EnableCache() {
+	handler.settings.isEnabledCache = true
+}
+
+// DisableCache disables cache
+func (handler *DNSQueryHandler) DisableCache() {
+	handler.settings.isEnabledCache = false
+}
+
+// EnableHostsFile enables hosts file
+func (handler *DNSQueryHandler) EnableHostsFile() {
+	handler.settings.isEnabledHostsFile = true
+}
+
+// DisableHostsFile disables hosts file
+func (handler *DNSQueryHandler) DisableHostsFile() {
+	handler.settings.isEnabledHostsFile = false
+}
+
+// EnableCounter enables counter
+func (handler *DNSQueryHandler) EnableCounter() {
+	handler.settings.isEnabledCounter = true
+}
+
+// DisableCounter disables counter
+func (handler *DNSQueryHandler) DisableCounter() {
+	handler.settings.isEnabledCounter = false
+}
+
+// SetIsEnabledDirectResolution sets preference for direct resolution
+func (handler *DNSQueryHandler) SetIsEnabledDirectResolution(isEnabled bool) {
+	handler.settings.isEnabledDirectResolution = isEnabled
+}
+
+// SetIsEnabledCache sets preference for cache
+func (handler *DNSQueryHandler) SetIsEnabledCache(isEnabled bool) {
+	handler.settings.isEnabledCache = isEnabled
+}
+
+// SetIsEnabledHostsFile sets preference for hosts file
+func (handler *DNSQueryHandler) SetIsEnabledHostsFile(isEnabled bool) {
+	handler.settings.isEnabledHostsFile = isEnabled
+}
+
+// SetIsEnabledCounter sets preference for counter
+func (handler *DNSQueryHandler) SetIsEnabledCounter(isEnabled bool) {
+	handler.settings.isEnabledCounter = isEnabled
+}
+
+// PerformDNSQuery performs a DNS Query using the following method:
+// First check the hosts file (if enabled).  If the domain is not found, check the cache (if enabled).
+// If still not found, do a lookup by forwarding the request to real DNS server(s).
+// If the dnsServer argument is provided, we only query that specific server.  Otherwise we simultaneously query all
+// the servers listed in DNSQueryHandler.Resolver.config.Servers and use the first response that comes back.
+// Then, finally perform direct resolution (if enabled) on CNAME answers.
+func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns.Msg, dnsServer net.IP,
+	isEnabledDirectResolution bool, isEnabledHostsFile bool, isEnabledCache bool, isEnabledCounter bool) (answerMessage *dns.Msg, success bool) {
+
+	var err error
+	var dnsServersToQuery []string
+
+	doID := handler.doID
+	handler.doID++
+
+	question := dnsQueryMessage.Question[0]
+
+	if isEnabledCounter {
+		// handler.topSites.Update(question.Name)
+	}
+
+	// TODO handle more than 1 question
+
+	if len(dnsQueryMessage.Question) > 1 {
+		log.WithFields(log.Fields{
+			"id": doID, "total # of question": len(dnsQueryMessage.Question),
+			"first question":  dnsQueryMessage.Question[0],
+			"second question": dnsQueryMessage.Question[1]}).Info("DNS Query contains more than 1 question.")
+	}
+
+	if utils.IsNamehelp(dnsServer.String()) {
+		dnsServersToQuery = handler.resolver.Config.Servers
+	} else {
+		dnsServersToQuery = []string{dnsServer.String()}
+	}
+
+	log.WithFields(log.Fields{
+		"id": doID, "nameservers": dnsServersToQuery,
+		"query": question.String()[1:]}).Debug("Doing lookup at nameservers")
+	// clip the ';' from the start of the string
+
+	var IPQuery int
+	IPQuery = handler.whichIPVersion(question)
+
+	// Query hosts file
+	if settings.NamehelpSettings.Hosts.Enable && IPQuery > 0 && isEnabledHostsFile {
+		if ips, ok := handler.hosts.Get(utils.UnFullyQualifyDomainName(question.Name), IPQuery); ok {
+			answerMessage = new(dns.Msg)
+			answerMessage.SetReply(dnsQueryMessage)
+
+			switch IPQuery {
+			case utils.IP4Query:
+				rr_header := dns.RR_Header{
+					Name:   question.Name,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    settings.NamehelpSettings.Hosts.TTL,
+				}
+				for _, ip := range ips {
+					a := &dns.A{Hdr: rr_header, A: ip}
+					answerMessage.Answer = append(answerMessage.Answer, a)
+				}
+			case utils.IP6Query:
+				rr_header := dns.RR_Header{
+					Name:   question.Name,
+					Rrtype: dns.TypeAAAA,
+					Class:  dns.ClassINET,
+					Ttl:    settings.NamehelpSettings.Hosts.TTL,
+				}
+				for _, ip := range ips {
+					aaaa := &dns.AAAA{Hdr: rr_header, AAAA: ip}
+					answerMessage.Answer = append(answerMessage.Answer, aaaa)
+				}
+			}
+
+			log.WithFields(log.Fields{
+				"id":       doID,
+				"question": question.Name}).Debug("Questioned server found in hosts file")
+			return answerMessage, true
+		} else {
+			log.WithFields(log.Fields{
+				"id":       doID,
+				"question": question.Name}).Debug("Questioned server not in hosts file")
+		}
+	}
+
+	if isEnabledCache {
+		// check cache
+		cacheKey := cache.KeyGen(question)
+		message, whichCache, isHit := handler.checkCache(question, cacheKey, IPQuery, doID)
+
+		if isHit {
+			// handle different types of hit, then return
+			if whichCache == &handler.cache {
+				// positive cache
+				// we need this copy in case of concurrent modification of Id
+				messageCopy := *message
+				messageCopy.Id = dnsQueryMessage.Id
+				return &messageCopy, true
+			} else if whichCache == &handler.negativeCache {
+				// negative cache
+				return nil, false
+			} else {
+				log.WithFields(log.Fields{
+					"id":    doID,
+					"cache": *whichCache}).Warn("Hit in unknown cache")
+				return message, false
+			}
+
+			log.WithFields(log.Fields{
+				"id": doID}).Fatal("Should never reach here: dns_query_handler cache isHit")
+			return nil, false
+		}
+	}
+
+	// not a cache hit so do Lookup
+	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID)
+
+	if err != nil {
+		//handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
+
+		// TODO need to handle the error better (see ^^)
+
+		log.WithFields(log.Fields{
+			"id":    doID,
+			"error": err.Error()}).Error("Error occured: LookupAtNameservers")
+		return nil, false
+	}
+
+	if isEnabledDirectResolution {
+		// check for redirection to CDN
+		isRedirect := true
+		numberOfCDNRedirects := 0
+		//for isRedirect {
+		isRedirect, cName, authoritativeNameServer, _ := handler.GetCDNRedirect(answerMessage, doID)
+		if isRedirect {
+			numberOfCDNRedirects++
+			var betterAnswerMessage *dns.Msg
+			log.WithFields(log.Fields{
+				"id":       doID,
+				"question": question.String()[1:],
+				"CName":    cName,
+				"NS":       authoritativeNameServer}).Info("Query question redirects to CName with NS")
+
+			log.WithFields(log.Fields{
+				"id":       doID,
+				"response": answerMessage.String()}).Info("Full response from nameserver lookup")
+
+			if authoritativeNameServer != "" {
+				// If we are conveniently provided the NS without having to ask
+				cNameQuery := handler.buildCnameQuery(cName, dnsQueryMessage.Id, question.Qtype)
+				authoritativeNameserverAndPort := authoritativeNameServer + ":53"
+				betterAnswerMessage, err = handler.resolver.LookupAtNameserver(
+					Net,
+					cNameQuery,
+					authoritativeNameserverAndPort,
+					doID)
+			} else {
+				// If we don't know the NS
+				betterAnswerMessage, err = handler.doSimpleDirectResolutionOfCname(
+					Net,
+					answerMessage,
+					cName,
+					doID)
+			}
+
+			if err != nil {
+				// if there is an error, we should be able to just provide the simple answer
+				log.WithFields(log.Fields{
+					"id":    doID,
+					"error": err.Error()}).Warn("Error asking authoritative nameserver. Using original DNS answer as response.")
+
+				// TODO cache the direct resolution failure as well
+
+				return answerMessage, true
+			} else {
+				// no error, so use "better" answer
+				answerMessage = betterAnswerMessage
+
+				// make sure the question and node names match the original query
+				// (otherwise, browsers seem to notice the discrepancy and discard the response)
+				answerMessage.Question[0] = question // make question match
+				for index := range answerMessage.Answer {
+					answerMessage.Answer[index].Header().Name = question.Name // make nodeName match
+				}
+
+				// TODO cache the direct resolution success as well
+
+				return answerMessage, true
+			}
+
+		} // isRedirect
+	} // allowDirectResolution
+
+	return answerMessage, true
+}
+
+func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
+	Net string,
+	answerMessage *dns.Msg,
+	cName string,
+	doID int) (directResolutionResult *dns.Msg, err error) {
+
+	// Step 1: Get authoritative name server
+	requestAuthoritativeServer := new(dns.Msg)
+	requestAuthoritativeServer.MsgHdr = dns.MsgHdr{
+		Id:                 answerMessage.Id, // NOTE maintain same ID so requestor can match replies to queries
+		Response:           false,
+		Opcode:             dns.OpcodeQuery,
+		Authoritative:      false, // not valid on a query
+		Truncated:          false,
+		RecursionDesired:   true,  // although we're asking the authority so it shouldn't have to recurse
+		RecursionAvailable: false, // not valid on a query
+		Zero:               false, // must be zero--not sure how the dns package handles this since it's a bool
+		AuthenticatedData:  false, // not sure what this is
+		CheckingDisabled:   false, // not sure what this is
+		Rcode:              0,     // not valid on a query
+	}
+
+	// add question RR to message
+	authoritativeQuestion := dns.Question{
+		Name:   cName,
+		Qtype:  dns.TypeNS,
+		Qclass: dns.ClassINET,
+	}
+	requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
+
+	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id":    doID,
+			"error": err.Error()}).Error("Error occured: resolver lookup")
+		return nil, err
+	}
+
+	log.WithFields(log.Fields{
+		"id":       doID,
+		"question": requestAuthoritativeServer.Question[0].String(),
+		"response": responseAuthoritativeServer.String()}).Debug("Question with full response to NS query")
+
+	authoritativeNameserver := ""
+	authoritativeNameserverAndPort := ""
+
+	/* TODO currently, if there is more than 1 authoritative nameserver, the last one wins,
+	 * which is arbitrary.  We at least want to somehow report that there is more than one.
+	 */
+	for index, authorityResourceRecord := range responseAuthoritativeServer.Ns {
+		log.WithFields(log.Fields{
+			"id":                       doID,
+			"nameserver index":         index,
+			"query":                    authorityResourceRecord.Header().Name,
+			"authoritative nameserver": dns.Field(authorityResourceRecord, 1),
+			"type":                     authorityResourceRecord.Header().Rrtype,
+			"ttl":                      authorityResourceRecord.Header().Ttl,
+			"rdlength":                 authorityResourceRecord.Header().Rdlength}).Debug("Authoritative name server answer")
+
+		authoritativeNameserver = dns.Field(authorityResourceRecord, 1)
+	}
+
+	if authoritativeNameserver == "" {
+		// No authority in Authority section.
+		// Authorities might be in Answer section (e.g. cdn.amazon.com, dk9ps7goqoeef.cloudfront.net)
+
+		// TODO currently, if there is more than 1, the first one wins, which is (maybe?) arbitrary
+
+		for index, answerResourceRecord := range responseAuthoritativeServer.Answer {
+			if answerResourceRecord.Header().Rrtype == dns.TypeNS {
+				log.WithFields(log.Fields{
+					"id":               doID,
+					"nameserver index": index,
+					"query":            answerResourceRecord.Header().Name,
+					"response":         dns.Field(answerResourceRecord, 1)}).Debug("Authoritative name server answer")
+
+				authoritativeNameserver = dns.Field(answerResourceRecord, 1)
+				break
+			}
+		}
+	}
+
+	if authoritativeNameserver == "" {
+		log.WithFields(log.Fields{
+			"id": doID}).Error("Unable to get authoritative nameserver.")
+		return nil, errors.New("Failed to get authoritative nameserver")
+	}
+
+	authoritativeNameserverAndPort = authoritativeNameserver[:len(authoritativeNameserver)-1] + ":53"
+
+	// Step 2: Get address for CName by querying the authoritative name server
+
+	// build a request to send the authoritative name server
+	requestAFromAuthoritativeServer := handler.buildCnameQuery(
+		cName,
+		requestAuthoritativeServer.Id,
+		answerMessage.Question[0].Qtype)
+
+	// perform lookup at the authoritative name server
+
+	// TODO check cache first--might not need to do lookup...or check before we even begin direct resolution!
+
+	directResolutionResult, err = handler.resolver.LookupAtNameserver(
+		Net,
+		requestAFromAuthoritativeServer,
+		authoritativeNameserverAndPort,
+		doID)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id":    doID,
+			"error": err.Error()}).Warn("Direct resolution failed")
+		return nil, err
+	}
+
+	return directResolutionResult, nil
+}
+
+func (handler *DNSQueryHandler) do(Net string, responseWriter dns.ResponseWriter, dnsQueryMessage *dns.Msg) {
+	doID := handler.doID
+	handler.doID++
+
+	question := dnsQueryMessage.Question[0]
+
+	answerMessage, success := handler.PerformDNSQuery(Net, dnsQueryMessage, net.ParseIP(utils.LOCALHOST),
+		handler.settings.isEnabledDirectResolution, handler.settings.isEnabledHostsFile, handler.settings.isEnabledCache,
+		handler.settings.isEnabledCounter)
+
+	ipVersion := handler.whichIPVersion(question)
+
+	if success {
+		log.WithFields(log.Fields{
+			"id":       doID,
+			"question": question.String()[1:],
+			"answer":   answerMessage.String()}).Debug("DNS query succeeded")
+		responseWriter.WriteMsg(answerMessage)
+		log.WithFields(log.Fields{
+			"id":       doID,
+			"question": question.String()[1:]}).Debug("Finished writing answer")
+
+		handler.cacheAnswer(question, answerMessage, ipVersion, doID)
+	} else {
+		dns.HandleFailed(responseWriter, dnsQueryMessage)
+	}
+
+	log.WithFields(log.Fields{
+		"id":       doID,
+		"question": question.String()[1:]}).Debug("Function finished: do")
+}
+
+func (handler *DNSQueryHandler) cacheAnswer(question dns.Question, answerMessage *dns.Msg, ipVersion int, doID int) {
+	// cache results
+	if ipVersion > 0 && len(answerMessage.Answer) > 0 {
+		log.WithFields(log.Fields{
+			"id":       doID,
+			"question": question.String()[1:]}).Info("Caching answer")
+		cacheKey := cache.KeyGen(question)
+		err := handler.cache.Set(cacheKey, answerMessage)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"id":       doID,
+				"question": question.String()[1:],
+				"error":    err.Error()}).Error("Caching answer error")
+		}
+		log.WithFields(log.Fields{
+			"id":       doID,
+			"question": question.String()[1:]}).Debug("Finished caching answer")
+	}
+}
+
+// handleResolutionError responds to the requesting client with a failure code
+// and stores the failure in the negative cache
+func (handler *DNSQueryHandler) handleResolutionError(err error, responseWriter dns.ResponseWriter,
+	requestMessage *dns.Msg, cacheKey string, doID int) {
+	log.WithFields(log.Fields{
+		"id":    doID,
+		"error": err}).Warn("Resolve query error")
+	dns.HandleFailed(responseWriter, requestMessage)
+
+	// cache the failure in the negative cache
+	err = handler.negativeCache.Set(cacheKey, nil)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id":       doID,
+			"question": requestMessage.Question[0].String(),
+			"error":    err}).Error("Set negative cache failed")
+	}
+}
+
+// doDirectResolutionOfCname performs direct resolution as follows.
+// Step 1: Send a DNS query of type NS in order to get the authoritative name server for the given CName
+// Step 2: Send a DNS query of type A to the authoritative name server to get the address for the given CName
+func (handler *DNSQueryHandler) doDirectResolutionOfCname(Net string, answerMessage *dns.Msg, cName string,
+	responseWriter dns.ResponseWriter, cacheKey string, doID int) (directResolutionResult *dns.Msg, err error) {
+
+	// Step 1: Get authoritative name server
+	requestAuthoritativeServer := new(dns.Msg)
+	requestAuthoritativeServer.MsgHdr = dns.MsgHdr{
+		Id:                 answerMessage.Id, // NOTE maintain same ID so requestor can match replies to queries
+		Response:           false,
+		Opcode:             dns.OpcodeQuery,
+		Authoritative:      false, // not valid on a query
+		Truncated:          false,
+		RecursionDesired:   true,
+		RecursionAvailable: false, // not valid on a query
+		Zero:               false, // must be zero--not sure how the dns package handles this since it's a bool
+		AuthenticatedData:  false, // not sure what this is
+		CheckingDisabled:   false, // not sure what this is
+		Rcode:              0,     // not valid on a query
+	}
+
+	authoritativeQuestion := dns.Question{
+		Name:   cName,
+		Qtype:  dns.TypeNS,
+		Qclass: dns.ClassINET,
+	}
+	requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
+
+	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id":    doID,
+			"error": err.Error()}).Error("Error occured: resolver lookup")
+		//log.Println(err.Error())
+	}
+	log.WithFields(log.Fields{
+		"id":       doID,
+		"question": requestAuthoritativeServer.Question[0].String(),
+		"response": responseAuthoritativeServer.String()}).Info("Full response to NS query")
+	//log.Printf("[%d] For question [%s], full response to NS query:\n[%s]", doID, requestAuthoritativeServer.Question[0].String(), responseAuthoritativeServer.String())
+
+	authoritativeNameserver := ""
+	authoritativeNameserverAndPort := ""
+
+	// TODO currently, if there is more than 1 authoritative nameserver, the last one wins,
+	// TODO which is arbitrary.  We at least want to somehow report that there is more than one.
+
+	for index, authorityResourceRecord := range responseAuthoritativeServer.Ns {
+		log.WithFields(log.Fields{
+			"id":                       doID,
+			"index":                    index,
+			"query":                    authorityResourceRecord.Header().Name,
+			"authoritative nameserver": dns.Field(authorityResourceRecord, 1),
+			"type":                     authorityResourceRecord.Header().Rrtype,
+			"ttl":                      authorityResourceRecord.Header().Ttl,
+			"rdlength":                 authorityResourceRecord.Header().Rdlength}).Info("Authoritative nameserver answer")
+
+		authoritativeNameserver = dns.Field(authorityResourceRecord, 1)
+		authoritativeNameserverAndPort = authoritativeNameserver[:len(authoritativeNameserver)-1] + ":53"
+	}
+
+	// Authorities might be in Answer section (e.g. cdn.amazon.com, dk9ps7goqoeef.cloudfront.net)
+
+	// TODO currently, if there is more than 1, the first one wins, which is (maybe?) arbitrary
+
+	if authoritativeNameserver == "" {
+		for index, answerResourceRecord := range responseAuthoritativeServer.Answer {
+			if answerResourceRecord.Header().Rrtype == dns.TypeNS {
+				log.WithFields(log.Fields{
+					"id":     doID,
+					"index":  index,
+					"query":  answerResourceRecord.Header().Name,
+					"answer": dns.Field(answerResourceRecord, 1)}).Info("Authoritative name server answer")
+				authoritativeNameserver = dns.Field(answerResourceRecord, 1)
+				authoritativeNameserverAndPort = authoritativeNameserver[:len(authoritativeNameserver)-1] + ":53"
+				break
+			}
+		}
+	}
+
+	// Step 2: Get address for CName by querying the authoritative name server
+
+	// build a request to send the authoritative name server
+	requestAFromAuthoritativeServer := handler.buildCnameQuery(cName, requestAuthoritativeServer.Id, answerMessage.Question[0].Qtype)
+
+	// perform lookup at the authoritative name server
+
+	// TODO check cache first--might not need to do lookup
+
+	directResolutionResult, err = handler.resolver.LookupAtNameserver(Net, requestAFromAuthoritativeServer, authoritativeNameserverAndPort, doID)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id":    doID,
+			"error": err.Error()}).Error("Direct resolution failed")
+	}
+
+	return directResolutionResult, err
+}
+
+func (handler *DNSQueryHandler) buildCnameQuery(cName string, id uint16, qType uint16) (cNameQuery *dns.Msg) {
+	cNameQuery = new(dns.Msg)
+	cNameQuery.MsgHdr = dns.MsgHdr{
+		Id:                 id,
+		Response:           false,
+		Opcode:             dns.OpcodeQuery,
+		Authoritative:      false, // not valid on a query
+		Truncated:          false,
+		RecursionDesired:   false, // no recursion needed because directly asking the authority
+		RecursionAvailable: false, // not valid on a query
+		Zero:               false, // must be zero--not sure how the dns package handles this since it's a bool
+		AuthenticatedData:  false, // not sure what this is
+		CheckingDisabled:   false, // not sure what this is
+		Rcode:              0,     // not valid on a query
+	}
+	questionForAuthoritativeServer := dns.Question{
+		Name:   cName,
+		Qtype:  qType,
+		Qclass: dns.ClassINET,
+	}
+	cNameQuery.Question = []dns.Question{questionForAuthoritativeServer}
+
+	return cNameQuery
+}
+
+func (handler *DNSQueryHandler) checkCache(question dns.Question, cacheKey string, IPQuery int, doID int) (message *dns.Msg, whichCache *cache.Cache, isCacheHit bool) {
+	if IPQuery > 0 {
+		message, err := handler.cache.Get(cacheKey)
+		if err != nil {
+			// not in positive cache
+			message, err = handler.negativeCache.Get(cacheKey) // check negative cache
+			if err != nil {
+				// not in negative cache
+				log.WithFields(log.Fields{
+					"id":       doID,
+					"question": question.Name}).Error("Question didn't hit cache", doID, question.Name)
+				return message, nil, false
+			} else {
+				// hit in negative cache
+				log.WithFields(log.Fields{
+					"id":       doID,
+					"question": question.Name}).Info("Question hit negative cache")
+				return message, &handler.negativeCache, true
+			}
+		} else {
+			// cache hit (positive cache)
+			log.WithFields(log.Fields{
+				"id":       doID,
+				"question": question.Name}).Info("Question hit cache")
+			return message, &handler.cache, true
+		}
+	}
+	return nil, nil, false
+}
+
+// GetCDNRedirect checkes for CNAME response from DNS message and extract the information
+func (handler *DNSQueryHandler) GetCDNRedirect(message *dns.Msg, doID int) (isCDNRedirect bool, cName string, authoritativeNameServer string, naiveIPAddress string) {
+	isCDNRedirect = false
+	originalNodeName := ""
+	nodeName := ""
+	cName = ""
+	authoritativeNameServer = ""
+	naiveIPAddress = ""
+
+	// Loop through Answer section resource records
+	// Anytime the response is TypeCNAME, we assume it is a redirect to a CDN
+	index := 0
+	for _, answer := range message.Answer {
+		if answer.Header().Rrtype == dns.TypeCNAME {
+			isCDNRedirect = true
+			cName = dns.Field(answer, 1)
+			nodeName = answer.Header().Name
+			originalNodeName = nodeName
+			log.WithFields(log.Fields{
+				"id":            doID,
+				"original name": originalNodeName,
+				"cName":         cName}).Info("cName redirection")
+			break
+		}
+		index++
+	}
+
+	// Loop through remaining resource records looking for more info
+	index++ // move to next resource record
+	for ; index < len(message.Answer); index++ {
+		thisAnswer := message.Answer[index]
+		if thisAnswer.Header().Name == cName {
+			if thisAnswer.Header().Rrtype == dns.TypeCNAME {
+				cName = dns.Field(thisAnswer, 1)
+				nodeName = thisAnswer.Header().Name
+				log.WithFields(log.Fields{
+					"id":        doID,
+					"node name": nodeName,
+					"cName":     cName}).Info("Second redirection")
+			}
+			if thisAnswer.Header().Rrtype == dns.TypeA || thisAnswer.Header().Rrtype == dns.TypeAAAA {
+				nodeName = thisAnswer.Header().Name
+				naiveIPAddress = dns.Field(thisAnswer, 1)
+				log.WithFields(log.Fields{
+					"id":        doID,
+					"node name": nodeName,
+					"naive IP":  naiveIPAddress}).Info("naive mapping to IP")
+			}
+		}
+	}
+
+	for _, authorityRecord := range message.Ns {
+		if authorityRecord.Header().Rrtype == dns.TypeSOA {
+			authoritativeNameServer = dns.Field(authorityRecord, 1)
+			nodeName = authorityRecord.Header().Name
+			log.WithFields(log.Fields{
+				"id":                        doID,
+				"node name":                 nodeName,
+				"authoritative name server": authoritativeNameServer}).Info("Authoritative name server for node")
+			break
+		}
+	}
+
+	return isCDNRedirect, cName, authoritativeNameServer, naiveIPAddress
+}
+
+func (handler *DNSQueryHandler) whichIPVersion(question dns.Question) int {
+	if question.Qclass != dns.ClassINET {
+		return utils.NotIPQuery
+	}
+
+	switch question.Qtype {
+	case dns.TypeA:
+		return utils.IP4Query
+	case dns.TypeAAAA:
+		return utils.IP6Query
+	default:
+		return utils.NotIPQuery
+	}
+}
+
+// DoTCP performs TCP query
+func (handler *DNSQueryHandler) DoTCP(responseWriter dns.ResponseWriter, req *dns.Msg) {
+	handler.do("tcp", responseWriter, req)
+}
+
+// DoUDP performs UDP query
+func (handler *DNSQueryHandler) DoUDP(responseWriter dns.ResponseWriter, req *dns.Msg) {
+	handler.do("udp", responseWriter, req)
+}

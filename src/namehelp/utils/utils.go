@@ -1,0 +1,286 @@
+package utils
+
+import (
+	"errors"
+	"os"
+	"os/exec"
+	"path"
+	"strings"
+
+	"github.com/kardianos/osext"
+	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
+)
+
+const (
+	NotIPQuery = 0
+	IP4Query   = 4
+	IP6Query   = 6
+	// LOCALHOST is the ip address for localhost
+	LOCALHOST = "127.0.0.1"
+	// PORT is the port for localhost
+	PORT = 53 // DNS port
+)
+
+func UnionStringLists(list1 []string, list2 []string) []string {
+	var baseList []string
+	var searchList []string
+
+	if len(list1) < len(list2) {
+		baseList = list1
+		searchList = list2
+	} else {
+		baseList = list2
+		searchList = list1
+	}
+
+	for _, thisString := range baseList {
+		_, found := ContainsString(searchList, thisString)
+		if found {
+			continue
+		}
+		searchList = append(searchList, thisString)
+	}
+
+	return searchList
+}
+
+func AddPortToEach(list []string, port string) (resultList []string) {
+	for _, item := range list {
+		if i := strings.IndexByte(item, '#'); i > 0 {
+			item = item[:i] + ":" + item[i+1:]
+		} else {
+			item = item + ":" + port
+		}
+		resultList = append(resultList, item)
+	}
+	return resultList
+}
+
+// flushes system's local DNS on OSX 10.10.4+ (https://coolestguidesontheplanet.com/clear-the-local-dns-cache-in-osx/)
+// TODO write other functions for other platforms
+func FlushLocalDnsCache() {
+	var output string
+	var err error
+
+	name := "dscacheutil"
+	arguments := []string{"-flushcache"}
+	output, err = RunCommand(name, arguments...)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"DNS cache": name,
+			"output":    output,
+			"error":     err.Error()}).Error("Error flushing DNS cache")
+	}
+	name = "killall"
+	arguments = []string{"-HUP", "mDNSResponder"}
+	output, err = RunCommand(name, arguments...)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"DNS cache": name,
+			"output":    output,
+			"error":     err.Error()}).Error("Error flushing DNS cache")
+	}
+}
+
+func PathExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	return false
+}
+
+func GetDirectoryOfExecutable() string {
+	executable, err := osext.Executable()
+	if err != nil {
+		panic(err)
+	}
+
+	executableDirectory := path.Dir(executable)
+
+	return executableDirectory
+}
+
+func RunCommand(name string, arguments ...string) (combinedOutputString string, err error) {
+	log.WithFields(log.Fields{"command": name, "args": arguments}).Info("Running command")
+	command := exec.Command(name, arguments...)
+	combinedOutput, err := command.CombinedOutput()
+	combinedOutputString = string(combinedOutput)
+	log.WithFields(log.Fields{
+		"command":  name,
+		"argument": arguments,
+		"output":   combinedOutput}).Info("Executing command")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"command":  name,
+			"argument": arguments,
+			"output":   combinedOutput,
+			"error":    err.Error()}).Error("Command failed")
+		return combinedOutputString, err
+	}
+
+	return combinedOutputString, nil
+}
+
+func IsNamehelp(url string) bool {
+	url = strings.ToLower(url)
+
+	if url == "namehelp" || url == "direct resolution" {
+		return true
+	}
+
+	if IsLocalhost(url) {
+		return true
+	}
+
+	return false
+}
+
+func IsLocalhost(url string) bool {
+	if url == "localhost" {
+		return true
+	}
+	// TODO technically should this condition check anything between 127.0.0.1 and 127.255.255.255?
+	if url == "127.0.0.1" {
+		return true
+	}
+	if url == "::1" {
+		return true
+	}
+
+	return false
+}
+
+// CombineStringMaps combines two maps into one and returns the resulting map.
+// The smaller map is copied into the larger map, which is then returned.
+// CAUTION: If the two maps share keys, the values in the smaller map will overwrite
+// the corresponding values in the larger map.
+func CombineStringMaps(map1 map[string]string, map2 map[string]string) map[string]string {
+	if len(map1) <= len(map2) {
+		for key, value := range map1 {
+			// check if key already exists in map
+			_, ok := map2[key]
+			if ok {
+				log.WithFields(log.Fields{
+					"key":       key,
+					"value":     value,
+					"old value": map2[key]}).Error("Writing map2[key]=value but map2 already contains key with old value.  Overwriting.")
+			}
+
+			map2[key] = value
+		}
+		return map2
+	} else {
+		for key, value := range map2 {
+			// check if key already exists in map
+			_, ok := map1[key]
+			if ok {
+				log.WithFields(log.Fields{
+					"key":       key,
+					"value":     value,
+					"old value": map1[key]}).Error("Writing map1[key]=value but map1 already contains key with old value.  Overwriting.")
+			}
+
+			map1[key] = value
+		}
+		return map1
+	}
+}
+
+func IsProcessRunning(processName string) bool {
+	command := exec.Command("pgrep", processName)
+	output, err := command.Output()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"process name": processName,
+			"error":        err.Error()}).Error("Error pgrepping for process")
+		return false
+	}
+
+	if len(output) > 0 {
+		return true
+	}
+
+	return false
+}
+
+// check whether arrayOfStrings contains the searchString
+// If found, returns the index of the search string and true
+// Otherwise, returns -1 and false
+func ContainsString(arrayOfStrings []string, searchString string) (index int, success bool) {
+	if len(arrayOfStrings) > 100 {
+		log.WithFields(log.Fields{
+			"search string": searchString,
+			"size":          len(arrayOfStrings)}).Warn("Using linear search for string on large array.  Consider using more efficient method.")
+	}
+
+	for index, thisString := range arrayOfStrings {
+		if thisString == searchString {
+			return index, true
+		}
+	}
+
+	return -1, false
+}
+
+func BuildDnsQuery(name string, qType uint16, msgId uint16, rescursionDesired bool) (queryMessage *dns.Msg) {
+	queryMessage = new(dns.Msg)
+
+	if name[len(name)-1:] != "." {
+		name = name + "."
+	}
+
+	queryMessage.MsgHdr = dns.MsgHdr{
+		Id:                 msgId, // allows client to match responses with requests?
+		Response:           false,
+		Opcode:             dns.OpcodeQuery,
+		Authoritative:      false, // not valid on a query
+		Truncated:          false,
+		RecursionDesired:   rescursionDesired,
+		RecursionAvailable: false, // not valid on a query
+		Zero:               false, // must be zero--not sure how the dns package handles this since it's a bool
+		AuthenticatedData:  false, // not sure what this is
+		CheckingDisabled:   false, // not sure what this is
+		Rcode:              0,     // not valid on a query
+	}
+
+	queryMessage.Question = []dns.Question{
+		{
+			Name:   name,
+			Qtype:  qType,
+			Qclass: dns.ClassINET,
+		},
+	}
+
+	return queryMessage
+}
+
+// Returns the first IP Address (if any) from the answer section
+func GetIpAddressFromAnswerMessage(answerMessage *dns.Msg) (ipAddress string, err error) {
+	if answerMessage == nil {
+		return "", errors.New("answerMessage was nil.")
+	}
+
+	if answerMessage.MsgHdr.Rcode != dns.RcodeSuccess {
+		err = errors.New(dns.RcodeToString[answerMessage.MsgHdr.Rcode])
+		return "", err
+	}
+
+	for _, answerRR := range answerMessage.Answer {
+		if answerRR.Header().Rrtype == dns.TypeA || answerRR.Header().Rrtype == dns.TypeAAAA {
+			return dns.Field(answerRR, 1), nil
+		}
+	}
+
+	err = errors.New("No IP Address in answer message.")
+	return "", err
+}
+
+// UnFullyQualifyDomainName returns the ending dot
+func UnFullyQualifyDomainName(s string) string {
+	if dns.IsFqdn(s) {
+		return s[:len(s)-1]
+	}
+	return s
+}
