@@ -2,12 +2,12 @@
 More software engineering version of Name-Secure
 
 ## Build
-'''
-export GOPATH=`pwd`
+`
+export GOPATH=\`pwd\`
 go generate
-'''
+`
 
 ## Run
-'''
+`
 ./DDoH-2
-'''
+`
