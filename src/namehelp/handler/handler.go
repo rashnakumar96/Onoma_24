@@ -135,6 +135,12 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 		doID: 0,
 	}
 
+	if len(resolver.Client.Resolvers) == 0 {
+		resolver.Client.AddUpstream("Google", "8.8.8.8/resolve", 443)
+		resolver.Client.AddUpstream("Cloudflare", "1.1.1.1/dns-query", 443)
+		resolver.Client.AddUpstream("Quad9", "9.9.9.9:5053/dns-query", 443)
+	}
+
 	return &dnsQueryHandler
 }
 

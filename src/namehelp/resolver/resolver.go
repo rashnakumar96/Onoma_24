@@ -5,16 +5,21 @@ package resolver
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
 
+	"namehelp/proxy"
 	"namehelp/settings"
 	"namehelp/utils"
 
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 )
+
+// Client for resolver proxy that translate DNS to DoH
+var Client proxy.Client
 
 // ResolvError error type
 type ResolvError struct {
@@ -115,6 +120,77 @@ func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.
 	}
 }
 
+// For initial DoH resolution
+func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *sync.WaitGroup, requestMessage *dns.Msg,
+	net string, resultChannel chan *dns.Msg, doID int) {
+
+	defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
+
+	qname := requestMessage.Question[0].Name
+	qType := requestMessage.Question[0].Qtype
+	fmt.Println("nameserver", nameserver)
+
+	responseMessage, err := Client.Resolve(requestMessage, nameserver)
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"query":       qname,
+			"name server": nameserver}).Error("Socket error")
+		log.WithFields(log.Fields{
+			"id":    doID,
+			"error": err.Error()}).Error("Error message for socket error")
+		return
+	}
+	log.Info("Response from DoH", nameserver)
+
+	// If SERVFAIL happens, should return immediately and try another upstream resolver.
+	// However, other Error codes like NXDOMAIN are a clear response stating
+	// that it has been verified no such domain exists and asking other resolvers
+	// would make no sense. See more about #20
+	if responseMessage != nil && responseMessage.Rcode != dns.RcodeSuccess {
+		// failure
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"query":       qname,
+			"name server": nameserver}).Info("Failed to get a valid answer for query from nameserver")
+		if responseMessage.Rcode == dns.RcodeServerFailure {
+			// SERVFAIL: don't provide response because other DNS servers may have better luck
+			fmt.Println("Going into ServFail")
+			return
+		} else {
+			fmt.Println("Going into NXDOMAIN ERROR")
+
+			// NXDOMAIN and other failures: confirmed failure so provide the response (jump to end of function)
+		}
+	} else {
+		// success
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"domain name": utils.UnFullyQualifyDomainName(qname),
+			"query type":  dns.TypeToString[qType],
+			"name server": nameserver,
+			"net":         net}).Info("resolve successfully")
+
+	}
+
+	// use select statement with default to try the send without blocking
+	select {
+	// try to send response on channel
+	case resultChannel <- responseMessage:
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"name server": nameserver}).Debug("name server won the resolver race.")
+	default:
+		// if another goroutine already sent on channel and the message is not yet read
+		// we simply return in order to invoke the deferred waitGroup.Done() call
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"name server": nameserver}).Info("name server DID NOT won the resolver race.")
+		return
+	}
+}
+
 // LookupAtNameserver performs the given dns query at the given nameserver
 func (resolver *Resolver) LookupAtNameserver(net string, requestMessage *dns.Msg, nameserver string,
 	doID int) (resultMessage *dns.Msg, err error) {
@@ -210,14 +286,23 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	ticker := time.NewTicker(time.Duration(settings.NamehelpSettings.ResolvConfig.Interval) * time.Millisecond)
 	defer ticker.Stop()
 	// Start lookup on each nameserver top-down, in every second
-	for _, nameserver := range nameservers {
-		if strings.Contains(nameserver, "127.0.0.1") {
+
+	// 	to randomize the list of resolvers each time
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(Client.Resolvers), func(i, j int) { Client.Resolvers[i], Client.Resolvers[j] = Client.Resolvers[j], Client.Resolvers[i] })
+	log.WithFields(log.Fields{"nameservers": Client.Resolvers}).Info("These are all the client.Resolvers")
+
+	// for _, nameserver := range nameservers {
+	for _, nameserver := range Client.Resolvers {
+		if strings.Contains(nameserver.Name, "127.0.0.1") {
 			continue // don't send query to yourself (infinite recursion sort of)
 		}
 
 		// add to waitGroup and launch goroutine to do lookup
 		waitGroup.Add(1)
-		go routine_DoLookup(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
+
+		// go routine_DoLookup(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
+		go routine_DoLookup_DoH(nameserver.Name, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
 
 		// check for response or interval tick
 		select {
