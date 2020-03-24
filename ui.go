@@ -2,25 +2,44 @@ package main
 
 import (
 	"net/http"
+	"os/exec"
+	"path"
 	"path/filepath"
-	"reflect"
-
-	"utils"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astilectron"
+	"github.com/kardianos/osext"
 )
+
+// StartNamehelpUI starts the user interface for namehelp
+func StartNamehelpUI() {
+	command := exec.Command("sudo", "./bin/namehelp", "--service", "install")
+	// command := exec.Command("sudo", "./bin/namehelp")
+	output, err := command.Output()
+	log.WithFields(log.Fields{"output": string(output)}).Info("Command Output")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err}).Error("Namehelp has already been installed")
+	}
+	Start()
+	return
+}
 
 // Start starts the app and opens the app in a window
 func Start() {
+	exe, err := osext.Executable()
+	if err != nil {
+		panic(err)
+	}
+	execPath := path.Dir(exe)
 
 	// Create astilectron
 	App, err := astilectron.New(log.New(), astilectron.Options{
 		AppName:            "DDoH-2",
-		AppIconDarwinPath:  "resources/icon.icns",
-		AppIconDefaultPath: "resources/icon.png",
+		AppIconDarwinPath:  filepath.Join(execPath, "resources", "icon.icns"),
+		AppIconDefaultPath: filepath.Join(execPath, "resources", "icon.png"),
 	})
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Fatal("Creating astilectron failed")
@@ -35,7 +54,7 @@ func Start() {
 		log.WithFields(log.Fields{"error": err}).Fatal("Starting astilectron failed")
 	}
 
-	indexPath := filepath.Join("resources", "app", "static", "home.html")
+	indexPath := filepath.Join(execPath, "resources", "app", "static", "home.html")
 
 	Window, err := App.NewWindow(indexPath, &astilectron.WindowOptions{
 		Center: astikit.BoolPtr(true),
@@ -75,19 +94,13 @@ func Start() {
 	App.Wait()
 }
 
-// StartNamehelpUI starts the user interface for namehelp
-func StartNamehelpUI() {
-	go Start()
-	return
-}
-
 // Server server object
 type Server struct {
 	Started bool
 }
 
 // NamehelpServer keep track of the status of namehelp
-var NamehelpServer = Server{Started: true}
+var NamehelpServer = Server{Started: false}
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
@@ -98,19 +111,20 @@ func enableCors(w *http.ResponseWriter) {
 // Change the DNS settings to local host
 func handleStart() {
 	if NamehelpServer.Started {
-		// fmt.Fprintf(responseWriter, "Already started")
 		log.WithFields(log.Fields{
 			"action": "Start",
 			"method": "POST",
 			"error":  "Already Started"}).Error("Handle button: error")
 	} else {
-		// fmt.Fprintf(responseWriter, "Starting")
-		namehelpProgram.oldDNSServers = namehelpProgram.saveCurrentDNSConfiguration()
-		networkInterfaces := reflect.ValueOf(namehelpProgram.oldDNSServers).MapKeys()
-		// get slice of keys
-		namehelpProgram.setDNSServer(utils.LOCALHOST, backupHosts, networkInterfaces)
+		command := exec.Command("sudo", "./bin/namehelp", "--service", "start")
+		// command := exec.Command("sudo", "./bin/namehelp")
+		output, err := command.Output()
+		log.WithFields(log.Fields{"output": string(output)}).Info("Command Output")
+		if err != nil {
+			log.Fatal(err)
+		}
 		log.WithFields(log.Fields{
-			"action": "Start", "method": "POST"}).Debug("Handle button: succeeded")
+			"action": "Start", "method": "POST"}).Info("Handle button: succeeded")
 
 		NamehelpServer.Started = true
 	}
@@ -122,17 +136,19 @@ func handleStart() {
 // Change the DNS settings to default
 func handleStop() {
 	if !NamehelpServer.Started {
-		// fmt.Fprintf(responseWriter, "Already stopped")
 		log.WithFields(log.Fields{
 			"action": "Stop",
 			"method": "POST",
 			"error":  "Already Stopped"}).Error("Handle button: error")
 	} else {
-		// fmt.Fprintf(responseWriter, "Stopping")
-		namehelpProgram.restoreOldDNSServers(namehelpProgram.oldDNSServers) // restore original DNS settings
-		// namehelpProgram.dnsQueryHandler.topSites.SaveUserSites()            // save user's top sites to file
+		command := exec.Command("sudo", "./bin/namehelp", "--service", "stop")
+		output, err := command.Output()
+		log.WithFields(log.Fields{"output": string(output)}).Info("Command Output")
+		if err != nil {
+			log.Fatal(err)
+		}
 		log.WithFields(log.Fields{
-			"action": "Stop", "method": "POST"}).Debug("Handle button: succeeded")
+			"action": "Stop", "method": "POST"}).Info("Handle button: succeeded")
 
 		NamehelpServer.Started = false
 	}

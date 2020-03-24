@@ -2,6 +2,7 @@
 .DS_Store
 
 bin/*
+DDoH-2
 
 pkg/
 
@@ -10,5 +11,7 @@ src/golang.org
 src/gopkg.in
 
 vendor/
+
+output/
 
 *.log
