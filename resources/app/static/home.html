@@ -6,6 +6,10 @@
 <body style="background-color:lightGrey">
 <h1>Name-Secure</h1>
 
+<p>Current Statis
+    <div id="status"></div>
+</p>
+
 <button id="start">Start</button>
 <button id="stop">Stop</button>
 <button id="add">Add</button>
@@ -18,11 +22,13 @@ document.getElementById("start").addEventListener("click", function() {
     // This will send a message to GO
     astilectron.sendMessage("start", function(message) {
     });
+    document.getElementById("status").innerHTML = "Started";
 })
 document.getElementById("stop").addEventListener("click", function() {
     // This will send a message to GO
     astilectron.sendMessage("stop", function(message) {
     });
+    document.getElementById("status").innerHTML = "Stopped";
 })
 document.getElementById("add").addEventListener("click", function() {
     // This will send a message to GO

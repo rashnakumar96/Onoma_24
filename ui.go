@@ -15,16 +15,17 @@ import (
 
 // StartNamehelpUI starts the user interface for namehelp
 func StartNamehelpUI() {
+	// Make sure namehelp service is installed
 	command := exec.Command("sudo", "./bin/namehelp", "--service", "install")
-	// command := exec.Command("sudo", "./bin/namehelp")
 	output, err := command.Output()
 	log.WithFields(log.Fields{"output": string(output)}).Info("Command Output")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err}).Error("Namehelp has already been installed")
 	}
+
+	// Start the UI
 	Start()
-	return
 }
 
 // Start starts the app and opens the app in a window

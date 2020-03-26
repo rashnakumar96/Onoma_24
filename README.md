@@ -1,5 +1,7 @@
-# DDoH-2
+# Sub Rosa
 More software engineering version of Name-Secure
+
+[Sub Rosa](https://en.wikipedia.org/wiki/Sub_rosa)
 
 ## Build
 ```

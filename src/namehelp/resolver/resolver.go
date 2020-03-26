@@ -287,7 +287,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	defer ticker.Stop()
 	// Start lookup on each nameserver top-down, in every second
 
-	// 	to randomize the list of resolvers each time
+	// Sharding: to randomize the list of resolvers each time
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(Client.Resolvers), func(i, j int) { Client.Resolvers[i], Client.Resolvers[j] = Client.Resolvers[j], Client.Resolvers[i] })
 	log.WithFields(log.Fields{"nameservers": Client.Resolvers}).Info("These are all the client.Resolvers")
