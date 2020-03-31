@@ -483,7 +483,8 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 			"authoritative nameserver": dns.Field(authorityResourceRecord, 1),
 			"type":                     authorityResourceRecord.Header().Rrtype,
 			"ttl":                      authorityResourceRecord.Header().Ttl,
-			"rdlength":                 authorityResourceRecord.Header().Rdlength}).Debug("Authoritative name server answer")
+			"rdlength":                 authorityResourceRecord.Header().Rdlength,
+		}).Debug("Authoritative name server answer")
 
 		authoritativeNameserver = dns.Field(authorityResourceRecord, 1)
 	}
@@ -769,7 +770,7 @@ func (handler *DNSQueryHandler) checkCache(question dns.Question, cacheKey strin
 	return nil, nil, false
 }
 
-// GetCDNRedirect checkes for CNAME response from DNS message and extract the information
+// GetCDNRedirect checks for CNAME response from DNS message and extract the information
 func (handler *DNSQueryHandler) GetCDNRedirect(message *dns.Msg, doID int) (isCDNRedirect bool, cName string, authoritativeNameServer string, naiveIPAddress string) {
 	isCDNRedirect = false
 	originalNodeName := ""

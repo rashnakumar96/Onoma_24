@@ -130,7 +130,15 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 	qType := requestMessage.Question[0].Qtype
 	log.WithFields(log.Fields{"nameserver": nameserver}).Info("DoH look up at Namehelp")
 
-	responseMessage, err := Client.Resolve(requestMessage, nameserver)
+	//Match the resolverName with the resolver
+	var resolver proxy.Server
+	for _, ns := range Client.Resolvers {
+		if ns.Name == nameserver {
+			resolver = ns
+			break
+		}
+	}
+	responseMessage, err := proxy.Resolve(requestMessage, resolver)
 
 	if err != nil {
 		log.WithFields(log.Fields{

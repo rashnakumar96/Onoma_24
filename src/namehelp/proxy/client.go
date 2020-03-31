@@ -94,7 +94,7 @@ func (client *Client) AddUpstream(name string, ip string, port int) {
 }
 
 // Resolve takes byte array of query packet and return byte array of resonse packet using miekg/dns package
-func (client *Client) Resolve(requestMessage *dns.Msg, nameserver string) (*dns.Msg, error) {
+func Resolve(requestMessage *dns.Msg, resolver Server) (*dns.Msg, error) {
 
 	queryM := requestMessage
 	questions := queryM.Question
@@ -107,14 +107,6 @@ func (client *Client) Resolve(requestMessage *dns.Msg, nameserver string) (*dns.
 		"OpCode": opcode,
 	}).Debug("Query Parsed")
 
-	//Match the resolverName with the resolver
-	var resolver Server
-	for _, ns := range client.Resolvers {
-		if ns.Name == nameserver {
-			resolver = ns
-			break
-		}
-	}
 	var responseM *dns.Msg = new(dns.Msg)
 
 	// 	log.WithFields(log.Fields{"Questions": questions}).Info("List of questions passed to client")
