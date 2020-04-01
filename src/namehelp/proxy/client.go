@@ -256,6 +256,13 @@ func constructResource(answer map[string]interface{}) (dns.RR, error) {
 			Minttl:  uint32(resourceMinttl),
 		}
 		break
+	case 12:
+		// Type PTR
+		resourceBody = &dns.PTR{
+			Hdr: resourceHeader,
+			Ptr: answer["data"].(string),
+		}
+		break
 	case 15:
 		// Type MX
 		resourceData := strings.Split(answer["data"].(string), " ")
