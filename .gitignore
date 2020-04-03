@@ -2,7 +2,8 @@
 .DS_Store
 
 bin/*
-DDoH-2
+installer/
+Sub-Rosa
 
 pkg/
 

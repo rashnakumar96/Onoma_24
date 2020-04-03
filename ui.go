@@ -6,25 +6,39 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/kardianos/osext"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/asticode/go-astikit"
 	"github.com/asticode/go-astilectron"
-	"github.com/kardianos/osext"
+	bootstrap "github.com/asticode/go-astilectron-bootstrap"
 )
 
-// StartNamehelpUI starts the user interface for namehelp
-func StartNamehelpUI() {
+// path to the application
+// var pathToApp = "/Applications/Sub-Rosa.app/Contents/"
+
+var pathToApp string
+
+// Server server object
+type Server struct {
+	Started bool
+}
+
+// NamehelpServer keep track of the status of namehelp
+var NamehelpServer = Server{Started: false}
+
+// StartUI starts the user interface for namehelp
+func StartUI() {
 	// Make sure namehelp service is installed
-	command := exec.Command("sudo", "./bin/namehelp", "--service", "install")
+	command := exec.Command("/bin/sh", "-c", "sudo", "./namehelp", "--service", "install")
 	output, err := command.Output()
 	log.WithFields(log.Fields{"output": string(output)}).Info("Command Output")
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err}).Error("Namehelp has already been installed")
+		log.WithFields(log.Fields{"error": err}).Error("Sub-Rosa has already been installed")
 	}
 
 	// Start the UI
+	log.Info("Starting UI")
 	Start()
 }
 
@@ -34,20 +48,20 @@ func Start() {
 	if err != nil {
 		panic(err)
 	}
-	execPath := path.Dir(exe)
+	exeDir := path.Dir(exe)
+	pathToApp = path.Dir(exeDir)
+
+	// TODO: rework all path using Asset
 
 	// Create astilectron
 	App, err := astilectron.New(log.New(), astilectron.Options{
-		AppName:            "DDoH-2",
-		AppIconDarwinPath:  filepath.Join(execPath, "resources", "icon.icns"),
-		AppIconDefaultPath: filepath.Join(execPath, "resources", "icon.png"),
+		AppName:            "Sub-Rosa",
+		AppIconDarwinPath:  filepath.Join(pathToApp, "Resources", "icon.icns"),
+		AppIconDefaultPath: filepath.Join(pathToApp, "Resources", "icon.png"),
 	})
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Fatal("Creating astilectron failed")
 	}
-
-	// Handle signals
-	// App.HandleSignals()
 
 	// Start
 	err = App.Start()
@@ -55,7 +69,7 @@ func Start() {
 		log.WithFields(log.Fields{"error": err}).Fatal("Starting astilectron failed")
 	}
 
-	indexPath := filepath.Join(execPath, "resources", "app", "static", "home.html")
+	indexPath := filepath.Join(pathToApp, "Resources", "app", "home.html")
 
 	Window, err := App.NewWindow(indexPath, &astilectron.WindowOptions{
 		Center: astikit.BoolPtr(true),
@@ -91,17 +105,40 @@ func Start() {
 		return nil
 	})
 
+	// Get the current status of namehelp
+	command := exec.Command("pgrep", "namehelp")
+	output, err := command.Output()
+	log.WithFields(log.Fields{"output": string(output)}).Info("Command Output")
+	if err != nil {
+		// Not already running
+		NamehelpServer.Started = false
+	} else {
+		NamehelpServer.Started = true
+	}
+
+	// send backend server status to frontend
+	Window.SendMessage(NamehelpServer.Started)
+
 	// Blocking pattern
 	App.Wait()
 }
 
-// Server server object
-type Server struct {
-	Started bool
-}
+func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
+	log.WithFields(log.Fields{"message": m.Name}).Info("Message Received")
 
-// NamehelpServer keep track of the status of namehelp
-var NamehelpServer = Server{Started: false}
+	switch m.Name {
+	case "start":
+		handleStart()
+		break
+	case "stop":
+		handleStop()
+		break
+	case "add":
+		// TODO: handle hadd resolver
+		break
+	}
+	return
+}
 
 func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
@@ -117,7 +154,7 @@ func handleStart() {
 			"method": "POST",
 			"error":  "Already Started"}).Error("Handle button: error")
 	} else {
-		command := exec.Command("sudo", "./bin/namehelp", "--service", "start")
+		command := exec.Command("/bin/sh", "-c", "sudo", filepath.Join(pathToApp, "MacOS", "namehelp"), "--service", "start")
 		// command := exec.Command("sudo", "./bin/namehelp")
 		output, err := command.Output()
 		log.WithFields(log.Fields{"output": string(output)}).Info("Command Output")
@@ -142,7 +179,7 @@ func handleStop() {
 			"method": "POST",
 			"error":  "Already Stopped"}).Error("Handle button: error")
 	} else {
-		command := exec.Command("sudo", "./bin/namehelp", "--service", "stop")
+		command := exec.Command("/bin/sh", "-c", "sudo", filepath.Join(pathToApp, "MacOS", "namehelp"), "--service", "stop")
 		output, err := command.Output()
 		log.WithFields(log.Fields{"output": string(output)}).Info("Command Output")
 		if err != nil {
