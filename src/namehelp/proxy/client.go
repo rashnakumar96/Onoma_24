@@ -89,8 +89,33 @@ func (client *Client) Init(ip string, port int) {
 func (client *Client) AddUpstream(name string, ip string, port int) {
 	var server Server
 	server.Name = name
-	server.Init(ip, port)
+	server.Init(ip, port, false)
 	client.Resolvers = append(client.Resolvers, server)
+}
+
+// RemoveUpstream removes upstream server from client resolvers
+func (client *Client) RemoveUpstream(name string) {
+	var server Server
+	var index int
+	var found bool = false
+	for index, server = range client.Resolvers {
+		if server.Name == name {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		log.WithFields(log.Fields{"name": server.Name}).Info("Resolver not found")
+		return
+	}
+	if server.Default {
+		log.WithFields(log.Fields{"name": server.Name}).Info("Client trying to remove builtin resolver")
+		return
+	}
+
+	log.WithFields(log.Fields{"name": server.Name}).Info("Removing resolver")
+	client.Resolvers = append(client.Resolvers[:index], client.Resolvers[index+1:]...)
 }
 
 // Resolve takes byte array of query packet and return byte array of resonse packet using miekg/dns package

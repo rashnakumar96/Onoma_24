@@ -274,6 +274,21 @@ func (resolver *Resolver) LookupAtNameserver(net string, requestMessage *dns.Msg
 	}
 }
 
+// Shard generates a random set of nameservers for the client to use
+// Returns a random subset of all DoH resolvers
+func (resolver *Resolver) Shard() []proxy.Server {
+	rand.Seed(time.Now().UnixNano())
+
+	// Sharding: to randomize the list of resolvers each time
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(Client.Resolvers), func(i, j int) { Client.Resolvers[i], Client.Resolvers[j] = Client.Resolvers[j], Client.Resolvers[i] })
+	log.WithFields(log.Fields{"nameservers": Client.Resolvers}).Info("These are all the client.Resolvers")
+
+	cutOff := rand.Intn(len(Client.Resolvers)-1) + 1
+
+	return Client.Resolvers[:cutOff]
+}
+
 // LookupAtNameservers asks each nameserver in top-to-bottom fashion
 // Starts a new request on every interval tick
 // Will return as early as possible (have an answer)
@@ -295,13 +310,10 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	defer ticker.Stop()
 	// Start lookup on each nameserver top-down, in every second
 
-	// Sharding: to randomize the list of resolvers each time
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(Client.Resolvers), func(i, j int) { Client.Resolvers[i], Client.Resolvers[j] = Client.Resolvers[j], Client.Resolvers[i] })
-	log.WithFields(log.Fields{"nameservers": Client.Resolvers}).Info("These are all the client.Resolvers")
+	resolvers := resolver.Shard()
 
 	// for _, nameserver := range nameservers {
-	for _, nameserver := range Client.Resolvers {
+	for _, nameserver := range resolvers {
 		if strings.Contains(nameserver.Name, "127.0.0.1") {
 			continue // don't send query to yourself (infinite recursion sort of)
 		}
