@@ -284,6 +284,8 @@ func (resolver *Resolver) Shard() []proxy.Server {
 	rand.Shuffle(len(Client.Resolvers), func(i, j int) { Client.Resolvers[i], Client.Resolvers[j] = Client.Resolvers[j], Client.Resolvers[i] })
 	log.WithFields(log.Fields{"nameservers": Client.Resolvers}).Info("These are all the client.Resolvers")
 
+	// Make sure at least one resolver is included
+	// Also try to make at least one resolver not selected
 	cutOff := rand.Intn(len(Client.Resolvers)-1) + 1
 
 	return Client.Resolvers[:cutOff]
