@@ -19,6 +19,9 @@ type Server struct {
 	// name of the resolver
 	Name string
 
+	// system default server cannot be removed
+	Default bool
+
 	// upstream resolver
 	// IP for DNS, url for DoH
 	Upstream string
@@ -35,10 +38,11 @@ type Server struct {
 }
 
 // Init initialize server
-func (server *Server) Init(upstream string, port int) {
+func (server *Server) Init(upstream string, port int, clientAdded bool) {
 
 	server.Upstream = upstream
 	server.Port = port
+	server.Default = !clientAdded
 	server.ShutDown = make(chan os.Signal)
 
 	log.SetFormatter(&log.TextFormatter{ForceColors: true})
