@@ -1,4 +1,4 @@
-Collect all unicaste adrresses of DoH servers from a loaction by running **dohServers.py**, stores results in **dohServers.json**.
-Run resolverDistance.py to calculate min ping to the dohServers and local resolvers from a location, stores results in resolverDistance.json
-harCollection.py downloads harFile of each of the website in USalexatop50.txt and extracts unique resources from each harFile and stores in USalexatop50Resources.json
-resolverPerformance.py finds resolution time of each unique resource in USalexatop50Resources.json using different resolvers (local + DoH), stores results in resourcesResolveTime.json
+- Collect all unicaste adrresses of DoH servers from a loaction by running **dohServers.py**, stores results in **dohServers.json**.
+- Run **resolverDistance.py** to calculate min ping to the dohServers and local resolvers from a location, stores results in **resolverDistance.json**
+- **harCollection.py** downloads harFile of each of the website in **USalexatop50.txt** and extracts unique resources from each harFile and stores in **USalexatop50Resources.json**
+- **resolverPerformance.py** finds resolution time of each unique resource in **USalexatop50Resources.json** using different resolvers (local + DoH), stores results in **resourcesResolveTime.json**
