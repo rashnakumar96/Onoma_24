@@ -48,7 +48,7 @@ function getOS() {
       os = 'Android';
     } else if (!os && /Linux/.test(platform)) {
       os = 'Linux';
-    }
+    } 
   
     return os;
   }
