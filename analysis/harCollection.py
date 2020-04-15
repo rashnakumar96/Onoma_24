@@ -3,7 +3,7 @@ import json
 from browsermobproxy import Server
 import os, time
 
-project_path = "/Users/alexliu/Desktop/github/Sub-Rosa/analysis"
+project_path = os.getcwd()
 
 class Har_generator:
 	def __init__(self):
