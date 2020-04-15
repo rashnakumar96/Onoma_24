@@ -30,7 +30,7 @@ for resolver in dohServers:
 		calcMinPing(resolver,server,resolverDistance)
 		count=count+1
 	with open('resolverDistance.json', 'w') as fp:
-		json.dump(resolverDistance,fp)
+		json.dump(resolverDistance, fp, indent=4)
 
 resolverDistance["localResolvers"]={}
 print ("Calculating network Distance of local Resolvers")
@@ -39,6 +39,6 @@ for server in localResolvers:
 	calcMinPing("localResolvers",server,resolverDistance)		
 
 with open('resolverDistance.json', 'w') as fp:
-	json.dump(resolverDistance,fp)
+	json.dump(resolverDistance, fp, indent=4)
 
 	

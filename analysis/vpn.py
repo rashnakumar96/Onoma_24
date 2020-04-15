@@ -117,6 +117,9 @@ def do_crawl():
 
   start_time = time.time()
 
+  # Code to be executed during VPN
+
+  duration = time.time() - start_time
 
   kill_vpn()
   return 

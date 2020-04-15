@@ -59,7 +59,7 @@ def websitesResolveTime():
 		ResolveDNS("129.105.49.1",site,'A',dohPerformance)
 		ResolveDNS("165.124.49.21",site,'A',dohPerformance)
 	with open("websitesResolveTime.json",'w') as fp:
-		json.dump(dohPerformance,fp)
+		json.dump(dohPerformance, fp, indent=4)
 
 
 # Resolution time of each unique resource in alexa top 50 websites of a country using different resolvers
@@ -95,5 +95,5 @@ def resourcesResolveTime():
 			print (domain)
 			print (str(e))
 	with open("resourcesResolveTime.json",'w') as fp:
-		json.dump(dohPerformance,fp)
+		json.dump(dohPerformance, fp, indent=4)
 resourcesResolveTime()
