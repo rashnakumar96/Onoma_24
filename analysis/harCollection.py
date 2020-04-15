@@ -3,9 +3,11 @@ import json
 from browsermobproxy import Server
 import os
 
+project_path = "/Users/alexliu/Desktop/github/Sub-Rosa/analysis"
+
 # Pass this function the site whose har file we want to download
 def downloadHar(site):
-	server = Server("/home/rashna/Downloads/browsermob-proxy-2.1.4-bin/browsermob-proxy-2.1.4/bin/browsermob-proxy", options={'port':9090})
+	server = Server(project_path+"/browsermob-proxy-2.1.4/bin/browsermob-proxy", options={'port':9090})
 	server.start()
 	proxy = server.create_proxy()
 
@@ -19,7 +21,7 @@ def downloadHar(site):
 		proxy.new_har("google")
 		driver.get("http://"+site)
 		with open(name+'.har', 'w') as har_file:
-			json.dump(proxy.har, har_file)
+			json.dump(proxy.har, har_file, indent=4)
 	except Exception as e:
 		print(str(e))
 
@@ -35,7 +37,7 @@ def harCollection():
 
 	x=0
 	for site in topSites:
-		print(100*x/len(topSites), " \% complete")
+		print(100*x/len(topSites), " %% complete")
 		downloadHar(site)
 		x=x+1
 
@@ -43,7 +45,7 @@ def harCollection():
 def collectResources():
 	harFiles=[]
 	uniqueDomains=[]
-	for file in os.listdir("/Users/rashnakumar/Documents/DoH/Sub-Rosa/harCollection"):
+	for file in os.listdir(project_path):
 	    if file.endswith(".har"):
 	        harFiles.append(file)
 	print (len(harFiles))
@@ -56,5 +58,6 @@ def collectResources():
 	print (uniqueDomains)
 	print (len(uniqueDomains))
 	with open('USalexatop50Resources.json','w') as f:
-		json.dump(uniqueDomains,f)
+		json.dump(uniqueDomains, f, indent=4)
+
 collectResources()

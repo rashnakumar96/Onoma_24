@@ -27,11 +27,11 @@ def Resolve(resolverName,server,reqType,dohServers):
 dohServers=json.load(open('dohServers.json'))
 x=1
 duration=86400
-for x in range (duration):
+for x in range(duration):
 	print (100*x/duration," \% completed")
 	Resolve("Google","8.8.8.8/resolve",'A',dohServers)
 	Resolve("Cloudflare","1.1.1.1/dns-query",'A',dohServers)
 	Resolve("Quad9","9.9.9.9:5053/dns-query",'A',dohServers)
 	if x%10==0:
 		with open("dohServers.json",'w') as fp:
-			json.dump(dohServers,fp)
+			json.dump(dohServers,fp,indent=4)

@@ -10,10 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"namehelp/proxy"
+	// "namehelp/proxy"
 	"namehelp/settings"
 	"namehelp/utils"
 
+	proxy "github.com/alexthemonk/DoH_Proxy"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 )
@@ -138,7 +139,7 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 			break
 		}
 	}
-	responseMessage, err := proxy.Resolve(requestMessage, resolver)
+	responseMessage, err := Client.Resolve(requestMessage, resolver)
 
 	if err != nil {
 		log.WithFields(log.Fields{
