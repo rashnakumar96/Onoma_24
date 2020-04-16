@@ -5,8 +5,6 @@ import dns
 # from dnslib import DNSRecord
 import dns.resolver
 
-
-
 _urlopen = urllib.request.urlopen
 _Request = urllib.request.Request
 

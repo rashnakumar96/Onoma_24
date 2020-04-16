@@ -1,37 +1,70 @@
-import json
+import json, os
 import urllib.request
 
 _urlopen = urllib.request.urlopen
 _Request = urllib.request.Request
 
-def Resolve(resolverName,server,reqType,dohServers):
-	site="test.ana-aqualab.cs.northwestern.edu"
-	if resolverName not in dohServers:
-		dohServers[resolverName]=[]
-	try:
-		req = _Request("https://%s?name=%s&type=%s" % (server,site,reqType), headers={"Accept": "application/dns-json"})
-		content = _urlopen(req).read().decode()
-		reply = json.loads(content)
-		# print ('REPLY FROM RESOLVER: ',reply)
-		if "Answer" in reply:
-			answer = reply["Answer"]
-			retval = [_["data"] for _ in answer]
-			for ip in retval:
-				if ip not in dohServers[resolverName]:
-					dohServers[resolverName].append(ip)
-					print ("New server ip discovered of ",resolverName)
-	except Exception as e:
-		print (str(e))
+ana_url="test.ana-aqualab.cs.northwestern.edu"
 
-# This script runs for approximately a day and collects all the unicast servers of the 3 DoH resolvers from a particular location
-dohServers=json.load(open('dohServers.json'))
-x=1
-duration=86400
-for x in range(duration):
-	print (100*x/duration," \% completed")
-	Resolve("Google","8.8.8.8/resolve",'A',dohServers)
-	Resolve("Cloudflare","1.1.1.1/dns-query",'A',dohServers)
-	Resolve("Quad9","9.9.9.9:5053/dns-query",'A',dohServers)
-	if x%10==0:
-		with open("dohServers.json",'w') as fp:
-			json.dump(dohServers,fp,indent=4)
+project_path = os.getcwd()
+
+class Resolver_collector:
+	# initialize result dictionary with a list of resolver names
+	# resolvers: dictionary with keys as resolver name and value as resolver url
+	def __init__(self, resolvers):
+		self.resolvers = resolvers
+		self.resolver_ips = {}
+
+		for resolver in self.resolvers:
+			self.resolver_ips[resolver] = set()
+
+	def resolve(self, resolver, type):
+		if resolver not in resolvers:
+			print("ERROR: unsupported resolver")
+			return
+		server = resolvers[resolver]
+
+		try:
+			req = _Request("https://%s?name=%s&type=%s" % (server, ana_url, type), headers={"Accept": "application/dns-json"})
+			content = _urlopen(req).read().decode()
+			reply = json.loads(content)
+			print ('%s REPLY FROM RESOLVER: %s' % (resolver, reply))
+			if "Answer" in reply:
+				answer = reply["Answer"]
+				retval = [_["data"] for _ in answer]
+				for ip in retval:
+					self.resolver_ips[resolver].add(ip)
+		except Exception as e:
+			print(str(e))
+
+	def collect_all(self):
+		for resolver in self.resolvers:
+			self.resolve(resolver, 'A')
+	
+	def dump(self, fn):
+		ip_dir = project_path + "/server_ips"
+		if not os.path.exists(ip_dir):
+			os.mkdir(ip_dir)
+		
+		for resolver in self.resolver_ips:
+			self.resolver_ips[resolver] = list(self.resolver_ips[resolver])
+
+		with open(ip_dir+'/'+fn, 'w') as f:
+			json.dump(self.resolver_ips, f, indent=4)
+
+if __name__ == "__main__":
+	# This script runs for approximately a day and collects all the unicast servers of the 3 DoH resolvers from a particular location
+	x = 1
+
+	country = input("Enter alpha-2 country code: ")
+
+	resolvers = {
+		"Google": "8.8.8.8/resolve", 
+		"Cloudflare": "1.1.1.1/dns-query", 
+		"Quad9": "9.9.9.9:5053/dns-query"
+	}
+
+	rc = Resolver_collector(resolvers)
+
+	rc.collect_all()
+	rc.dump(country+"_resources.json")
