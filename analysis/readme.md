@@ -2,3 +2,4 @@
 - Run **resolverDistance.py** to calculate min ping to the dohServers and local resolvers from a location, stores results in **resolverDistance.json**
 - **harCollection.py** downloads harFile of each of the website in **USalexatop50.txt** and extracts unique resources from each harFile and stores in **USalexatop50Resources.json**
 - **resolverPerformance.py** finds resolution time of each unique resource in **USalexatop50Resources.json** using different resolvers (local + DoH), stores results in **resourcesResolveTime.json**
+- **runLighthouse.js** takes as input the Alexatop50 sites and uses the tool lighthouse to run performance test on each website and returns a json file for each website consisting of the performance results.
