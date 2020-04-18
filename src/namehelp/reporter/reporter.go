@@ -11,6 +11,11 @@ type Reporter struct {
 }
 
 // NewReporter declare and initialize a reporter
-func NewReporter() {
+func NewReporter() *Reporter {
 	fmt.Println("TODO")
+
+	reporter := Reporter{
+		Source: "127.0.0.1",
+	}
+	return &reporter
 }

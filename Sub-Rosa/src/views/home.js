@@ -30,6 +30,20 @@ document.getElementById("stop").addEventListener("click", function(){
     });
 });
 
+document.getElementById("install").addEventListener("click", function(){
+    sudo.exec(path.join(projectSrc, "bin", getOS(), "namehelp --service install"), options, function(error, stdout, stderr) {
+        if (error) throw error;
+        console.log('stdout: ' + stdout);
+    });
+});
+
+document.getElementById("uninstall").addEventListener("click", function(){
+    sudo.exec(path.join(projectSrc, "bin", getOS(), "namehelp --service uninstall"), options, function(error, stdout, stderr) {
+        if (error) throw error;
+        console.log('stdout: ' + stdout);
+    });
+});
+
 function getOS() {
     var userAgent = window.navigator.userAgent,
         platform = window.navigator.platform,

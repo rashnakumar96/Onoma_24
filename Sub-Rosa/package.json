@@ -11,7 +11,9 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make",
+    "make-mac": "electron-forge make --platform=darwin",
+    "make-linux": "electron-forge make --platform=linux --arch=ia32,x64",
+    "make-windows": "electron-forge make --platform=win32 --arch=ia32,x64",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\""
   },
@@ -23,36 +25,38 @@
   "license": "MIT",
   "config": {
     "forge": {
+      "make_targets": {
+        "win32": [
+          "squirrel"
+        ],
+        "darwin": [
+          "dmg"
+        ],
+        "linux": [
+          "deb"
+        ]
+      },
       "packagerConfig": {
         "name": "Sub-Rosa",
-        "osxSign": true,
-        "comment": "TODO: need to generate Apple developer id"
+        "osxSign": {
+          "identity": "Developer ID Application: Shucheng Liu (NQLJVMV784)"
+        }
       },
       "makers": [
         {
-          "name": "@electron-forge/maker-dmg",
-          "config": {
-            "platforms": [
-              "darwin"
-            ]
-          }
+          "name": "@electron-forge/maker-zip"
         },
         {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "certificateFile": "./cert.pfx",
-            "certificatePassword": "this-is-a-secret",
-            "comment": "TODO: need to generate windows certificate"
-          }
+          "name": "@electron-forge/maker-dmg",
+          "config": {}
+        },
+        {
+          "name": "@electron-forge/maker-squirrel", 
+          "config": {}
         },
         {
           "name": "@electron-forge/maker-deb",
-          "config": {
-            "options": {
-              "maintainer": "Alex Liu",
-              "homepage": "https://example.com"
-            }
-          }
+          "config": {}
         }
       ]
     }
