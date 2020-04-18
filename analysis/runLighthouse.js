@@ -9,7 +9,6 @@ function launchChromeAndRunLighthouse(url, opts,config = null) {
     opts.port = chrome.port;
     
     return lighthouse(url, opts, config).then(results => {
-      console.log("Inside second")
 
         return chrome.kill().then(() => results.report)
     }).catch((err)=>{console.log("Lighthouse threw an error with the url ",url);
@@ -24,16 +23,12 @@ const opts = {
   // maxWaitForLoad:['45000']
 };
 
-var topSites=JSON.parse(fs.readFileSync('USalexatop50.json'),'utf8')
-  
-// Usage:
-// var url='http://microsoftonline.com'
+
 function measureWebsitePerformance(i){
   if (i<topSites.length){
     var url="http://"+topSites[i]
     console.log(url)
     launchChromeAndRunLighthouse(url,opts).then(results => {
-  // Use results!
       if (!fs.existsSync("lighthouseResults/")){
         fs.mkdirSync("lighthouseResults/")
       }
@@ -43,7 +38,6 @@ function measureWebsitePerformance(i){
         }
         else{
           console.log("finished running web performance on link",i)
-          // url="http://google.com"
           measureWebsitePerformance(i+1)
         }
       });
@@ -55,4 +49,12 @@ function measureWebsitePerformance(i){
   }
 
 }
+
+// var topSites=JSON.parse(fs.readFileSync('USalexatop50.json'),'utf8')
+var topSites=[]
+const data=fs.readFileSync('USalexatop50.txt','UTF-8')
+const lines=data.split(/\r?\n/);
+lines.forEach((line)=>{
+  if (line!='') topSites.push(line);
+});
 measureWebsitePerformance(0)
