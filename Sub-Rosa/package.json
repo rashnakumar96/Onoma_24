@@ -1,11 +1,11 @@
 {
   "name": "sub-rosa",
   "productName": "sub-rosa",
-  "version": "1.0.0",
+  "version": "v0.0.0-beta.v1",
   "description": "My Electron application description",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alexthemonk/Sub-Rosa.git"
+    "url": "https://github.com/alexthemonk/Sub-Rosa"
   },
   "main": "src/app.js",
   "scripts": {
@@ -27,7 +27,7 @@
     "forge": {
       "make_targets": {
         "win32": [
-          "squirrel"
+          "zip"
         ],
         "darwin": [
           "dmg"
