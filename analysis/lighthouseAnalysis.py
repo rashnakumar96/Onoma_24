@@ -140,35 +140,37 @@ def lighthouseBoxPlot(resultFile,metric):
 	ax.get_xaxis().tick_bottom()
 	ax.get_yaxis().tick_left()
 	# Save the figure
+	folderToCreate='graphs'
+	if not(os.path.exists(os.getcwd()+os.sep+folderToCreate)):
+		os.mkdir("./graphs")
 	fig.savefig('graphs/'+metric+'BoxPlot.png', bbox_inches='tight')
 
-def main():
 #########################################################
 # Uncomment the following lines to obtain a single json file consisting of page load metrics for each approach
-	# results={}
-	# lighthouseAnalysis("lighthouseResultsLocalR",results)
-	# lighthouseAnalysis("lighthouseResultsSubRosa",results)
-	# lighthouseAnalysis("lighthouseResultsDoHProxy",results)
-	# with open("lighthouseAnalysis.json",'w') as fp:
-	# 	json.dump(results,fp)
+# results={}
+# lighthouseAnalysis("lighthouseResultsLocalR",results)
+# lighthouseAnalysis("lighthouseResultsSubRosa",results)
+# lighthouseAnalysis("lighthouseResultsDoHProxy",results)
+# with open("lighthouseAnalysis.json",'w') as fp:
+# 	json.dump(results,fp)
 
 #########################################################
 # Uncomment the following lines to obtain a scatter plot of each metric
-	# lighthousePlots("lighthouseAnalysis.json","timeToFirstByte")
-	# lighthousePlots("lighthouseAnalysis.json","speedIndex")
-	# lighthousePlots("lighthouseAnalysis.json","interactive")
-	# lighthousePlots("lighthouseAnalysis.json","firstContentfulPaint")
-	# lighthousePlots("lighthouseAnalysis.json","firstMeaningfulPaint")
+# lighthousePlots("lighthouseAnalysis.json","timeToFirstByte")
+# lighthousePlots("lighthouseAnalysis.json","speedIndex")
+# lighthousePlots("lighthouseAnalysis.json","interactive")
+# lighthousePlots("lighthouseAnalysis.json","firstContentfulPaint")
+# lighthousePlots("lighthouseAnalysis.json","firstMeaningfulPaint")
 
 
 
 #########################################################
 # Uncomment the following lines to obtain a box plot of each metric
-	# lighthouseBoxPlots("lighthouseAnalysis.json","timeToFirstByte")
-	# lighthouseBoxPlots("lighthouseAnalysis.json","speedIndex")
-	# lighthouseBoxPlots("lighthouseAnalysis.json","interactive")
-	# lighthouseBoxPlots("lighthouseAnalysis.json","firstContentfulPaint")
-	lighthouseBoxPlot("lighthouseAnalysis.json","firstMeaningfulPaint")
+# lighthouseBoxPlots("lighthouseAnalysis.json","timeToFirstByte")
+# lighthouseBoxPlots("lighthouseAnalysis.json","speedIndex")
+# lighthouseBoxPlots("lighthouseAnalysis.json","interactive")
+# lighthouseBoxPlots("lighthouseAnalysis.json","firstContentfulPaint")
+lighthouseBoxPlot("lighthouseAnalysis.json","firstMeaningfulPaint")
 
 
 
