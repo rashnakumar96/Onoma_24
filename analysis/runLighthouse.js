@@ -1,3 +1,8 @@
+//To install lighthouse run the following commands:
+// 1. brew install yarn
+// 2. yarn global add lighthouse 
+
+
 'use strict';
 const lighthouse = require('lighthouse');
 const chromeLauncher = require('chrome-launcher');
@@ -18,27 +23,27 @@ function launchChromeAndRunLighthouse(url, opts,config = null) {
 }
 
 const opts = {
-  chromeFlags: ['--headless'],
+  // uncomment the next line if want to run tests in headless mode
+  // chromeFlags: ['--headless'],
   onlyCategories: ['performance']
-  // maxWaitForLoad:['45000']
 };
 
 
-function measureWebsitePerformance(i){
+function measureWebsitePerformance(i,dir){
   if (i<topSites.length){
     var url="http://"+topSites[i]
     console.log(url)
     launchChromeAndRunLighthouse(url,opts).then(results => {
-      if (!fs.existsSync("lighthouseResults/")){
-        fs.mkdirSync("lighthouseResults/")
+      if (!fs.existsSync(dir)){
+        fs.mkdirSync(dir)
       }
-      fs.writeFile('lighthouseResults/'+topSites[i]+'Lighthouse.json',results,(err)=>{
+      fs.writeFile(dir+topSites[i]+'Lighthouse.json',results,(err)=>{
         if (err){
           console.log('Error in writting Data to file',err);
         }
         else{
           console.log("finished running web performance on link",i)
-          measureWebsitePerformance(i+1)
+          measureWebsitePerformance(i+1,dir)
         }
       });
     })
@@ -57,4 +62,14 @@ const lines=data.split(/\r?\n/);
 lines.forEach((line)=>{
   if (line!='') topSites.push(line);
 });
-measureWebsitePerformance(0)
+
+
+//Execute the three calls by setting the DNS resolver accordingly
+// measureWebsitePerformance(0,"lighthouseResultsLocalR/")
+// measureWebsitePerformance(0,"lighthouseResultsSubRosa/")
+// measureWebsitePerformance(0,"lighthouseResultsDoHProxy/")
+measureWebsitePerformance(0,"lighthouseResultsGoogleDoH/")
+
+
+
+
