@@ -278,8 +278,6 @@ func (resolver *Resolver) LookupAtNameserver(net string, requestMessage *dns.Msg
 // Shard generates a random set of nameservers for the client to use
 // Returns a random subset of all DoH resolvers
 func (resolver *Resolver) Shard() []proxy.Server {
-	rand.Seed(time.Now().UnixNano())
-
 	// Sharding: to randomize the list of resolvers each time
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(Client.Resolvers), func(i, j int) { Client.Resolvers[i], Client.Resolvers[j] = Client.Resolvers[j], Client.Resolvers[i] })

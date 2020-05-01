@@ -9,11 +9,6 @@ var options = {
 var projectSrc = __dirname.split('/').slice(0, -1).join('/');
 console.log(projectSrc);
 
-sudo.exec(path.join(projectSrc, "bin", getOS(), "namehelp --service install"), options, function(error, stdout, stderr) {
-    if (error) throw error;
-    console.log('stdout: ' + stdout);
-});
-
 document.getElementById("start").addEventListener("click", function(){
     alert("Starting Sub-Rosa Service");
     sudo.exec(path.join(projectSrc, "bin", getOS(), "namehelp --service start"), options, function(error, stdout, stderr) {

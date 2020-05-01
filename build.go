@@ -1,5 +1,7 @@
 package main
 
+//go:generate go get -u github.com/alexthemonk/DoH_Proxy
+
 //go:generate go build -o bin/namehelp namehelp
 //go:generate env GOOS=darwin GOARCH=amd64 go build -o Sub-Rosa/src/bin/MacOS/namehelp namehelp
 //go:generate env GOOS=windows GOARCH=amd64 go build -o Sub-Rosa/src/bin/Windows/namehelp namehelp

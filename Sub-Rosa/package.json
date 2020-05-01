@@ -1,11 +1,11 @@
 {
   "name": "sub-rosa",
   "productName": "sub-rosa",
-  "version": "v0.0.0-beta.v1",
+  "version": "v0.0.3-beta",
   "description": "My Electron application description",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alexthemonk/Sub-Rosa"
+    "url": "https://github.com/alexthemonk/Sub-Rosa-Release"
   },
   "main": "src/app.js",
   "scripts": {
@@ -30,14 +30,18 @@
           "zip"
         ],
         "darwin": [
-          "dmg"
+          "dmg",
+          "pkg",
+          "zip"
         ],
         "linux": [
-          "deb"
+          "deb",
+          "zip"
         ]
       },
       "packagerConfig": {
         "name": "Sub-Rosa",
+        "icon": "resources/icon.icns", 
         "osxSign": {
           "identity": "Developer ID Application: Shucheng Liu (NQLJVMV784)"
         }
@@ -48,10 +52,18 @@
         },
         {
           "name": "@electron-forge/maker-dmg",
-          "config": {}
+          "config": {
+            "icon": "resources/icon.icns"
+          }
         },
         {
-          "name": "@electron-forge/maker-squirrel", 
+          "name": "@electron-forge/maker-pkg",
+          "config": {
+            "identity": "Developer ID Installer: Shucheng Liu (NQLJVMV784)"
+          }
+        },
+        {
+          "name": "@electron-forge/maker-squirrel",
           "config": {}
         },
         {
@@ -69,6 +81,7 @@
   "devDependencies": {
     "@electron-forge/cli": "^6.0.0-beta.50",
     "@electron-forge/maker-deb": "^6.0.0-beta.50",
+    "@electron-forge/maker-pkg": "^6.0.0-beta.50",
     "@electron-forge/maker-dmg": "^6.0.0-beta.50",
     "@electron-forge/maker-rpm": "^6.0.0-beta.50",
     "@electron-forge/maker-squirrel": "^6.0.0-beta.50",
