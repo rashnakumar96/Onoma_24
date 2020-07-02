@@ -327,6 +327,8 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 				// we need this copy in case of concurrent modification of Id
 				messageCopy := *message
 				messageCopy.Id = dnsQueryMessage.Id
+				log.WithFields(log.Fields{
+                 				"id": doID}).Info("dns_query_handler cache isHit")
 				return &messageCopy, true
 			} else if whichCache == &handler.negativeCache {
 				// negative cache
@@ -351,7 +353,6 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		//handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
 
 		// TODO need to handle the error better (see ^^)
-
 		log.WithFields(log.Fields{
 			"id":    doID,
 			"error": err.Error()}).Error("Error occured: LookupAtNameservers")
@@ -379,6 +380,10 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 
 			if authoritativeNameServer != "" {
 				// If we are conveniently provided the NS without having to ask
+				log.WithFields(log.Fields{
+                		"Authoritative Name Server":authoritativeNameServer,
+                		"question": question.String()[1:],
+                	}).Info("CDN REDIRECT")
 				cNameQuery := handler.buildCnameQuery(cName, dnsQueryMessage.Id, question.Qtype)
 				authoritativeNameserverAndPort := authoritativeNameServer + ":53"
 				betterAnswerMessage, err = handler.resolver.LookupAtNameserver(
@@ -386,13 +391,18 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 					cNameQuery,
 					authoritativeNameserverAndPort,
 					doID)
-			} else {
+			}else {
 				// If we don't know the NS
+				stime:=time.Now()
 				betterAnswerMessage, err = handler.doSimpleDirectResolutionOfCname(
 					Net,
 					answerMessage,
 					cName,
 					doID)
+				elapsed:=time.Since(stime)
+				log.WithFields(log.Fields{
+                    		"TimeofDRwithnoNS": elapsed,
+                    		"question": question.String()[1:]}).Info("Direct Resolution after contacting NS")
 			}
 
 			if err != nil {
@@ -454,20 +464,80 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 		Qtype:  dns.TypeNS,
 		Qclass: dns.ClassINET,
 	}
-	requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
 
-	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"id":    doID,
-			"error": err.Error()}).Error("Error occured: resolver lookup")
-		return nil, err
-	}
+    cacheAnswer:=new(dns.Msg)
+    responseAuthoritativeServer:=new(dns.Msg)
+
+    requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
+
+    cacheKey:=cache.KeyGen(requestAuthoritativeServer.Question[0])
+    log.WithFields(log.Fields{
+                               "question": requestAuthoritativeServer.Question[0],
+                                "cacheKey":cacheKey}).Info("Verifying CACHEEEE KEYYYYY")
+    message,whichCache,isHit:=handler.checkCache(requestAuthoritativeServer.Question[0],cacheKey,handler.whichIPVersion(requestAuthoritativeServer.Question[0]),doID)
+    log.WithFields(log.Fields{
+                                "message": message,
+                                "whichCache":whichCache,
+                                "isHit":isHit}).Info("CHECKINGGG CACHEEEE KEYYYYY")
+    cacheHit:=false
+    if isHit {
+            // handle different types of hit, then return
+            if whichCache == &handler.cache {
+                // positive cache
+                // we need this copy in case of concurrent modification of Id
+                messageCopy := *message
+                messageCopy.Id = requestAuthoritativeServer.Id
+                cacheAnswer=&messageCopy
+                cacheHit=true
+                log.WithFields(log.Fields{
+                                "id":    doID,
+                                "cache Answer": *cacheAnswer}).Info("Found NS in positive cache")
+
+            } else if whichCache == &handler.negativeCache {
+                // negative cache
+                cacheAnswer=nil
+                log.WithFields(log.Fields{
+                    "id":    doID,
+                    "cache Answer": message}).Info("In negative cache")
+                cacheHit=false
+            } else {
+                log.WithFields(log.Fields{
+                    "id":    doID,
+                    "cache": *whichCache}).Warn("Hit in unknown cache")
+                cacheAnswer=message
+                cacheHit=true
+
+            }
+    }
+    if cacheHit==false{
+
+        stime:=time.Now()
+        _responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID)
+        responseAuthoritativeServer=_responseAuthoritativeServer
+        elapsed:=time.Since(stime)
+        log.WithFields(log.Fields{
+                "FindAuthoritativeTime": elapsed,
+                "question": requestAuthoritativeServer.Question[0].String(),
+                "response": responseAuthoritativeServer.String()}).Info("CACHING NS")
+
+        if err != nil {
+            log.WithFields(log.Fields{
+                "id":    doID,
+                "error": err.Error()}).Error("Error occured: resolver lookup")
+            return nil, err
+        }
+        //Cache the authoritativeNameServer
+        handler.cacheAnswer(requestAuthoritativeServer.Question[0],responseAuthoritativeServer,handler.whichIPVersion(requestAuthoritativeServer.Question[0]),doID)
+    }else{
+        log.WithFields(log.Fields{
+                                "cache Answer": *cacheAnswer}).Info("Found Ns in cache,bypassed lookup")
+        responseAuthoritativeServer=cacheAnswer
+    }
 
 	log.WithFields(log.Fields{
 		"id":       doID,
 		"question": requestAuthoritativeServer.Question[0].String(),
-		"response": responseAuthoritativeServer.String()}).Debug("Question with full response to NS query")
+		"response": responseAuthoritativeServer.Ns}).Info("Question with full response to NS query")
 
 	authoritativeNameserver := ""
 	authoritativeNameserverAndPort := ""
@@ -528,7 +598,10 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 	// perform lookup at the authoritative name server
 
 	// TODO check cache first--might not need to do lookup...or check before we even begin direct resolution!
-
+    log.WithFields(log.Fields{
+                    		"Searched for Authoritative Name Server":authoritativeNameserverAndPort,
+                    		"question": requestAuthoritativeServer.Question[0].String(),
+                    	}).Info("CDN REDIRECT")
 	directResolutionResult, err = handler.resolver.LookupAtNameserver(
 		Net,
 		requestAFromAuthoritativeServer,
@@ -578,21 +651,27 @@ func (handler *DNSQueryHandler) do(Net string, responseWriter dns.ResponseWriter
 
 func (handler *DNSQueryHandler) cacheAnswer(question dns.Question, answerMessage *dns.Msg, ipVersion int, doID int) {
 	// cache results
-	if ipVersion > 0 && len(answerMessage.Answer) > 0 {
-		log.WithFields(log.Fields{
-			"id":       doID,
-			"question": question.String()[1:]}).Info("Caching answer")
+
+// 	if ipVersion > 0 && len(answerMessage.Answer) > 0 {
+    if len(answerMessage.Answer) > 0 {
+
+	    log.WithFields(log.Fields{
+            			"id":       doID,
+            			"question": question.String()[1:],
+            			"cache answer": answerMessage.Answer}).Info("CACHINGGGGG ANSWERRRRRRRR")
+
 		cacheKey := cache.KeyGen(question)
 		err := handler.cache.Set(cacheKey, answerMessage)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"id":       doID,
 				"question": question.String()[1:],
-				"error":    err.Error()}).Error("Caching answer error")
+				"error":    err.Error()}).Info("Caching answer error")
 		}
 		log.WithFields(log.Fields{
 			"id":       doID,
-			"question": question.String()[1:]}).Debug("Finished caching answer")
+			"question": question.String()[1:],
+			"cacheKey": cacheKey}).Info("Finished caching answer")
 	}
 }
 
@@ -741,8 +820,11 @@ func (handler *DNSQueryHandler) buildCnameQuery(cName string, id uint16, qType u
 }
 
 func (handler *DNSQueryHandler) checkCache(question dns.Question, cacheKey string, IPQuery int, doID int) (message *dns.Msg, whichCache *cache.Cache, isCacheHit bool) {
-	if IPQuery > 0 {
+// 	if IPQuery > 0 {
 		message, err := handler.cache.Get(cacheKey)
+		log.WithFields(log.Fields{
+        					"message":       message,
+        					"question": question.Name}).Info("INSIDE CHECKKKK CACHEEE")
 		if err != nil {
 			// not in positive cache
 			message, err = handler.negativeCache.Get(cacheKey) // check negative cache
@@ -766,7 +848,7 @@ func (handler *DNSQueryHandler) checkCache(question dns.Question, cacheKey strin
 				"question": question.Name}).Info("Question hit cache")
 			return message, &handler.cache, true
 		}
-	}
+// 	}
 	return nil, nil, false
 }
 
