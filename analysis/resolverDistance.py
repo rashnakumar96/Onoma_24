@@ -26,7 +26,7 @@ for resolver in dohServers:
 	print ("Calculating network Distance of ",resolver," servers")
 	count=0
 	for server in dohServers[resolver]:
-		print (100*count/len(dohServers[resolver])," \% completed")
+		print(100*count/len(dohServers[resolver])," \% completed")
 		calcMinPing(resolver,server,resolverDistance)
 		count=count+1
 	with open('resolverDistance.json', 'w') as fp:
