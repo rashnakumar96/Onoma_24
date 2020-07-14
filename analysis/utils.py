@@ -1,4 +1,6 @@
-import tldextract, json
+import tldextract, json, os
+
+project_path = os.getcwd()
 
 # Convert a url (string) to the domain name (string) of the index page
 def url_to_domain(url):

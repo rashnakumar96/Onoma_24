@@ -15,7 +15,7 @@ def lighthouseAnalysis(dirname,results):
 			try:
 				lighthouseRes=json.load(open(full_path))
 			except Exception as e:
-				print str(e)
+				print(str(e))
 				continue
 
 			site=path.split("Lighthouse")[0]
@@ -36,8 +36,7 @@ def lighthouseAnalysis(dirname,results):
 			
 
 			except Exception as e:
-				print str(e)
-
+				print(str(e))
 
 def lighthouseScatterPlots(resultFile,metric):
 	lighthouseRes=json.load(open(resultFile))

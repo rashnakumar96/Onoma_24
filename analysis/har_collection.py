@@ -3,7 +3,9 @@ import json
 from browsermobproxy import Server
 import os, time
 
-project_path = os.getcwd()
+import utils
+
+project_path = utils.project_path
 
 class Har_generator:
 	def __init__(self):
@@ -30,7 +32,7 @@ class Har_generator:
 	# returns a json har object
 	def get_har(self, site):
 		try:
-			name=site[:-4]
+			name = site[:-4]
 			self.proxy.new_har(name)
 			self.driver.get("https://"+site)
 			time.sleep(3)
@@ -57,12 +59,12 @@ class Resource_collector:
 	def __init__(self):
 		self.resources = []
 	
-	def dump(self, fn):
-		har_dir = project_path + "/resource"
-		if not os.path.exists(har_dir):
-			os.mkdir(har_dir)
-		with open(har_dir+'/'+fn, 'w') as f:
-			json.dump(self.resources, f, indent=4)
+	def dump(self, fn_prefix):
+		dump_dir = project_path + "/resource/"
+		if not os.path.exists(dump_dir):
+			os.mkdir(dump_dir)
+
+		utils.dump_json(self.resources, dump_dir + fn_prefix + "_resources.json")
 
 	# extracts all the resources from each har object
 	# takes a list of har json objects
@@ -91,7 +93,7 @@ if __name__ == "__main__":
 
 	hars = hm.get_hars(sites[:1])
 	rc.collect_resources(hars)
-	rc.dump(country+"_resources.json")
+	rc.dump(country)
 
 	del rc
 	del hm

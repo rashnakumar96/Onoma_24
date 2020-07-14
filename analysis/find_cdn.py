@@ -1,13 +1,13 @@
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
-import json, os, time
+import os, time
 import subprocess
 import tldextract
 
 import utils
 
-project_path = os.getcwd()
+project_path = utils.project_path
 
 class Url_processor:
 	def __init__(self):
@@ -23,6 +23,14 @@ class Url_processor:
 
 	def __del__(self):
 		self.driver.quit()
+
+	def dump(self, fn_prefix):
+		dump_dir = project_path + "/find_cdn/"
+		if not os.path.exists(dump_dir):
+			os.mkdir(dump_dir)
+		
+		utils.dump_json(self.cdn_mapping, dump_dir + fn_prefix + "_cdn_mapping.json")
+		utils.dump_json(self.ttb_mapping, dump_dir + fn_prefix + "_ttb_mapping.json")
 
 	# Find cdn given a file of the domains
 	# Takes a list of unique domains
@@ -123,21 +131,21 @@ class Url_processor:
 
 # load each resource with selenium (just for testing DR caching in SUB Rosa)
 def loadResourceSelenium(file):
-	resources=json.load(open(file))
+	resources = utils.load_json(file)
 	options = webdriver.ChromeOptions()
 	options.add_argument("--ignore-ssl-errors=yes")
 	options.add_argument("--ignore-certificate-errors")
 	# options.add_argument("--headless")
 
 	driver = webdriver.Chrome("/usr/local/bin/chromedriver", chrome_options=options)
-	i=0
+	i = 0
 	for cdn in resources:
 		# if "Verizon" in cdn:
-		r=0
+		r = 0
 		for resource in resources[cdn]:
-			r=r+1
+			r += 1
 		print(cdn,": ",i," : ",r)
-		i=i+1
+		i += 1
 			# 	driver.get(resource)
 			# 	time.sleep(1)
 	driver.quit()

@@ -1,15 +1,17 @@
 import json, os
 import urllib.request
 
+import utils
+
 _urlopen = urllib.request.urlopen
 _Request = urllib.request.Request
 
 ana_url="test.ana-aqualab.cs.northwestern.edu"
 
-project_path = os.getcwd()
+project_path = utils.project_path
 
 class Resolver_collector:
-	# initialize result dictionary with a list of resolver names
+	# Initialize result dictionary with a list of resolver names
 	# resolvers: dictionary with keys as resolver name and value as resolver url
 	def __init__(self, resolvers):
 		self.resolvers = resolvers
@@ -41,16 +43,15 @@ class Resolver_collector:
 		for resolver in self.resolvers:
 			self.resolve(resolver, 'A')
 	
-	def dump(self, fn):
-		ip_dir = project_path + "/server_ips"
+	def dump(self, fn_prefix):
+		ip_dir = project_path + "/server_ips/"
 		if not os.path.exists(ip_dir):
 			os.mkdir(ip_dir)
 		
 		for resolver in self.resolver_ips:
 			self.resolver_ips[resolver] = list(self.resolver_ips[resolver])
 
-		with open(ip_dir+'/'+fn, 'w') as f:
-			json.dump(self.resolver_ips, f, indent=4)
+		utils.dump_json(self.resolver_ips, ip_dir + fn_prefix + "_resources.json")
 
 if __name__ == "__main__":
 	# This script runs for approximately a day and collects all the unicast servers of the 3 DoH resolvers from a particular location
@@ -67,4 +68,4 @@ if __name__ == "__main__":
 	rc = Resolver_collector(resolvers)
 
 	rc.collect_all()
-	rc.dump(country+"_resources.json")
+	rc.dump(country)
