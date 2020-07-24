@@ -139,6 +139,8 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 			break
 		}
 	}
+	log.WithFields(log.Fields{"nameserver": resolver}).Info("DoH look up at Namehelp")
+
 	responseMessage, err := Client.Resolve(requestMessage, resolver)
 
 	if err != nil {
@@ -278,6 +280,8 @@ func (resolver *Resolver) LookupAtNameserver(net string, requestMessage *dns.Msg
 // Shard generates a random set of nameservers for the client to use
 // Returns a random subset of all DoH resolvers
 func (resolver *Resolver) Shard() []proxy.Server {
+	rand.Seed(time.Now().UnixNano())
+
 	// Sharding: to randomize the list of resolvers each time
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(Client.Resolvers), func(i, j int) { Client.Resolvers[i], Client.Resolvers[j] = Client.Resolvers[j], Client.Resolvers[i] })
@@ -295,8 +299,11 @@ func (resolver *Resolver) Shard() []proxy.Server {
 // Will return as early as possible (have an answer)
 // It returns an error if no request has succeeded.
 func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Msg, nameservers []string,
-	doID int) (resultMessage *dns.Msg, err error) {
-	nameservers = utils.AddPortToEach(nameservers, resolver.Config.Port)
+	doID int, dohEnabled bool, experiment bool) (resultMessage *dns.Msg, err error) {
+
+	if (experiment && !dohEnabled){
+		nameservers = utils.AddPortToEach(nameservers, resolver.Config.Port)
+	}
 
 	dnsClient := &dns.Client{
 		Net:          net,
@@ -310,20 +317,33 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	ticker := time.NewTicker(time.Duration(settings.NamehelpSettings.ResolvConfig.Interval) * time.Millisecond)
 	defer ticker.Stop()
 	// Start lookup on each nameserver top-down, in every second
-
-	resolvers := resolver.Shard()
+	//if resolver provided use that, otherwise shard
+	var resolvers []string
+	if (experiment){
+		resolvers=nameservers
+	}else{
+		dohResolvers := resolver.Shard()
+		for _,resolver:=range dohResolvers{
+			resolvers=append(resolvers,resolver.Name)
+		}
+	}
 
 	// for _, nameserver := range nameservers {
 	for _, nameserver := range resolvers {
-		if strings.Contains(nameserver.Name, "127.0.0.1") {
+		if strings.Contains(nameserver, "127.0.0.1") {
 			continue // don't send query to yourself (infinite recursion sort of)
 		}
 
 		// add to waitGroup and launch goroutine to do lookup
 		waitGroup.Add(1)
+		//if doh enabled use that otherwise use dnslookup 
+		if (!dohEnabled){
+			go routine_DoLookup(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
+		}else{
+			// go routine_DoLookup_DoH(nameserver.Name, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
+			go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
 
-		// go routine_DoLookup(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
-		go routine_DoLookup_DoH(nameserver.Name, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
+		}
 
 		// check for response or interval tick
 		select {
@@ -363,8 +383,9 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 // Returns dns response message
 func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int) (message *dns.Msg, err error) {
 	nameservers := resolver.Config.Servers
-
-	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID)
+    dohEnabled:=true
+    experiment:=false
+	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID,dohEnabled,experiment)
 }
 
 // Nameservers return the array of nameservers, with port number appended.
