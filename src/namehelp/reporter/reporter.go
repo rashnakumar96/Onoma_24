@@ -1,7 +1,13 @@
 package reporter
 
 import (
+	"context"
 	"fmt"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Reporter is responsible for communicating data with remote server
@@ -20,6 +26,10 @@ func NewReporter(version string) *Reporter {
 
 	reporter := Reporter{}
 	reporter.Version = version
+
+	// DB settings
+	reporter.MongoStr = "mongodb+srv://admin:admin@doh.eyeb4.mongodb.net/test?retryWrites=true&w=majority"
+
 	return &reporter
 }
 
@@ -37,6 +47,24 @@ type Schema struct {
 }
 
 // PushToMongoDB pushes data entry to the given database
-func (r *Reporter) PushToMongoDB(data interface{}) error {
+// Takes a list of data objects to be pushed
+// Each data object should be inheriting Schema
+func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, data []interface{}) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
+		r.MongoStr,
+	))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"client": client,
+			"error":  err,
+		}).Error("Creating Mongo Client failed.")
+		return err
+	}
+
+	collection := client.Database(databaseName).Collection(collectionName)
+
+	// TODO
 	return nil
 }
