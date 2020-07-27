@@ -29,6 +29,7 @@ import (
 
 
 	"namehelp/handler"
+	"namehelp/reporter"
 	"namehelp/utils"
 
 	"github.com/kardianos/osext"
@@ -62,12 +63,13 @@ type Program struct {
 	udpServer       *dns.Server
 	// smartDNSSelector *SmartDNSSelector
 	shutdownChan chan bool
+	reporter     *reporter.Reporter
 }
 
 var appConfig = Config{
 	Name:        "namehelp",
 	DisplayName: "namehelp",
-	Version:     "2.0.2",
+	Version:     "1.0.0",
 	APIURL:      "https://aquarium.aqualab.cs.northwestern.edu/",
 	BinURL:      "https://aquarium.aqualab.cs.northwestern.edu/",
 	DiffURL:     "https://aquarium.aqualab.cs.northwestern.edu/",
@@ -149,6 +151,8 @@ func (program *Program) run() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	log.Info("Starting app.")
 
+	program.initializeReporter()
+
 	err := program.launchNamehelpDNSServer()
 	if err != nil {
 		message := fmt.Sprintf(
@@ -190,6 +194,10 @@ func (program *Program) run() {
 
 	log.Info("Shutdown complete. Exiting.")
 	program.shutdownChan <- true
+}
+
+func (program *Program) initializeReporter() {
+	program.reporter = reporter.NewReporter(appConfig.Version)
 }
 
 func (program *Program) initializeDNSServers() {
