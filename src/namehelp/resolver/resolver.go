@@ -301,7 +301,7 @@ func (resolver *Resolver) Shard() []proxy.Server {
 func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Msg, nameservers []string,
 	doID int, dohEnabled bool, experiment bool) (resultMessage *dns.Msg, err error) {
 
-	if (experiment && !dohEnabled){
+	if experiment && !dohEnabled {
 		nameservers = utils.AddPortToEach(nameservers, resolver.Config.Port)
 	}
 
@@ -319,12 +319,12 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	// Start lookup on each nameserver top-down, in every second
 	//if resolver provided use that, otherwise shard
 	var resolvers []string
-	if (experiment){
-		resolvers=nameservers
-	}else{
+	if experiment {
+		resolvers = nameservers
+	} else {
 		dohResolvers := resolver.Shard()
-		for _,resolver:=range dohResolvers{
-			resolvers=append(resolvers,resolver.Name)
+		for _, resolver := range dohResolvers {
+			resolvers = append(resolvers, resolver.Name)
 		}
 	}
 
@@ -336,10 +336,10 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 
 		// add to waitGroup and launch goroutine to do lookup
 		waitGroup.Add(1)
-		//if doh enabled use that otherwise use dnslookup 
-		if (!dohEnabled){
+		//if doh enabled use that otherwise use dnslookup
+		if !dohEnabled {
 			go routine_DoLookup(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
-		}else{
+		} else {
 			// go routine_DoLookup_DoH(nameserver.Name, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
 			go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
 
@@ -383,9 +383,9 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 // Returns dns response message
 func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int) (message *dns.Msg, err error) {
 	nameservers := resolver.Config.Servers
-    dohEnabled:=true
-    experiment:=false
-	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID,dohEnabled,experiment)
+	dohEnabled := true
+	experiment := false
+	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID, dohEnabled, experiment)
 }
 
 // Nameservers return the array of nameservers, with port number appended.

@@ -4,15 +4,16 @@
 //go:generate go get -u github.com/miekg/dns/
 //go:generate go get -u github.com/sirupsen/logrus/
 
-
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"namehelp/network"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -24,9 +25,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"namehelp/network"
-	"encoding/json"
-
 
 	"namehelp/handler"
 	"namehelp/reporter"
@@ -115,7 +113,6 @@ func init() {
 	// Only log the Info level or above.
 	log.SetLevel(log.InfoLevel)
 
-
 }
 
 // Start is the Service.Interface method invoked when run with "--service start"
@@ -168,7 +165,6 @@ func (program *Program) run() {
 	networkInterfaces := reflect.ValueOf(program.oldDNSServers).MapKeys()
 	// get slice of keys
 	program.setDNSServer(utils.LOCALHOST, backupHosts, networkInterfaces)
-
 
 	// program.smartDNSSelector = NewSmartDNSSelector()
 	// going off to the new locally started DNS server for namehelp
@@ -237,111 +233,112 @@ func (program *Program) launchNamehelpDNSServer() error {
 	go program.startDNSServer(program.udpServer)
 	go program.startDNSServer(program.tcpServer)
 	// this go func does the testing as soon as SubRosa is started
-	go func(){
-		handler.Experiment=true
-		handler.DoHEnabled=true
-		dict1:= make(map[string]map[string]map[string]interface{})
-		dict2:=make(map[string]map[string]interface{})
+	go func() {
+		handler.Experiment = true
+		handler.DoHEnabled = true
+		dict1 := make(map[string]map[string]map[string]interface{})
+		dict2 := make(map[string]map[string]interface{})
 		var err error
-		iterations:=3
+		iterations := 3
 
-		handler.DoHServersToTest=[]string{"Google"}
-		time.Sleep(60*2)
+		handler.DoHServersToTest = []string{"Google"}
+		time.Sleep(60 * 2)
 		dir, err := os.Getwd()
-		outPath:= filepath.Join(dir, "WebPerformanceRes")
+		outPath := filepath.Join(dir, "WebPerformanceRes")
 		if _, err := os.Stat(outPath); os.IsNotExist(err) {
 			os.Mkdir(outPath, 0755)
 		}
-		if err!=nil{
-			log.Info("Error getting current working directory")
-		}
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1)
 		if err != nil {
-			log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+			log.Error("Error getting current working directory")
 		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"GoogleDoH")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
-
-		handler.DoHServersToTest=[]string{"Cloudflare"}
-		time.Sleep(60*2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1)
+		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
 		if err != nil {
-			log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"CloudflareDoH")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
+		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "GoogleDoH")
+		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
 
-		handler.DoHServersToTest=[]string{"Quad9"}
-		time.Sleep(60*2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1)
+		handler.DoHServersToTest = []string{"Cloudflare"}
+		time.Sleep(60 * 2)
+		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
 		if err != nil {
-			log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"Quad9DoH")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
+		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "CloudflareDoH")
+		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
 
-		handler.DoHEnabled=false
-		handler.DNSServersToTest=[]string{"8.8.8.8"}
-		time.Sleep(60*2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1)
+		handler.DoHServersToTest = []string{"Quad9"}
+		time.Sleep(60 * 2)
+		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
 		if err != nil {
-			log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"GoogleDNS")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
+		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "Quad9DoH")
+		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
 
-		handler.DNSServersToTest=[]string{"1.1.1.1"}
-		time.Sleep(60*2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1)
+		handler.DoHEnabled = false
+		handler.DNSServersToTest = []string{"8.8.8.8"}
+		time.Sleep(60 * 2)
+		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
 		if err != nil {
-			log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"CloudflareDNS")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
+		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "GoogleDNS")
+		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
 
-		handler.DNSServersToTest=[]string{"9.9.9.9"}
-		time.Sleep(60*2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1)
+		handler.DNSServersToTest = []string{"1.1.1.1"}
+		time.Sleep(60 * 2)
+		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
 		if err != nil {
-			log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"Quad9DNS")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
+		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "CloudflareDNS")
+		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
 
-		handler.DoHEnabled=true
-		handler.Experiment=false
-		handler.DoHServersToTest=[]string{"127.0.0.1"}
-		time.Sleep(60*2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1)
+		handler.DNSServersToTest = []string{"9.9.9.9"}
+		time.Sleep(60 * 2)
+		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
 		if err != nil {
-			log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"SubRosa")
+		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "Quad9DNS")
+		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
 
-		handler.DoHEnabled=false
-		handler.Experiment=true
+		handler.DoHEnabled = true
+		handler.Experiment = false
+		handler.DoHServersToTest = []string{"127.0.0.1"}
+		time.Sleep(60 * 2)
+		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
+		if err != nil {
+			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+		}
+		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "SubRosa")
+
+		handler.DoHEnabled = false
+		handler.Experiment = true
 		localDNSServers := network.DhcpGetLocalDNSServers()
-		localDNSServers=strings.Split(localDNSServers[0], ",")
-		// // for _, localdnsServer := range localDNSServers {
-		localdnsServer:=localDNSServers[0]
-		handler.DNSServersToTest=[]string{localdnsServer}
-		time.Sleep(60*2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1)
+		localDNSServers = strings.Split(localDNSServers[0], ",")
+		// for _, localdnsServer := range localDNSServers {
+		localdnsServer := localDNSServers[0]
+		handler.DNSServersToTest = []string{localdnsServer}
+		time.Sleep(60 * 2)
+		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
 		if err != nil {
-			log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"LocalR")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
+		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "LocalR")
+		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
 		// }
 		file1, _ := json.MarshalIndent(dict1, "", " ")
 		_ = ioutil.WriteFile("dnsLatencies.json", file1, 0644)
 		file2, _ := json.MarshalIndent(dict2, "", " ")
 		_ = ioutil.WriteFile("PingServers.json", file2, 0644)
 
-		//push dict1 and dict2 to server and dir WebPerformanceRes
-		//finished testing, restore setting to run SubRosa
-		handler.DoHEnabled=true
-		handler.Experiment=false
+		// push dict1 and dict2 to server and dir WebPerformanceRes
+
+		// finished testing, restore setting to run SubRosa
+		handler.DoHEnabled = true
+		handler.Experiment = false
 
 	}()
 
@@ -708,7 +705,6 @@ func main() {
 		log.WithFields(log.Fields{
 			"error": err}).Error("Namehelp has already been installed")
 	}
-	
 
 	// directly executing the program
 	err = namehelpService.Run()
@@ -716,7 +712,6 @@ func main() {
 		log.WithFields(log.Fields{
 			"error": err}).Error("Problem running service")
 	}
-	
 
 	// wait for signal from run until shut down completed
 	<-namehelpProgram.shutdownChan

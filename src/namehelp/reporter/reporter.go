@@ -49,7 +49,7 @@ type Schema struct {
 // PushToMongoDB pushes data entry to the given database
 // Takes a list of data objects to be pushed
 // Each data object should be inheriting Schema
-func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, data []interface{}) error {
+func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, data ...interface{}) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
@@ -64,6 +64,14 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 	}
 
 	collection := client.Database(databaseName).Collection(collectionName)
+
+	var operations []mongo.WriteModel
+
+	for entry := range data {
+		insert := mongo.NewInsertOneModel()
+		insert.SetDocument(entry)
+		operations = append(operations, insert)
+	}
 
 	// TODO
 	return nil
