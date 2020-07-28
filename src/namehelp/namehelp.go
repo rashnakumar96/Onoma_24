@@ -29,7 +29,6 @@ import (
 
 
 	"namehelp/handler"
-	"namehelp/reporter"
 	"namehelp/utils"
 
 	"github.com/kardianos/osext"
@@ -63,13 +62,12 @@ type Program struct {
 	udpServer       *dns.Server
 	// smartDNSSelector *SmartDNSSelector
 	shutdownChan chan bool
-	reporter     *reporter.Reporter
 }
 
 var appConfig = Config{
 	Name:        "namehelp",
 	DisplayName: "namehelp",
-	Version:     "1.0.0",
+	Version:     "2.0.2",
 	APIURL:      "https://aquarium.aqualab.cs.northwestern.edu/",
 	BinURL:      "https://aquarium.aqualab.cs.northwestern.edu/",
 	DiffURL:     "https://aquarium.aqualab.cs.northwestern.edu/",
@@ -151,8 +149,6 @@ func (program *Program) run() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	log.Info("Starting app.")
 
-	program.initializeReporter()
-
 	err := program.launchNamehelpDNSServer()
 	if err != nil {
 		message := fmt.Sprintf(
@@ -194,10 +190,6 @@ func (program *Program) run() {
 
 	log.Info("Shutdown complete. Exiting.")
 	program.shutdownChan <- true
-}
-
-func (program *Program) initializeReporter() {
-	program.reporter = reporter.NewReporter(appConfig.Version)
 }
 
 func (program *Program) initializeDNSServers() {
@@ -333,15 +325,94 @@ func (program *Program) launchNamehelpDNSServer() error {
 		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"LocalR")
 		program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
 		// }
+		
+		//finished testing, restore setting to run SubRosa
+		handler.DoHEnabled=true
+		handler.Experiment=false
+
+		approachList:=[]string{"LocalR","GoogleDoH","Quad9DoH","CloudflareDoH","SubRosa","GoogleDNS","Quad9DNS","CloudflareDNS"}
+		var dict3=make(map[string]map[string]map[string]interface{})
+
+		for _, approach := range approachList{
+			path:=outPath+"/"+approach+"/data"
+			files, err := ioutil.ReadDir(path)
+			if err != nil {
+			    log.Fatal(err)
+			}
+			dict3[approach]=make(map[string]map[string]interface{})
+			for _, f := range files {
+			    if (!strings.Contains(f.Name(), "browsertime.summary-total") && !strings.Contains(f.Name(), "browsertime.browser") && strings.Contains(f.Name(), ".json")){
+			    	fmt.Println(f.Name())
+			    	jsonFile:=path+"/"+f.Name()
+					plan, _ := ioutil.ReadFile(jsonFile)
+					var data map[string]interface{}
+					err = json.Unmarshal(plan, &data)
+			    	site:=strings.Split(strings.Split(f.Name(),"browsertime.summary-")[1],".json")[0]
+					dict3[approach][site]=make(map[string]interface{})
+					var err error
+					var found int
+
+			    	if (data["rumSpeedIndex"]!=err){
+						dict3[approach][site]["speedIndex"]=data["rumSpeedIndex"]
+			    	}else{
+			    		dict3[approach][site]["speedIndex"]=-1
+			    	}
+
+			    	found=0
+			    	for key, value := range data["pageTimings"].(map[string]interface{}) {
+						if key=="pageLoadTime"{
+							dict3[approach][site]["pageLoadTime"]=value
+							found=1
+						}
+					}
+					if found==0{
+						dict3[approach][site]["pageLoadTime"]=-1
+					}
+
+			    	found=0
+					for key, value := range data["navigationTiming"].(map[string]interface{}) {
+						if key=="domInteractive"{
+							dict3[approach][site]["domInteractive"]=value
+							found=1
+						}
+					}
+					if found==0{
+						dict3[approach][site]["domInteractive"]=-1
+
+					}
+			    	
+			    	if (data["firstPaint"]!=err){
+						dict3[approach][site]["firstPaint"]=data["firstPaint"]
+			    	}else{
+			    		dict3[approach][site]["firstPaint"]=-1
+			    	}
+			    	
+			    	found=0
+			    	for key, value := range data["timings"].(map[string]interface{}) {
+						if key=="largestContentfulPaint"{
+							dict3[approach][site]["largestContentfulPaint"]=value
+							found=1
+						}
+					}
+					if found==0{
+						dict3[approach][site]["largestContentfulPaint"]=-1
+					}
+			    }
+			}
+		}
+		//push dict1, dict2 and dict3 to server 
+
 		file1, _ := json.MarshalIndent(dict1, "", " ")
 		_ = ioutil.WriteFile("dnsLatencies.json", file1, 0644)
 		file2, _ := json.MarshalIndent(dict2, "", " ")
 		_ = ioutil.WriteFile("PingServers.json", file2, 0644)
+		file3,_:=json.MarshalIndent(dict3, "", " ")
+		_ = ioutil.WriteFile("sitespeedMetrics.json", file3, 0644)
 
-		//push dict1 and dict2 to server and dir WebPerformanceRes
-		//finished testing, restore setting to run SubRosa
-		handler.DoHEnabled=true
-		handler.Experiment=false
+
+
+
+
 
 	}()
 
