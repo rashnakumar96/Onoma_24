@@ -44,12 +44,15 @@ type Schema struct {
 
 	// Version stores the current version of the client side app
 	Version string
+
+	// Data stores the actual data entry
+	Data interface{}
 }
 
 // PushToMongoDB pushes data entry to the given database
 // Takes a list of data objects to be pushed
 // Each data object should be inheriting Schema
-func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, data []interface{}) error {
+func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, data ...interface{}) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
@@ -62,9 +65,31 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		}).Error("Creating Mongo Client failed.")
 		return err
 	}
+	// TODO: move client connection to initialization to avoid redundent reconnecting
 
 	collection := client.Database(databaseName).Collection(collectionName)
 
-	// TODO
+	var operations []mongo.WriteModel
+
+	for _, entry := range data {
+		insert := mongo.NewInsertOneModel()
+		var doc Schema
+
+		doc.Country = ""
+		doc.Time = time.Now().String()
+		doc.Version = r.Version
+		doc.Data = entry
+
+		insert.SetDocument(doc)
+		operations = append(operations, insert)
+	}
+
+	collection.BulkWrite(context.Background(), operations)
+
+	log.WithFields(log.Fields{
+		"db":         databaseName,
+		"collection": collectionName,
+	}).Info("MongoDB data store finished.")
+
 	return nil
 }

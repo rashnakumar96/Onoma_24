@@ -16,3 +16,8 @@ vendor/
 output/
 
 *.log
+
+WebPerformanceRes
+dnsLatencies.json
+PingServers.json
+alexaSites.txt
