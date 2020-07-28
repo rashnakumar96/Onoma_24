@@ -44,6 +44,9 @@ type Schema struct {
 
 	// Version stores the current version of the client side app
 	Version string
+
+	// Data stores the actual data entry
+	Data interface{}
 }
 
 // PushToMongoDB pushes data entry to the given database
@@ -62,17 +65,31 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		}).Error("Creating Mongo Client failed.")
 		return err
 	}
+	// TODO: move client connection to initialization to avoid redundent reconnecting
 
 	collection := client.Database(databaseName).Collection(collectionName)
 
 	var operations []mongo.WriteModel
 
-	for entry := range data {
+	for _, entry := range data {
 		insert := mongo.NewInsertOneModel()
-		insert.SetDocument(entry)
+		var doc Schema
+
+		doc.Country = ""
+		doc.Time = time.Now().String()
+		doc.Version = r.Version
+		doc.Data = entry
+
+		insert.SetDocument(doc)
 		operations = append(operations, insert)
 	}
 
-	// TODO
+	collection.BulkWrite(context.Background(), operations)
+
+	log.WithFields(log.Fields{
+		"db":         databaseName,
+		"collection": collectionName,
+	}).Info("MongoDB data store finished.")
+
 	return nil
 }

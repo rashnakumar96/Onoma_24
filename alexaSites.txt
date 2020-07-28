@@ -1,5 +1,3 @@
-https://Google.com
 https://Youtube.com
 https://Amazon.com
 https://Facebook.com
-https://Yahoo.com

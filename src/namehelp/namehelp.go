@@ -232,6 +232,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	// start DNS servers for UDP and TCP requests
 	go program.startDNSServer(program.udpServer)
 	go program.startDNSServer(program.tcpServer)
+
 	// this go func does the testing as soon as SubRosa is started
 	go func() {
 		handler.Experiment = true
@@ -335,6 +336,8 @@ func (program *Program) launchNamehelpDNSServer() error {
 		_ = ioutil.WriteFile("PingServers.json", file2, 0644)
 
 		// push dict1 and dict2 to server and dir WebPerformanceRes
+		program.reporter.PushToMongoDB("SubRosa-Test", "DNS-Latency", dict1)
+		program.reporter.PushToMongoDB("SubRosa-Test", "Server-Ping", dict2)
 
 		// finished testing, restore setting to run SubRosa
 		handler.DoHEnabled = true
