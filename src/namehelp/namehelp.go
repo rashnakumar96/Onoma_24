@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"namehelp/handler"
-	"namehelp/utils"
 	"namehelp/reporter"
+	"namehelp/utils"
 
 	"github.com/kardianos/osext"
 	"github.com/kardianos/service"
@@ -328,93 +328,94 @@ func (program *Program) launchNamehelpDNSServer() error {
 		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "LocalR")
 		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
 		// }
-		
+
 		//finished testing, restore setting to run SubRosa
-		handler.DoHEnabled=true
-		handler.Experiment=false
+		handler.DoHEnabled = true
+		handler.Experiment = false
 
-		approachList:=[]string{"LocalR","GoogleDoH","Quad9DoH","CloudflareDoH","SubRosa","GoogleDNS","Quad9DNS","CloudflareDNS"}
-		var dict3=make(map[string]map[string]map[string]interface{})
+		approachList := []string{"LocalR", "GoogleDoH", "Quad9DoH", "CloudflareDoH", "SubRosa", "GoogleDNS", "Quad9DNS", "CloudflareDNS"}
+		var dict3 = make(map[string]map[string]map[string]interface{})
 
-		for _, approach := range approachList{
-			path:=outPath+"/"+approach+"/data"
+		for _, approach := range approachList {
+			path := outPath + "/" + approach + "/data"
 			files, err := ioutil.ReadDir(path)
 			if err != nil {
-			    log.Fatal(err)
+				log.Fatal(err)
 			}
-			dict3[approach]=make(map[string]map[string]interface{})
+			dict3[approach] = make(map[string]map[string]interface{})
 			for _, f := range files {
-			    if (!strings.Contains(f.Name(), "browsertime.summary-total") && !strings.Contains(f.Name(), "browsertime.browser") && strings.Contains(f.Name(), ".json")){
-			    	fmt.Println(f.Name())
-			    	jsonFile:=path+"/"+f.Name()
+				if !strings.Contains(f.Name(), "browsertime.summary-total") && !strings.Contains(f.Name(), "browsertime.browser") && strings.Contains(f.Name(), ".json") {
+					fmt.Println(f.Name())
+					jsonFile := path + "/" + f.Name()
 					plan, _ := ioutil.ReadFile(jsonFile)
 					var data map[string]interface{}
 					err = json.Unmarshal(plan, &data)
-			    	site:=strings.Split(strings.Split(f.Name(),"browsertime.summary-")[1],".json")[0]
-					dict3[approach][site]=make(map[string]interface{})
+					site := strings.Split(strings.Split(f.Name(), "browsertime.summary-")[1], ".json")[0]
+					dict3[approach][site] = make(map[string]interface{})
 					var err error
 					var found int
 
-			    	if (data["rumSpeedIndex"]!=err){
-						dict3[approach][site]["speedIndex"]=data["rumSpeedIndex"]
-			    	}else{
-			    		dict3[approach][site]["speedIndex"]=-1
-			    	}
+					if data["rumSpeedIndex"] != err {
+						dict3[approach][site]["speedIndex"] = data["rumSpeedIndex"]
+					} else {
+						dict3[approach][site]["speedIndex"] = -1
+					}
 
-			    	found=0
-			    	for key, value := range data["pageTimings"].(map[string]interface{}) {
-						if key=="pageLoadTime"{
-							dict3[approach][site]["pageLoadTime"]=value
-							found=1
+					found = 0
+					for key, value := range data["pageTimings"].(map[string]interface{}) {
+						if key == "pageLoadTime" {
+							dict3[approach][site]["pageLoadTime"] = value
+							found = 1
 						}
 					}
-					if found==0{
-						dict3[approach][site]["pageLoadTime"]=-1
+					if found == 0 {
+						dict3[approach][site]["pageLoadTime"] = -1
 					}
 
-			    	found=0
+					found = 0
 					for key, value := range data["navigationTiming"].(map[string]interface{}) {
-						if key=="domInteractive"{
-							dict3[approach][site]["domInteractive"]=value
-							found=1
+						if key == "domInteractive" {
+							dict3[approach][site]["domInteractive"] = value
+							found = 1
 						}
 					}
-					if found==0{
-						dict3[approach][site]["domInteractive"]=-1
+					if found == 0 {
+						dict3[approach][site]["domInteractive"] = -1
 
 					}
-			    	
-			    	if (data["firstPaint"]!=err){
-						dict3[approach][site]["firstPaint"]=data["firstPaint"]
-			    	}else{
-			    		dict3[approach][site]["firstPaint"]=-1
-			    	}
-			    	
-			    	found=0
-			    	for key, value := range data["timings"].(map[string]interface{}) {
-						if key=="largestContentfulPaint"{
-							dict3[approach][site]["largestContentfulPaint"]=value
-							found=1
+
+					if data["firstPaint"] != err {
+						dict3[approach][site]["firstPaint"] = data["firstPaint"]
+					} else {
+						dict3[approach][site]["firstPaint"] = -1
+					}
+
+					found = 0
+					for key, value := range data["timings"].(map[string]interface{}) {
+						if key == "largestContentfulPaint" {
+							dict3[approach][site]["largestContentfulPaint"] = value
+							found = 1
 						}
 					}
-					if found==0{
-						dict3[approach][site]["largestContentfulPaint"]=-1
+					if found == 0 {
+						dict3[approach][site]["largestContentfulPaint"] = -1
 					}
-			    }
+				}
 			}
 		}
-		//push dict1, dict2 and dict3 to server 
+		//push dict1, dict2 and dict3 to server
 
 		file1, _ := json.MarshalIndent(dict1, "", " ")
 		_ = ioutil.WriteFile("dnsLatencies.json", file1, 0644)
 		file2, _ := json.MarshalIndent(dict2, "", " ")
 		_ = ioutil.WriteFile("PingServers.json", file2, 0644)
-		file3,_:=json.MarshalIndent(dict3, "", " ")
+		file3, _ := json.MarshalIndent(dict3, "", " ")
 		_ = ioutil.WriteFile("sitespeedMetrics.json", file3, 0644)
 
 		// push dict1 and dict2 to server and dir WebPerformanceRes
 		program.reporter.PushToMongoDB("SubRosa-Test", "DNS-Latency", dict1)
 		program.reporter.PushToMongoDB("SubRosa-Test", "Server-Ping", dict2)
+		program.reporter.PushToMongoDB("SubRosa-Test", "Sitespeed-Matrics", dict3)
 	}()
 
 	return nil
