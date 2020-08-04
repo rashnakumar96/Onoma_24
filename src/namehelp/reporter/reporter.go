@@ -93,3 +93,54 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 
 	return nil
 }
+
+// PushToMongoDBMulti takes a map of data that specifies multiple db, collections and their data to be pushed
+// Each data object should be inheriting Schema
+// Input format:
+//     dataMap[databaseName] = map[collectionName]data_points
+func (r *Reporter) PushToMongoDBMulti(dataMap map[string]map[string][]interface{}) error {
+	// TODO
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
+		r.MongoStr,
+	))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"client": client,
+			"error":  err,
+		}).Error("Creating Mongo Client failed.")
+		return err
+	}
+	// TODO: move client connection to initialization to avoid redundent reconnecting
+
+	for databaseName, collectionMap := range dataMap {
+		for collectionName, data := range collectionMap {
+			collection := client.Database(databaseName).Collection(collectionName)
+
+			var operations []mongo.WriteModel
+
+			for _, entry := range data {
+				insert := mongo.NewInsertOneModel()
+				var doc Schema
+
+				doc.Country = ""
+				doc.Time = time.Now().String()
+				doc.Version = r.Version
+				doc.Data = entry
+
+				insert.SetDocument(doc)
+				operations = append(operations, insert)
+			}
+
+			collection.BulkWrite(context.Background(), operations)
+
+			log.WithFields(log.Fields{
+				"db":         databaseName,
+				"collection": collectionName,
+			}).Info("MongoDB data store finished.")
+		}
+	}
+
+	return nil
+}
