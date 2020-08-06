@@ -15,5 +15,6 @@ package main
 // github.com/konsorten/go-windows-terminal-sequences
 // github.com/alexthemonk/DoH_Proxy
 // go.mongodb.org/mongo-driver
+// github.com/inconshreveable/go-update
 
 func main() {}

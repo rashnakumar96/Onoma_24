@@ -60,8 +60,8 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 	))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"client": client,
-			"error":  err,
+			"reporter": r,
+			"error":    err,
 		}).Error("Creating Mongo Client failed.")
 		return err
 	}
@@ -84,9 +84,17 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		operations = append(operations, insert)
 	}
 
-	collection.BulkWrite(context.Background(), operations)
+	result, err := collection.BulkWrite(context.Background(), operations)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"result": result,
+			"error":  err,
+		}).Error("MongoDB Bulkwrite failed.")
+		return err
+	}
 
 	log.WithFields(log.Fields{
+		"result":     result,
 		"db":         databaseName,
 		"collection": collectionName,
 	}).Info("MongoDB data store finished.")

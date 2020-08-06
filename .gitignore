@@ -20,4 +20,4 @@ output/
 WebPerformanceRes
 dnsLatencies.json
 PingServers.json
-alexaSites.txt
+sitespeedMetrics.json
