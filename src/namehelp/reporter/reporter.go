@@ -60,8 +60,8 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 	))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"client": client,
-			"error":  err,
+			"reporter": r,
+			"error":    err,
 		}).Error("Creating Mongo Client failed.")
 		return err
 	}
@@ -84,12 +84,71 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		operations = append(operations, insert)
 	}
 
-	collection.BulkWrite(context.Background(), operations)
+	result, err := collection.BulkWrite(context.Background(), operations)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"result": result,
+			"error":  err,
+		}).Error("MongoDB Bulkwrite failed.")
+		return err
+	}
 
 	log.WithFields(log.Fields{
+		"result":     result,
 		"db":         databaseName,
 		"collection": collectionName,
 	}).Info("MongoDB data store finished.")
+
+	return nil
+}
+
+// PushToMongoDBMulti takes a map of data that specifies multiple db, collections and their data to be pushed
+// Each data object should be inheriting Schema
+// Input format:
+//     dataMap[databaseName] = map[collectionName]data_points
+func (r *Reporter) PushToMongoDBMulti(dataMap map[string]map[string][]interface{}) error {
+	// TODO
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
+		r.MongoStr,
+	))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"client": client,
+			"error":  err,
+		}).Error("Creating Mongo Client failed.")
+		return err
+	}
+	// TODO: move client connection to initialization to avoid redundent reconnecting
+
+	for databaseName, collectionMap := range dataMap {
+		for collectionName, data := range collectionMap {
+			collection := client.Database(databaseName).Collection(collectionName)
+
+			var operations []mongo.WriteModel
+
+			for _, entry := range data {
+				insert := mongo.NewInsertOneModel()
+				var doc Schema
+
+				doc.Country = ""
+				doc.Time = time.Now().String()
+				doc.Version = r.Version
+				doc.Data = entry
+
+				insert.SetDocument(doc)
+				operations = append(operations, insert)
+			}
+
+			collection.BulkWrite(context.Background(), operations)
+
+			log.WithFields(log.Fields{
+				"db":         databaseName,
+				"collection": collectionName,
+			}).Info("MongoDB data store finished.")
+		}
+	}
 
 	return nil
 }

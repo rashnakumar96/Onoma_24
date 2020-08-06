@@ -225,6 +225,7 @@ func (program *Program) initializeDNSServers() {
 }
 
 func (program *Program) launchNamehelpDNSServer() error {
+	program.initializeReporter()
 	program.initializeDNSServers()
 
 	// start DNS servers for UDP and TCP requests
@@ -329,6 +330,14 @@ func (program *Program) launchNamehelpDNSServer() error {
 		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
 		// }
 
+		file1, _ := json.MarshalIndent(dict1, "", " ")
+		_ = ioutil.WriteFile("dnsLatencies.json", file1, 0644)
+		file2, _ := json.MarshalIndent(dict2, "", " ")
+		_ = ioutil.WriteFile("PingServers.json", file2, 0644)
+
+		program.reporter.PushToMongoDB("SubRosa-Test", "DNS-Latency", dict1)
+		program.reporter.PushToMongoDB("SubRosa-Test", "Server-Ping", dict2)
+
 		//finished testing, restore setting to run SubRosa
 		handler.DoHEnabled = true
 		handler.Experiment = false
@@ -405,16 +414,16 @@ func (program *Program) launchNamehelpDNSServer() error {
 		}
 		//push dict1, dict2 and dict3 to server
 
-		file1, _ := json.MarshalIndent(dict1, "", " ")
-		_ = ioutil.WriteFile("dnsLatencies.json", file1, 0644)
-		file2, _ := json.MarshalIndent(dict2, "", " ")
-		_ = ioutil.WriteFile("PingServers.json", file2, 0644)
+		// file1, _ := json.MarshalIndent(dict1, "", " ")
+		// _ = ioutil.WriteFile("dnsLatencies.json", file1, 0644)
+		// file2, _ := json.MarshalIndent(dict2, "", " ")
+		// _ = ioutil.WriteFile("PingServers.json", file2, 0644)
 		file3, _ := json.MarshalIndent(dict3, "", " ")
 		_ = ioutil.WriteFile("sitespeedMetrics.json", file3, 0644)
 
 		// push dict1 and dict2 to server and dir WebPerformanceRes
-		program.reporter.PushToMongoDB("SubRosa-Test", "DNS-Latency", dict1)
-		program.reporter.PushToMongoDB("SubRosa-Test", "Server-Ping", dict2)
+		// program.reporter.PushToMongoDB("SubRosa-Test", "DNS-Latency", dict1)
+		// program.reporter.PushToMongoDB("SubRosa-Test", "Server-Ping", dict2)
 		program.reporter.PushToMongoDB("SubRosa-Test", "Sitespeed-Matrics", dict3)
 	}()
 
@@ -738,7 +747,9 @@ var config service.Config = service.Config{
 func main() {
 	// NOTE: before executing main(), namehelpProgram is created at the top of this file.
 
-	// do command-line flag parsing
+	// TODO: Check for update using updater
+
+	// Command-line flag parsing
 	serviceFlag := flag.String("service", "", "Control the system service")
 	cleanFlag := flag.Bool("cleanup", false, "Clean namehelp config files")
 	flag.Parse()
