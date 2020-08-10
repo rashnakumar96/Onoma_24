@@ -13,7 +13,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
-	"namehelp/network"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -27,6 +26,7 @@ import (
 	"time"
 
 	"namehelp/handler"
+	"namehelp/network"
 	"namehelp/reporter"
 	"namehelp/utils"
 
@@ -232,202 +232,200 @@ func (program *Program) launchNamehelpDNSServer() error {
 	go program.startDNSServer(program.udpServer)
 	go program.startDNSServer(program.tcpServer)
 
+	// TODO: change this to per-trigger base
+	go program.doMeasurement()
+
+	return nil
+}
+
+func (program *Program) doMeasurement() error {
 	// this go func does the testing as soon as SubRosa is started
-	go func() {
-		handler.Experiment = true
-		handler.DoHEnabled = true
-		dict1 := make(map[string]map[string]map[string]interface{})
-		dict2 := make(map[string]map[string]interface{})
-		var err error
-		iterations := 3
+	handler.Experiment = true
+	handler.DoHEnabled = true
+	dict1 := make(map[string]map[string]map[string]interface{})
+	dict2 := make(map[string]map[string]interface{})
+	var err error
+	iterations := 3
 
-		handler.DoHServersToTest = []string{"Google"}
-		time.Sleep(60 * 2)
-		dir, err := os.Getwd()
-		outPath := filepath.Join(dir, "WebPerformanceRes")
-		if _, err := os.Stat(outPath); os.IsNotExist(err) {
-			os.Mkdir(outPath, 0755)
-		}
+	handler.DoHServersToTest = []string{"Google"}
+	time.Sleep(60 * 2)
+	dir, err := os.Getwd()
+	outPath := filepath.Join(dir, "WebPerformanceRes")
+	if _, err := os.Stat(outPath); os.IsNotExist(err) {
+		os.Mkdir(outPath, 0755)
+	}
+	if err != nil {
+		log.Error("Error getting current working directory")
+	}
+	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
+	if err != nil {
+		log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+	}
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "GoogleDoH")
+	program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
+
+	handler.DoHServersToTest = []string{"Cloudflare"}
+	time.Sleep(60 * 2)
+	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
+	if err != nil {
+		log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+	}
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "CloudflareDoH")
+	program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
+
+	handler.DoHServersToTest = []string{"Quad9"}
+	time.Sleep(60 * 2)
+	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
+	if err != nil {
+		log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+	}
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "Quad9DoH")
+	program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
+
+	handler.DoHEnabled = false
+	handler.DNSServersToTest = []string{"8.8.8.8"}
+	time.Sleep(60 * 2)
+	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
+	if err != nil {
+		log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+	}
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "GoogleDNS")
+	program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
+
+	handler.DNSServersToTest = []string{"1.1.1.1"}
+	time.Sleep(60 * 2)
+	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
+	if err != nil {
+		log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+	}
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "CloudflareDNS")
+	program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
+
+	handler.DNSServersToTest = []string{"9.9.9.9"}
+	time.Sleep(60 * 2)
+	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
+	if err != nil {
+		log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+	}
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "Quad9DNS")
+	program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
+
+	handler.DoHEnabled = true
+	handler.Experiment = false
+	handler.DoHServersToTest = []string{"127.0.0.1"}
+	time.Sleep(60 * 2)
+	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
+	if err != nil {
+		log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+	}
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "SubRosa")
+
+	handler.DoHEnabled = false
+	handler.Experiment = true
+	localDNSServers := network.DhcpGetLocalDNSServers()
+	localDNSServers = strings.Split(localDNSServers[0], ",")
+	// for _, localdnsServer := range localDNSServers {
+	localdnsServer := localDNSServers[0]
+	handler.DNSServersToTest = []string{localdnsServer}
+	time.Sleep(60 * 2)
+	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
+	if err != nil {
+		log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
+	}
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "LocalR")
+	program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
+	// }
+
+	file1, _ := json.MarshalIndent(dict1, "", " ")
+	_ = ioutil.WriteFile("dnsLatencies.json", file1, 0644)
+	file2, _ := json.MarshalIndent(dict2, "", " ")
+	_ = ioutil.WriteFile("PingServers.json", file2, 0644)
+
+	program.reporter.PushToMongoDB("SubRosa-Test", "DNS-Latency", dict1)
+	program.reporter.PushToMongoDB("SubRosa-Test", "Server-Ping", dict2)
+
+	//finished testing, restore setting to run SubRosa
+	handler.DoHEnabled = true
+	handler.Experiment = false
+
+	approachList := []string{"LocalR", "GoogleDoH", "Quad9DoH", "CloudflareDoH", "SubRosa", "GoogleDNS", "Quad9DNS", "CloudflareDNS"}
+	var dict3 = make(map[string]map[string]map[string]interface{})
+
+	for _, approach := range approachList {
+		path := outPath + "/" + approach + "/data"
+		files, err := ioutil.ReadDir(path)
 		if err != nil {
-			log.Error("Error getting current working directory")
+			log.Fatal(err)
 		}
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
-		if err != nil {
-			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
-		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "GoogleDoH")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
+		dict3[approach] = make(map[string]map[string]interface{})
+		for _, f := range files {
+			if !strings.Contains(f.Name(), "browsertime.summary-total") && !strings.Contains(f.Name(), "browsertime.browser") && strings.Contains(f.Name(), ".json") {
+				fmt.Println(f.Name())
+				jsonFile := path + "/" + f.Name()
+				plan, _ := ioutil.ReadFile(jsonFile)
+				var data map[string]interface{}
+				err = json.Unmarshal(plan, &data)
+				site := strings.Split(strings.Split(f.Name(), "browsertime.summary-")[1], ".json")[0]
+				dict3[approach][site] = make(map[string]interface{})
+				var err error
+				var found int
 
-		handler.DoHServersToTest = []string{"Cloudflare"}
-		time.Sleep(60 * 2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
-		if err != nil {
-			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
-		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "CloudflareDoH")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
+				if data["rumSpeedIndex"] != err {
+					dict3[approach][site]["speedIndex"] = data["rumSpeedIndex"]
+				} else {
+					dict3[approach][site]["speedIndex"] = -1
+				}
 
-		handler.DoHServersToTest = []string{"Quad9"}
-		time.Sleep(60 * 2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
-		if err != nil {
-			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
-		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "Quad9DoH")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
-
-		handler.DoHEnabled = false
-		handler.DNSServersToTest = []string{"8.8.8.8"}
-		time.Sleep(60 * 2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
-		if err != nil {
-			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
-		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "GoogleDNS")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
-
-		handler.DNSServersToTest = []string{"1.1.1.1"}
-		time.Sleep(60 * 2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
-		if err != nil {
-			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
-		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "CloudflareDNS")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
-
-		handler.DNSServersToTest = []string{"9.9.9.9"}
-		time.Sleep(60 * 2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
-		if err != nil {
-			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
-		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "Quad9DNS")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
-
-		handler.DoHEnabled = true
-		handler.Experiment = false
-		handler.DoHServersToTest = []string{"127.0.0.1"}
-		time.Sleep(60 * 2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
-		if err != nil {
-			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
-		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "SubRosa")
-
-		handler.DoHEnabled = false
-		handler.Experiment = true
-		localDNSServers := network.DhcpGetLocalDNSServers()
-		localDNSServers = strings.Split(localDNSServers[0], ",")
-		// for _, localdnsServer := range localDNSServers {
-		localdnsServer := localDNSServers[0]
-		handler.DNSServersToTest = []string{localdnsServer}
-		time.Sleep(60 * 2)
-		dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dir+"/alexaSites.txt", 0, handler.DoHEnabled, handler.Experiment, iterations, dict1)
-		if err != nil {
-			log.Error("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
-		}
-		program.dnsQueryHandler.RunWebPerformanceTest(dir+"/alexaSites.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "LocalR")
-		program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2)
-		// }
-
-		file1, _ := json.MarshalIndent(dict1, "", " ")
-		_ = ioutil.WriteFile("dnsLatencies.json", file1, 0644)
-		file2, _ := json.MarshalIndent(dict2, "", " ")
-		_ = ioutil.WriteFile("PingServers.json", file2, 0644)
-
-		program.reporter.PushToMongoDB("SubRosa-Test", "DNS-Latency", dict1)
-		program.reporter.PushToMongoDB("SubRosa-Test", "Server-Ping", dict2)
-
-		//finished testing, restore setting to run SubRosa
-		handler.DoHEnabled = true
-		handler.Experiment = false
-
-		approachList := []string{"LocalR", "GoogleDoH", "Quad9DoH", "CloudflareDoH", "SubRosa", "GoogleDNS", "Quad9DNS", "CloudflareDNS"}
-		var dict3 = make(map[string]map[string]map[string]interface{})
-
-		for _, approach := range approachList {
-			path := outPath + "/" + approach + "/data"
-			files, err := ioutil.ReadDir(path)
-			if err != nil {
-				log.Fatal(err)
-			}
-			dict3[approach] = make(map[string]map[string]interface{})
-			for _, f := range files {
-				if !strings.Contains(f.Name(), "browsertime.summary-total") && !strings.Contains(f.Name(), "browsertime.browser") && strings.Contains(f.Name(), ".json") {
-					fmt.Println(f.Name())
-					jsonFile := path + "/" + f.Name()
-					plan, _ := ioutil.ReadFile(jsonFile)
-					var data map[string]interface{}
-					err = json.Unmarshal(plan, &data)
-					site := strings.Split(strings.Split(f.Name(), "browsertime.summary-")[1], ".json")[0]
-					dict3[approach][site] = make(map[string]interface{})
-					var err error
-					var found int
-
-					if data["rumSpeedIndex"] != err {
-						dict3[approach][site]["speedIndex"] = data["rumSpeedIndex"]
-					} else {
-						dict3[approach][site]["speedIndex"] = -1
+				found = 0
+				for key, value := range data["pageTimings"].(map[string]interface{}) {
+					if key == "pageLoadTime" {
+						dict3[approach][site]["pageLoadTime"] = value
+						found = 1
 					}
+				}
+				if found == 0 {
+					dict3[approach][site]["pageLoadTime"] = -1
+				}
 
-					found = 0
-					for key, value := range data["pageTimings"].(map[string]interface{}) {
-						if key == "pageLoadTime" {
-							dict3[approach][site]["pageLoadTime"] = value
-							found = 1
-						}
+				found = 0
+				for key, value := range data["navigationTiming"].(map[string]interface{}) {
+					if key == "domInteractive" {
+						dict3[approach][site]["domInteractive"] = value
+						found = 1
 					}
-					if found == 0 {
-						dict3[approach][site]["pageLoadTime"] = -1
-					}
+				}
+				if found == 0 {
+					dict3[approach][site]["domInteractive"] = -1
 
-					found = 0
-					for key, value := range data["navigationTiming"].(map[string]interface{}) {
-						if key == "domInteractive" {
-							dict3[approach][site]["domInteractive"] = value
-							found = 1
-						}
-					}
-					if found == 0 {
-						dict3[approach][site]["domInteractive"] = -1
+				}
 
-					}
+				if data["firstPaint"] != err {
+					dict3[approach][site]["firstPaint"] = data["firstPaint"]
+				} else {
+					dict3[approach][site]["firstPaint"] = -1
+				}
 
-					if data["firstPaint"] != err {
-						dict3[approach][site]["firstPaint"] = data["firstPaint"]
-					} else {
-						dict3[approach][site]["firstPaint"] = -1
+				found = 0
+				for key, value := range data["timings"].(map[string]interface{}) {
+					if key == "largestContentfulPaint" {
+						dict3[approach][site]["largestContentfulPaint"] = value
+						found = 1
 					}
-
-					found = 0
-					for key, value := range data["timings"].(map[string]interface{}) {
-						if key == "largestContentfulPaint" {
-							dict3[approach][site]["largestContentfulPaint"] = value
-							found = 1
-						}
-					}
-					if found == 0 {
-						dict3[approach][site]["largestContentfulPaint"] = -1
-					}
+				}
+				if found == 0 {
+					dict3[approach][site]["largestContentfulPaint"] = -1
 				}
 			}
 		}
-		//push dict1, dict2 and dict3 to server
+	}
+	//push dict1, dict2 and dict3 to server
+	file3, _ := json.MarshalIndent(dict3, "", " ")
+	_ = ioutil.WriteFile("sitespeedMetrics.json", file3, 0644)
 
-		// file1, _ := json.MarshalIndent(dict1, "", " ")
-		// _ = ioutil.WriteFile("dnsLatencies.json", file1, 0644)
-		// file2, _ := json.MarshalIndent(dict2, "", " ")
-		// _ = ioutil.WriteFile("PingServers.json", file2, 0644)
-		file3, _ := json.MarshalIndent(dict3, "", " ")
-		_ = ioutil.WriteFile("sitespeedMetrics.json", file3, 0644)
+	// push dict1 and dict2 to server and dir WebPerformanceRes
+	program.reporter.PushToMongoDB("SubRosa-Test", "Sitespeed-Matrics", dict3)
 
-		// push dict1 and dict2 to server and dir WebPerformanceRes
-		// program.reporter.PushToMongoDB("SubRosa-Test", "DNS-Latency", dict1)
-		// program.reporter.PushToMongoDB("SubRosa-Test", "Server-Ping", dict2)
-		program.reporter.PushToMongoDB("SubRosa-Test", "Sitespeed-Matrics", dict3)
-	}()
-
-	return nil
+	return err
 }
 
 // Saves the current system configuration for future restoration
