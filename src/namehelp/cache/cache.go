@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
+    log "github.com/sirupsen/logrus"
+
 )
 
 // KeyNotFound error type
@@ -71,17 +73,26 @@ type MemoryCache struct {
 
 // Get returns the value stored in cache matched to the key speficied
 func (c *MemoryCache) Get(key string) (*dns.Msg, error) {
+
 	c.mu.RLock()
 	mesg, ok := c.Backend[key]
 	c.mu.RUnlock()
 	if !ok {
+	    log.WithFields(log.Fields{
+                    		"key": key}).Info("KEY NOT FOUND")
 		return nil, KeyNotFound{key}
 	}
 
-	if mesg.Expire.Before(time.Now()) {
-		c.Remove(key)
-		return nil, KeyExpired{key}
-	}
+	// if mesg.Expire.Before(time.Now()) {
+	//     fmt.Println("THE KEY HAS EXPIRED: ",mesg)
+	//     log.WithFields(log.Fields{
+ //            		"mesg": mesg}).Info("The msg has expired")
+	// 	c.Remove(key)
+	// 	return nil, KeyExpired{key}
+	// }
+	log.WithFields(log.Fields{
+            		"mesg": mesg.Msg,
+            		"key": key}).Info("GET MSG FOR KEY")
 
 	return mesg.Msg, nil
 
@@ -89,14 +100,26 @@ func (c *MemoryCache) Get(key string) (*dns.Msg, error) {
 
 // Set takes a key value pair and set the value in Cache accordingly
 func (c *MemoryCache) Set(key string, msg *dns.Msg) error {
+    log.WithFields(log.Fields{
+        		"mesg": msg,
+        		"key": key,
+        		"length":c.Length(),
+        		"maxLength":c.Maxcount}).Info("SETTING KEY")
 	if c.Full() && !c.Exists(key) {
+        log.Info("THE CACHE IS FULL")
 		return IsFull{}
 	}
-
 	expire := time.Now().Add(c.Expire)
 	mesg := Mesg{msg, expire}
+    log.WithFields(log.Fields{
+    		"mesg": mesg,
+    		"expire": c.Expire}).Info("ADDING MSG TO CACHE")
+
 	c.mu.Lock()
 	c.Backend[key] = mesg
+	log.WithFields(log.Fields{
+        		"mesg": c.Backend[key],
+        		"key": key}).Info("ADDING MSG TO Backend CACHE")
 	c.mu.Unlock()
 	return nil
 }
@@ -129,6 +152,9 @@ func (c *MemoryCache) Full() bool {
 	if c.Maxcount == 0 {
 		return false
 	}
+	log.WithFields(log.Fields{
+        		"Length": c.Length,
+        		"maxCount": c.Maxcount}).Info("THE CACHE IS FULL AND HAS LENGTH:")
 	return c.Length() >= c.Maxcount
 }
 
