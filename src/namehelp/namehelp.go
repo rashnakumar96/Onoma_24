@@ -336,16 +336,16 @@ func (program *Program) doMeasurement() error {
 	// }
 	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"DoHProxy")
 
-	// iterations=2
-	// utils.FlushLocalDnsCache()
-	// program.dnsQueryHandler.EnableDirectResolution()
-	// handler.DoHServersToTest=[]string{"127.0.0.1"}
-	// time.Sleep(60*2)
+	iterations=2
+	utils.FlushLocalDnsCache()
+	program.dnsQueryHandler.EnableDirectResolution()
+	handler.DoHServersToTest=[]string{"127.0.0.1"}
+	time.Sleep(60*2)
 	// dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1,"SubRosa")
 	// if err != nil {
 	// 	log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 	// }
-	// program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"SubRosa")
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"SubRosa")
 
 	
 	// handler.DoHEnabled=false
