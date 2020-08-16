@@ -3,6 +3,9 @@
 //go:generate go get -u github.com/kardianos/service/
 //go:generate go get -u github.com/miekg/dns/
 //go:generate go get -u github.com/sirupsen/logrus/
+//go:generate go get -u go.mongodb.org/mongo-driver/mongo
+//go:generate go get -u gopkg.in/natefinch/lumberjack.v2
+
 
 
 package main
@@ -25,7 +28,7 @@ import (
 	"syscall"
 	"time"
 	// "namehelp/network"
-	"encoding/json"
+	// "encoding/json"
 	"namehelp/reporter"
 
 
@@ -241,6 +244,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	// TODO: change this to per-trigger base
 	go program.doMeasurement()
 	return nil
+}
 
 func (program *Program) doMeasurement() error {
 	handler.Experiment=true
@@ -332,16 +336,16 @@ func (program *Program) doMeasurement() error {
 	// }
 	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"DoHProxy")
 
-	iterations=2
-	utils.FlushLocalDnsCache()
-	program.dnsQueryHandler.EnableDirectResolution()
-	handler.DoHServersToTest=[]string{"127.0.0.1"}
-	time.Sleep(60*2)
+	// iterations=2
+	// utils.FlushLocalDnsCache()
+	// program.dnsQueryHandler.EnableDirectResolution()
+	// handler.DoHServersToTest=[]string{"127.0.0.1"}
+	// time.Sleep(60*2)
 	// dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1,"SubRosa")
 	// if err != nil {
 	// 	log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 	// }
-	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"SubRosa")
+	// program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"SubRosa")
 
 	
 	// handler.DoHEnabled=false
@@ -446,8 +450,6 @@ func (program *Program) doMeasurement() error {
 
 	// file3,_:=json.MarshalIndent(dict3, "", " ")
 	// _ = ioutil.WriteFile("sitespeedMetrics.json", file3, 0644)
-
-	}()
 
 	return err
 }
