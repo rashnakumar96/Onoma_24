@@ -1066,7 +1066,8 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 				"website":           website,
 				"experiment":        experiment,
 				"dohEnabled":        dohEnabled,
-				"DNS server":        dnsServer}).Info("Measuring DNS Latency for website")
+				"DNS server":        dnsServer
+			}).Info("Measuring DNS Latency for website")
 			for x := 0; x < iterations; x++ {
 				utils.FlushLocalDnsCache()
 				if experiment {
@@ -1084,7 +1085,8 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 						log.WithFields(log.Fields{
 							"smart selector id": smartDnsSelectorId,
 							"DNS server":        dnsServer,
-							"query":             dnsQueryMessage.Question[0].String()}).Error("No valid answer received from DNS server for question")
+							"query":             dnsQueryMessage.Question[0].String()
+						}).Error("No valid answer received from DNS server for question")
 					}
 				} else {
 					startTime := time.Now()
@@ -1101,7 +1103,8 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 						log.WithFields(log.Fields{
 							"smart selector id": smartDnsSelectorId,
 							"DNS server":        dnsServer,
-							"query":             dnsQueryMessage.Question[0].String()}).Error("No valid answer received from DNS server for question")
+							"query":             dnsQueryMessage.Question[0].String()
+						}).Error("No valid answer received from DNS server for question")
 					}
 				}
 				dnsResolutionTimes = append(dnsResolutionTimes, elapsedTime)
@@ -1119,7 +1122,8 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 				log.WithFields(log.Fields{
 					"smart selector id": smartDnsSelectorId,
 					"error":             err.Error(),
-					"answer":            answerMessage.String()}).Error("Error: Answer does not contain valid IP Address.")
+					"answer":            answerMessage.String()
+				}).Error("Error: Answer does not contain valid IP Address.")
 			}
 
 			var cmd string
@@ -1152,7 +1156,8 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 				"ipAddress":   ipAddress,
 				"dnsServer":   dnsServer,
 				"website":     website,
-				"ping Result": result}).Info("Ping Response of Replica Server")
+				"ping Result": result
+			}).Info("Ping Response of Replica Server")
 			if result != nil {
 				pingTimes := strings.Split(stdout.String(), "min/avg/max/stddev =")[1]
 				minPingTime := strings.Split(pingTimes, "/")[0]
@@ -1236,7 +1241,8 @@ func (handler *DNSQueryHandler) PingServers(dohEnabled bool, experiment bool, it
 		log.WithFields(log.Fields{
 			"dnsServer":   dnsServer,
 			"ipAddress":   ipAddress,
-			"ping Result": result}).Info("Ping Response of DNS Server")
+			"ping Result": result
+		}).Info("Ping Response of DNS Server")
 		if result != nil {
 			pingTimes := strings.Split(stdout.String(), "min/avg/max/stddev =")[1]
 			minPingTime := strings.Split(pingTimes, "/")[0]
