@@ -6,8 +6,6 @@
 //go:generate go get -u go.mongodb.org/mongo-driver/mongo
 //go:generate go get -u gopkg.in/natefinch/lumberjack.v2
 
-
-
 package main
 
 import (
@@ -27,10 +25,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
 	// "namehelp/network"
 	// "encoding/json"
 	"namehelp/reporter"
-
 
 	"namehelp/handler"
 	"namehelp/utils"
@@ -118,7 +116,6 @@ func init() {
 	// Only log the Info level or above.
 	log.SetLevel(log.InfoLevel)
 
-
 }
 
 // Start is the Service.Interface method invoked when run with "--service start"
@@ -169,7 +166,6 @@ func (program *Program) run() {
 	networkInterfaces := reflect.ValueOf(program.oldDNSServers).MapKeys()
 	// get slice of keys
 	program.setDNSServer(utils.LOCALHOST, backupHosts, networkInterfaces)
-
 
 	// program.smartDNSSelector = NewSmartDNSSelector()
 	// going off to the new locally started DNS server for namehelp
@@ -232,8 +228,6 @@ func (program *Program) initializeDNSServers() {
 }
 
 func (program *Program) launchNamehelpDNSServer() error {
-	program.initializeDNSServers()
-
 	// start DNS servers for UDP and TCP requests
 	program.initializeReporter()
 	program.initializeDNSServers()
@@ -247,51 +241,50 @@ func (program *Program) launchNamehelpDNSServer() error {
 }
 
 func (program *Program) doMeasurement() error {
-	handler.Experiment=true
-	handler.DoHEnabled=true
+	handler.Experiment = true
+	handler.DoHEnabled = true
 	// dict1:= make(map[string]map[string]map[string]interface{})
 	// dict2:=make(map[string]map[string]interface{})
 	var err error
-	iterations:=1
+	iterations := 1
 
-	
 	dir, err := os.Getwd()
-	outPath:= filepath.Join(dir, "WebPerformanceRes")
+	outPath := filepath.Join(dir, "WebPerformanceRes")
 	if _, err := os.Stat(outPath); os.IsNotExist(err) {
 		os.Mkdir(outPath, 0755)
 	}
-	if err!=nil{
+	if err != nil {
 		log.Info("Error getting current working directory")
 	}
 	program.dnsQueryHandler.DisableDirectResolution()
 	utils.FlushLocalDnsCache()
-	handler.DoHServersToTest=[]string{"Google"}
-	time.Sleep(60*2)
+	handler.DoHServersToTest = []string{"Google"}
+	time.Sleep(60 * 2)
 	// dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1,"GoogleDoH")
 	// if err != nil {
 	// 	log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 	// }
-	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"GoogleDoH")
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "GoogleDoH")
 	// program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
 
 	utils.FlushLocalDnsCache()
-	handler.DoHServersToTest=[]string{"Cloudflare"}
-	time.Sleep(60*2)
+	handler.DoHServersToTest = []string{"Cloudflare"}
+	time.Sleep(60 * 2)
 	// dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1,"CloudflareDoH")
 	// if err != nil {
 	// 	log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 	// }
-	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"CloudflareDoH")
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "CloudflareDoH")
 	// program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
 
 	utils.FlushLocalDnsCache()
-	handler.DoHServersToTest=[]string{"Quad9"}
-	time.Sleep(60*2)
+	handler.DoHServersToTest = []string{"Quad9"}
+	time.Sleep(60 * 2)
 	// dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1,"Quad9DoH")
 	// if err != nil {
 	// 	log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 	// }
-	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"Quad9DoH")
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "Quad9DoH")
 	// program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
 
 	// utils.FlushLocalDnsCache()
@@ -325,29 +318,28 @@ func (program *Program) doMeasurement() error {
 	// program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"Quad9DNS")
 	// program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
 
-	handler.DoHEnabled=true
-	handler.Experiment=false
+	handler.DoHEnabled = true
+	handler.Experiment = false
 	utils.FlushLocalDnsCache()
-	handler.DoHServersToTest=[]string{"127.0.0.1"}
-	time.Sleep(60*2)
+	handler.DoHServersToTest = []string{"127.0.0.1"}
+	time.Sleep(60 * 2)
 	// dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1,"DoHProxy")
 	// if err != nil {
 	// 	log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 	// }
-	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"DoHProxy")
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "DoHProxy")
 
-	iterations=2
+	iterations = 2
 	utils.FlushLocalDnsCache()
 	program.dnsQueryHandler.EnableDirectResolution()
-	handler.DoHServersToTest=[]string{"127.0.0.1"}
-	time.Sleep(60*2)
+	handler.DoHServersToTest = []string{"127.0.0.1"}
+	time.Sleep(60 * 2)
 	// dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dir+"/alexaSites.txt",0,handler.DoHEnabled,handler.Experiment,iterations,dict1,"SubRosa")
 	// if err != nil {
 	// 	log.Info("Error measuring DNS latencies for [%s].  Error: [%s]", "alexaSites", err.Error())
 	// }
-	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"SubRosa")
+	program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt", handler.DoHEnabled, handler.Experiment, iterations, outPath, "SubRosa")
 
-	
 	// handler.DoHEnabled=false
 	// handler.Experiment=true
 	// utils.FlushLocalDnsCache()
@@ -366,12 +358,11 @@ func (program *Program) doMeasurement() error {
 	// program.dnsQueryHandler.RunWebPerformanceTest(dir+"/AlexaUniqueResources.txt",handler.DoHEnabled,handler.Experiment,iterations,outPath,"LocalR")
 	// program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2)
 	// }
-	
-	//finished testing, restore setting to run SubRosa
-	handler.DoHEnabled=true
-	handler.Experiment=false
-	program.dnsQueryHandler.EnableDirectResolution()
 
+	//finished testing, restore setting to run SubRosa
+	handler.DoHEnabled = true
+	handler.Experiment = false
+	program.dnsQueryHandler.EnableDirectResolution()
 
 	// approachList:=[]string{"GoogleDoH","Quad9DoH","CloudflareDoH","SubRosa","DoHProxy"}
 	// var dict3=make(map[string]map[string]map[string]interface{})
@@ -423,13 +414,13 @@ func (program *Program) doMeasurement() error {
 	// 				dict3[approach][site]["domInteractive"]=-1
 
 	// 			}
-		    	
+
 	// 	    	if (data["firstPaint"]!=err){
 	// 				dict3[approach][site]["firstPaint"]=data["firstPaint"]
 	// 	    	}else{
 	// 	    		dict3[approach][site]["firstPaint"]=-1
 	// 	    	}
-		    	
+
 	// 	    	found=0
 	// 	    	for key, value := range data["timings"].(map[string]interface{}) {
 	// 				if key=="largestContentfulPaint"{
@@ -443,7 +434,7 @@ func (program *Program) doMeasurement() error {
 	// 	    }
 	// 	}
 	// }
-	// push dict1, dict2 and dict3 to server 
+	// push dict1, dict2 and dict3 to server
 	// program.reporter.PushToMongoDB("SubRosa-Test", "dnsLatencies", dict1)
 	// program.reporter.PushToMongoDB("SubRosa-Test", "PingServers.json", dict2)
 	// program.reporter.PushToMongoDB("SubRosa-Test", "Sitespeed-Matrics", dict3)
@@ -814,7 +805,6 @@ func main() {
 		log.WithFields(log.Fields{
 			"error": err}).Error("Namehelp has already been installed")
 	}
-	
 
 	// directly executing the program
 	err = namehelpService.Run()
@@ -822,7 +812,6 @@ func main() {
 		log.WithFields(log.Fields{
 			"error": err}).Error("Problem running service")
 	}
-	
 
 	// wait for signal from run until shut down completed
 	<-namehelpProgram.shutdownChan
