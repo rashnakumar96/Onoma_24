@@ -288,7 +288,9 @@ func (resolver *Resolver) Shard() []proxy.Server {
 
 	// Make sure at least one resolver is included
 	// Also try to make at least one resolver not selected
-	cutOff := rand.Intn(len(Client.Resolvers)-1) + 1
+
+	// cutOff := rand.Intn(len(Client.Resolvers)-1) + 1
+	cutOff := 2
 
 	return Client.Resolvers[:cutOff]
 }
@@ -341,7 +343,6 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 		} else {
 			// go routine_DoLookup_DoH(nameserver.Name, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
 			go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
-
 		}
 
 		// check for response or interval tick
