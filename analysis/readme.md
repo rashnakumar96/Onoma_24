@@ -1,5 +1,5 @@
 - Collect all unicaste adrresses of DoH servers from a loaction by running **dohServers.py**, stores results in **dohServers.json**.
 - Run **resolverDistance.py** to calculate min ping to the dohServers and local resolvers from a location, stores results in **resolverDistance.json**
-- **resourceCollector.py** downloads harFile of each of the website in **USalexatop50.txt** and extracts unique resources from each harFile and finds the cdns of those resources
+- **resourceCollector.py** downloads harFile of each of the website in alexa top sites of a country stored in **alexaTop50SitesCountries.json** and extracts unique resources from each harFile and finds the cdns of those resources
 - **resolverPerformance.py** finds resolution time of each unique resource in **USalexatop50Resources.json** using different resolvers (local + DoH), stores results in **resourcesResolveTime.json**
 - **runLighthouse.js** takes as input **USalexatop50.txt** and uses the tool lighthouse to run performance test on each website and returns a json file for each website consisting of the performance results.
