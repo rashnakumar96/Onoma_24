@@ -7,27 +7,62 @@
 const lighthouse = require('lighthouse');
 const chromeLauncher = require('chrome-launcher');
 const fs=require('fs');
+var ReadWriteLock = require('rwlock');
+var lock = new ReadWriteLock();
 
 
 function launchChromeAndRunLighthouse(url, opts,config = null) {
-  return chromeLauncher.launch({chromeFlags: opts.chromeFlags}).then(chrome => {
-    opts.port = chrome.port;
+  // return chromeLauncher.launch({chromeFlags: opts.chromeFlags}).then(chrome => {
+    // opts.port = chrome.port;
     
     return lighthouse(url, opts, config).then(results => {
 
-        return chrome.kill().then(() => results.report)
-    }).catch((err)=>{console.log("Lighthouse threw an error with the url ",url);
-    });
+        // return chrome.kill().then(() => results.report)
+        return results.report
+    }).catch((err)=>{console.log("Lighthouse threw an error with the url ",url);});
     
-  });
+  // });
 }
 
 const opts = {
-  // uncomment the next line if want to run tests in headless mode
-  // chromeFlags: ['--headless'],
-  onlyCategories: ['performance']
+  chromeFlags: ['--headless'],
+  onlyCategories: ['performance'],
 };
 
+
+function measureResourcePerformance(i,dir,dict,topSites,dirPath,chrome,fileNumber){
+  if (i<topSites.length){
+    var url=topSites[i]
+    // console.log(url)
+    launchChromeAndRunLighthouse(url,opts).then(results => {
+      const obj=JSON.parse(results)
+      dict.push({
+        website:url,
+        ttfb:obj["audits"]["time-to-first-byte"]["numericValue"]
+      });      
+      console.log("finished running web performance on link",i)  
+      measureResourcePerformance(i+1,dir,dict,topSites,dirPath,chrome,fileNumber);
+    }).catch((err)=>{
+      console.log("Lighthouse threw an error with the url ",url);
+      measureResourcePerformance(i+1,dir,dict,topSites,dirPath,chrome,fileNumber);
+
+    });
+  }else{
+    console.log("Done collecting pageLoad Results from all sites")
+    chrome.kill().then(()=>{
+      lock.writeLock(function (release) {
+        console.log("writing to file",dirPath+'lighthouseTTB'+dir+fileNumber+".json")
+        fs.appendFile(dirPath+'lighthouseTTB'+dir+fileNumber+".json",JSON.stringify(dict,null,4),(err)=>{
+        if(err) 
+          console.log("write error: ",err);
+        else    
+          console.log("write ok");
+        });
+        release(); // unlock
+      });
+    });
+  }
+}
 
 function measureWebsitePerformance(i,dir){
   if (i<topSites.length){
@@ -55,20 +90,42 @@ function measureWebsitePerformance(i,dir){
 
 }
 
-// var topSites=JSON.parse(fs.readFileSync('USalexatop50.json'),'utf8')
-var topSites=[]
-const data=fs.readFileSync('USalexatop50.txt','UTF-8')
-const lines=data.split(/\r?\n/);
-lines.forEach((line)=>{
-  if (line!='') topSites.push(line);
-});
 
 
-//Execute the three calls by setting the DNS resolver accordingly
-// measureWebsitePerformance(0,"lighthouseResultsLocalR/")
-// measureWebsitePerformance(0,"lighthouseResultsSubRosa/")
-// measureWebsitePerformance(0,"lighthouseResultsDoHProxy/")
-measureWebsitePerformance(0,"lighthouseResultsGoogleDoH/")
+
+//measure page load times for resources of USALexa top sites
+////////////////////////////////////////////////////////////////////////////////
+
+function startLighthouse(approach,dirPath,resources,fileNumber){
+  
+    var dict = [];
+    // resources=resources.slice(0,3)
+    // console.log(resources)
+    chromeLauncher.launch({chromeFlags: opts.chromeFlags}).then(chrome => {
+      opts.port = chrome.port;
+      measureResourcePerformance(0,approach,dict,resources,dirPath,chrome,fileNumber)
+    }).catch((err)=>{
+      console.log("Lighthouse threw an error with chromeLauncher");
+    });
+
+}
+
+var approach=process.argv.slice(0)[3]
+var dirPath=process.argv.slice(0)[2]
+var fileNumber=process.argv.slice(0)[4]
+var resources=process.argv.slice(5)
+console.log(resources.length)
+console.log(dirPath)
+console.log(approach)
+console.log("fileNumber: ",fileNumber)
+
+startLighthouse(approach,dirPath,resources,fileNumber)
+
+
+
+
+
+
 
 
 

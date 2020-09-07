@@ -9,7 +9,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"bytes"
+	"os/exec"
 
+	// "namehelp/proxy"
 	"namehelp/settings"
 	"namehelp/utils"
 
@@ -190,13 +193,13 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 	case resultChannel <- responseMessage:
 		log.WithFields(log.Fields{
 			"id":          doID,
-			"name server": nameserver}).Debug("name server won the resolver race.")
+			"name server": nameserver}).Info("name server won the resolver race.")
 	default:
 		// if another goroutine already sent on channel and the message is not yet read
 		// we simply return in order to invoke the deferred waitGroup.Done() call
 		log.WithFields(log.Fields{
 			"id":          doID,
-			"name server": nameserver}).Info("name server DID NOT won the resolver race.")
+			"name server": nameserver}).Info("name server DID NOT win the resolver race.")
 		return
 	}
 }
@@ -284,15 +287,16 @@ func (resolver *Resolver) Shard() []proxy.Server {
 	// Sharding: to randomize the list of resolvers each time
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(Client.Resolvers), func(i, j int) { Client.Resolvers[i], Client.Resolvers[j] = Client.Resolvers[j], Client.Resolvers[i] })
-	log.WithFields(log.Fields{"nameservers": Client.Resolvers}).Info("These are all the client.Resolvers")
 
 	// Make sure at least one resolver is included
 	// Also try to make at least one resolver not selected
-
 	// cutOff := rand.Intn(len(Client.Resolvers)-1) + 1
-	cutOff := 2
+	// cutOff:=3	
+	// return Client.Resolvers[:cutOff]
+	log.WithFields(log.Fields{
+			"resolvers":     Client.Resolvers}).Info("These are the shuffled resolvers")
+	return Client.Resolvers
 
-	return Client.Resolvers[:cutOff]
 }
 
 // LookupAtNameservers asks each nameserver in top-to-bottom fashion
@@ -300,9 +304,9 @@ func (resolver *Resolver) Shard() []proxy.Server {
 // Will return as early as possible (have an answer)
 // It returns an error if no request has succeeded.
 func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Msg, nameservers []string,
-	doID int, dohEnabled bool, experiment bool) (resultMessage *dns.Msg, err error) {
+	doID int, dohEnabled bool, experiment bool,proxy bool,ResolverMapping map[string][]string, PrivacyEnabled bool,Racing bool) (resultMessage *dns.Msg, err error) {
 
-	if experiment && !dohEnabled {
+	if (experiment && !dohEnabled){
 		nameservers = utils.AddPortToEach(nameservers, resolver.Config.Port)
 	}
 
@@ -320,15 +324,110 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	// Start lookup on each nameserver top-down, in every second
 	//if resolver provided use that, otherwise shard
 	var resolvers []string
-	if experiment {
-		resolvers = nameservers
-	} else {
-		dohResolvers := resolver.Shard()
-		for _, resolver := range dohResolvers {
-			resolvers = append(resolvers, resolver.Name)
+
+	_question:=requestMessage.Question[0]
+	question:=strings.Split(_question.String()[1:],".\tIN\t")[0]
+	var mutex=&sync.Mutex{}
+	var stdout bytes.Buffer
+	var domain string
+	//The eperiment flag is turned on when testing individual resolvers and is off when testing DoHProxy and SubRosa
+	if (experiment){
+		resolvers=nameservers
+	}else if (!experiment && PrivacyEnabled){
+		//This condition is true when Privacy flag is turned on for DoHProxy and SubRosa, and all same 2lds go to the same resolver
+		val:=strings.Split(question,"\\")
+		if len(val)==1{
+			domain=question
+			log.WithFields(log.Fields{
+					"website":           domain}).Info("Using original website name")
+		}else{
+			domain=val[0]
+			log.WithFields(log.Fields{
+					"website":           domain}).Info("This is the domain of the website")	
+		}
+		cmd := exec.Command("python3", "2ld.py", "https://"+domain)
+		cmd.Stdout = &stdout
+		err:=cmd.Run()
+		if  err != nil {
+	        log.WithFields(log.Fields{
+					"error":             err.Error(),
+					"website":            domain}).Info("Error: finding second level domain")
+	    }else{
+	    	log.WithFields(log.Fields{
+	    			"domain":		  domain,
+					"2ld":            stdout.String()}).Info("Found second level domain")
+	    	domain=stdout.String()
+	    }
+		if val, ok := ResolverMapping[domain]; ok {
+   		 //do something here
+			if !proxy && len(val)==1{
+				//if the resolvermapping has only one resolver and we are testing SubRosa, then add another resolver to the dictionary
+				resolvers=val
+				dohResolvers := resolver.Shard()
+				for _,resolver:=range dohResolvers{
+					if resolver.Name!=val[0]{
+						resolvers=append(resolvers,resolver.Name)
+						break
+					}
+				}
+				mutex.Lock()
+				ResolverMapping[domain]=resolvers
+				mutex.Unlock()
+			}else{
+				resolvers=val
+			}
+			log.WithFields(log.Fields{
+					"resolvers":             resolvers,
+					"website":            domain}).Info("These resolvers assigned to the domain")
+		}else{
+			//if domain not found in resolvermapping and if testing DoHProxy, shard and select a random resolver
+			if proxy{
+				dohResolvers := resolver.Shard()
+				for _,resolver:=range dohResolvers{
+					resolvers=append(resolvers,resolver.Name)
+					break
+				}
+				mutex.Lock()
+				ResolverMapping[domain]=resolvers
+				mutex.Unlock()
+			}else{
+			//if domain not found in the resolvermapping and if testing SubRosa, shard and select two random resolvers for racing
+
+				dohResolvers := resolver.Shard()
+				dohResolvers=dohResolvers[:2]
+				for _, resolver := range dohResolvers {
+					resolvers = append(resolvers, resolver.Name)
+				}
+				mutex.Lock()
+				ResolverMapping[domain]=resolvers
+				mutex.Unlock()
+			}
+		}
+		
+	}else{
+		//if experiment is false and privacy is also not enabled and
+		//if we are testing with DoHProxy or with racing disabled in SubRosa, pick one random resolver each time 
+		if proxy || !Racing{
+			dohResolvers := resolver.Shard()
+			for _,resolver:=range dohResolvers{
+				resolvers=append(resolvers,resolver.Name)
+				break
+			}
+			
+		}else{
+			//otherwise race between two resolvers
+			dohResolvers := resolver.Shard()
+			dohResolvers=dohResolvers[:2]
+			for _, resolver := range dohResolvers {
+				resolvers = append(resolvers, resolver.Name)
+			}
 		}
 	}
-
+	log.WithFields(log.Fields{
+						"proxy":	proxy,
+						"PrivacyEnabled": 	PrivacyEnabled,
+						"Racing":	Racing,
+						"resolvers":           resolvers}).Info("These are the resolvers assigned")
 	// for _, nameserver := range nameservers {
 	for _, nameserver := range resolvers {
 		if strings.Contains(nameserver, "127.0.0.1") {
@@ -337,33 +436,89 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 
 		// add to waitGroup and launch goroutine to do lookup
 		waitGroup.Add(1)
-		//if doh enabled use that otherwise use dnslookup
-		if !dohEnabled {
+		//if doh enabled use that otherwise use dnslookup 
+		if (!dohEnabled){
 			go routine_DoLookup(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
-		} else {
+		}else{
 			// go routine_DoLookup_DoH(nameserver.Name, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
 			go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
-		}
 
+		}
+		if proxy{
 		// check for response or interval tick
-		select {
-		case result := <-resultChannel:
-			// exit early if we have an answer
-			return result, nil
-		// case <-ticker.C:
-		default:
-			// when interval ticks, repeat loop
-			continue
+			select {
+			case result := <-resultChannel:
+				// exit early if we have an answer
+				return result, nil
+			case <-ticker.C:
+				log.WithFields(log.Fields{
+					"ticker.C": ticker.C}).Info("time ticked sending query to another resolver")
+				// when interval ticks, repeat loop
+				continue
+			}
+		}else{
+			select {
+			case result := <-resultChannel:
+				// exit early if we have an answer
+				log.Info("We have an answer,exit early")
+				return result, nil
+			default:
+				// when interval ticks, repeat loop
+				continue
+			}
 		}
 	}
+	
 
-	// if we get here, all queries have been launched
-	log.WithFields(log.Fields{
-		"id": doID}).Info("Waiting for lookup queries to finish.")
-	waitGroup.Wait() // wait for all the goroutines to finish
-	log.WithFields(log.Fields{
-		"id": doID}).Info("All lookup queries have finished.")
+	// // if we get here, all queries have been launched
+	// log.WithFields(log.Fields{
+	// 	"id": doID}).Info("Waiting for lookup queries to finish.")
+	// waitGroup.Wait() // wait for all the goroutines to finish
+	// log.WithFields(log.Fields{
+	// 	"id": doID}).Info("All lookup queries have finished.")
 
+	// if Racing enabled in subrosa wait for the go routines to finish in another go routine and when done write in lookupFinished channel
+	if Racing{
+		lookupFinished:= make(chan bool, 1)
+		go func(lookupFinished chan bool,waitGroup sync.WaitGroup){
+			log.WithFields(log.Fields{
+			"question": question}).Info("Waiting for lookup queries to finish.")
+			waitGroup.Wait() // wait for all the goroutines to finish
+			log.WithFields(log.Fields{
+				"question": question}).Info("All lookup queries have finished.")
+			lookupFinished<-true
+		}(lookupFinished,waitGroup)
+
+		// while waiting for previous go routines to finish, we are listening on result Channel for a resultmsg, if we get it,
+		//we return early or are listening on lookupFinished channel for prev goroutines to finish
+		for{
+			waitDone:=false
+			select {
+			case resultMessage := <-resultChannel:
+			// at least one succeeded
+			log.WithFields(log.Fields{
+				"question":       question,
+				"response": resultMessage.String()}).Info("Early Response from nameserver")
+			return resultMessage, nil
+			case <-lookupFinished:
+				log.WithFields(log.Fields{
+				"question":       question}).Info("WaitGroup done for all lookup queries")
+				waitDone=true
+			}
+			if waitDone{
+				break
+			}
+		}
+	}else{
+		//racing is false so we just wait for go routines to finish
+		log.WithFields(log.Fields{
+			"id": doID}).Info("Racing disabled,Waiting for lookup queries to finish.")
+		waitGroup.Wait() // wait for all the goroutines to finish
+		log.WithFields(log.Fields{
+			"id": doID}).Info("Racing disabled,All lookup queries have finished.")
+	}
+	
+	//go routines have finished we check if we get anything on resultChannel otherwise it's a serve fail
 	select {
 	case resultMessage := <-resultChannel:
 		// at least one succeeded
@@ -382,16 +537,16 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 
 // Lookup performs dns lookup at the specific resolver for the given message
 // Returns dns response message
-func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int) (message *dns.Msg, err error) {
+func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int,proxy bool,ResolverMapping map[string][]string,PrivacyEnabled bool,Racing bool) (message *dns.Msg, err error) {
 	nameservers := resolver.Config.Servers
-	dohEnabled := true
-	experiment := false
-	//    if (handler.DoHEnabled && handler.Experiment){
+    dohEnabled:=true
+    experiment:=false
+ //    if (handler.DoHEnabled && handler.Experiment){
 	// 	dnsServersToQuery=handler.DoHServersToTest
 	// }else if (!handler.DoHEnabled && handler.Experiment){
 	// 	dnsServersToQuery=handler.DNSServersToTest
 	// }
-	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID, dohEnabled, experiment)
+	return resolver.LookupAtNameservers(net, requestMessage,nameservers, doID,dohEnabled,experiment,proxy,ResolverMapping,PrivacyEnabled,Racing)
 }
 
 // Nameservers return the array of nameservers, with port number appended.
