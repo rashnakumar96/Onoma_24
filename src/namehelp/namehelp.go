@@ -238,7 +238,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	go program.startDNSServer(program.tcpServer)
 	// this go func does the testing as soon as SubRosa is started
 	// TODO: change this to per-trigger base
-	go program.doMeasurement()
+	// go program.doMeasurement()
 	return nil
 }
 
@@ -282,7 +282,7 @@ func (program *Program) doMeasurement() error {
 	// 	log.Info("Error getting current working directory")
 	// }
 
-	dnsLatencyFile := dir + testingDir + "/AlexaUniqueResources.txt"
+	dnsLatencyFile := filepath.Join(dir, testingDir, "AlexaUniqueResources.txt")
 
 	handler.Proxy = false
 	program.dnsQueryHandler.DisableDirectResolution()
@@ -293,13 +293,13 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"Google"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "GoogleDoH")
 	file, _ := json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//this for loop ensures that DoHServersToTest is GoogleDoH till we collect all measurements with this resolver
 	//and file dir+testingDir+"/lighthouseTTBGoogleDoH.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBGoogleDoH.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBGoogleDoH.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			log.Info("FileFound")
@@ -312,13 +312,13 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"Cloudflare"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "CloudflareDoH")
 	file, _ = json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//this for loop ensures that DoHServersToTest is CloudflareDoH till we collect all measurements with this resolver
 	//and file dir+testingDir+"/lighthouseTTBCloudflareDoH.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBCloudflareDoH.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBCloudflareDoH.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -330,13 +330,13 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"Quad9"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "Quad9DoH")
 	file, _ = json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//this for loop ensures that DoHServersToTest is Quad9DoH till we collect all measurements with this resolver
 	//and file dir+testingDir+"/lighthouseTTBQuad9DoH.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBQuad9DoH.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBQuad9DoH.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -385,14 +385,14 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "DoHProxy")
 	file, _ = json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//these for loops ensure that DoHServersToTest is DoHProxy with Privacy enabled (but new resolver mapping dict btw each run)
 	// till we collect all measurements with this resolver
 	//and file dir+testingDir+"/lighthouseTTBDoHProxy.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBDoHProxy0.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBDoHProxy0.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -401,7 +401,7 @@ func (program *Program) doMeasurement() error {
 
 	handler.ResolverMapping = make(map[string][]string)
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBDoHProxy1.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBDoHProxy1.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -409,7 +409,7 @@ func (program *Program) doMeasurement() error {
 	}
 	handler.ResolverMapping = make(map[string][]string)
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBDoHProxy.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBDoHProxy.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -424,13 +424,13 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "DoHProxyNP")
 	file, _ = json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	_ = ioutil.WriteFile( filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//this for loop ensures that DoHServersToTest is DoHProxy with No Privacy Enabled, till we collect all measurements with this resolver
 	//and file dir+testingDir+"/lighthouseTTBDoHProxyNP.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBDoHProxyNP.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBDoHProxyNP.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -447,14 +447,14 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "SubRosa")
 	file, _ = json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	_ = ioutil.WriteFile( filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//these for loops ensure that DoHServersToTest is SubRosa with Privacy enabled & Racing (but new resolver mapping dict btw each run)
 	// till we collect all measurements with this resolver
 	//and file dir+testingDir+"/lighthouseTTBSubRosa.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBSubRosa0.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBSubRosa0.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -462,7 +462,7 @@ func (program *Program) doMeasurement() error {
 	}
 	handler.ResolverMapping = make(map[string][]string)
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBSubRosa1.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBSubRosa1.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -470,7 +470,7 @@ func (program *Program) doMeasurement() error {
 	}
 	handler.ResolverMapping = make(map[string][]string)
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBSubRosa.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBSubRosa.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -487,13 +487,13 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "SubRosaNP")
 	file, _ = json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//this for loop ensures that DoHServersToTest is SubRosa with No Privacy Enabled,but Racing enabled till we collect all measurements with this resolver
 	//and file dir+testingDir+"/lighthouseTTBSubRosaNP.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBSubRosaNP.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBSubRosaNP.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -510,13 +510,13 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "SubRosaNPR")
 	file, _ = json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//this for loop ensures that DoHServersToTest is SubRosa with No Privacy Enabled,No Racing enabled till we collect all measurements with this resolver
 	//and file dir+testingDir+"/lighthouseTTBSubRosaNPR.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	for {
-		if _, err := os.Stat(dir + testingDir + "/lighthouseTTBSubRosaNPR.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "lighthouseTTBSubRosaNPR.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			break
@@ -666,6 +666,7 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 
 	// only for windows
 	// since the output of windows is special, we have to convert
+	// -------------------------------------------------------------------------
 	// Admin State    State          Type             Interface Name
 	// -------------------------------------------------------------------------
 	// Enabled        Disconnected   Dedicated        Ethernet 2
@@ -676,10 +677,11 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 	if runtime.GOOS == "windows" {
 		var tmpOutput []byte
 		networkInterfaces := strings.Split(string(output), "\n")
+		// index 0 and 2 are blank new lines, index 1 are table headers, all actual interface starts at index 3
 		for _, networkInterface := range networkInterfaces {
 			strippedString := strings.ToLower(strings.Replace(networkInterface, "-", "", -1))
 
-			//only for windows to check disconnected interface
+			// only for windows to check disconnected interface
 			if strings.Contains(strippedString, "connected") {
 				if strings.Contains(strippedString, "disconnected") {
 					continue
