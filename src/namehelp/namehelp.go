@@ -854,6 +854,12 @@ func (program *Program) setDNSServer(primaryDNS string, backupDNSList []string, 
 				log.Fatal(err)
 				return
 			}
+			command := exec.Command("cmd", "/C", fmt.Sprintf(" netsh interface ipv6 add dnsservers %q address=127.0.0.1 index=1", networkInterface.String()))
+			output, err := command.Output()
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
 			log.Println(output)
 		}
 	}
