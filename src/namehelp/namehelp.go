@@ -239,7 +239,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	// this go func does the testing as soon as SubRosa is started
 	// TODO: change this to per-trigger base
 	handler.DoHEnabled = true
-	// go program.doMeasurement()
+	go program.doMeasurement()
 	return nil
 }
 
