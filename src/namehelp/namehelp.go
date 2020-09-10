@@ -238,6 +238,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	go program.startDNSServer(program.tcpServer)
 	// this go func does the testing as soon as SubRosa is started
 	// TODO: change this to per-trigger base
+	handler.DoHEnabled = true
 	// go program.doMeasurement()
 	return nil
 }
@@ -424,7 +425,7 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "DoHProxyNP")
 	file, _ = json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile( filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//this for loop ensures that DoHServersToTest is DoHProxy with No Privacy Enabled, till we collect all measurements with this resolver
 	//and file dir+testingDir+"/lighthouseTTBDoHProxyNP.json" is made in the directory
@@ -447,7 +448,7 @@ func (program *Program) doMeasurement() error {
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, "SubRosa")
 	file, _ = json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile( filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "dnsLatencies.json"), file, 0644)
 
 	//these for loops ensure that DoHServersToTest is SubRosa with Privacy enabled & Racing (but new resolver mapping dict btw each run)
 	// till we collect all measurements with this resolver
