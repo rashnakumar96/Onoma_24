@@ -330,11 +330,12 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	var mutex = &sync.Mutex{}
 	var stdout bytes.Buffer
 	var domain string
-	//The eperiment flag is turned on when testing individual resolvers and is off when testing DoHProxy and SubRosa
+	// The eperiment flag is turned on when testing individual resolvers and is off when testing DoHProxy and SubRosa
 	if experiment {
+		// Experiment mode, testing only the specified resolver
 		resolvers = nameservers
 	} else if !experiment && PrivacyEnabled {
-		//This condition is true when Privacy flag is turned on for DoHProxy and SubRosa, and all same 2lds go to the same resolver
+		// This condition is true when Privacy flag is turned on for DoHProxy and SubRosa, and all same 2lds go to the same resolver
 		val := strings.Split(question, "\\")
 		if len(val) == 1 {
 			domain = question
