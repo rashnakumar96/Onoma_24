@@ -304,7 +304,9 @@ func (resolver *Resolver) Shard() []proxy.Server {
 // Will return as early as possible (have an answer)
 // It returns an error if no request has succeeded.
 func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Msg, nameservers []string,
-	doID int, dohEnabled bool, experiment bool, proxy bool, ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool) (resultMessage *dns.Msg, err error) {
+	doID int, dohEnabled bool, experiment bool, proxy bool, ResolverMapping map[string][]string, 
+	PrivacyEnabled bool, Racing bool) 
+	(resultMessage *dns.Msg, err error) {
 
 	if experiment && !dohEnabled {
 		nameservers = utils.AddPortToEach(nameservers, resolver.Config.Port)
@@ -317,6 +319,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	}
 
 	resultChannel := make(chan *dns.Msg, 1)
+	defer close(resultChannel)
 	var waitGroup sync.WaitGroup
 
 	ticker := time.NewTicker(time.Duration(settings.NamehelpSettings.ResolvConfig.Interval) * time.Millisecond)
@@ -445,29 +448,24 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 			go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID)
 
 		}
-		if proxy {
-			// check for response or interval tick
-			select {
-			case result := <-resultChannel:
-				// exit early if we have an answer
-				return result, nil
-			case <-ticker.C:
-				log.WithFields(log.Fields{
-					"ticker.C": ticker.C}).Info("time ticked sending query to another resolver")
-				// when interval ticks, repeat loop
-				continue
-			}
-		} else {
-			select {
-			case result := <-resultChannel:
-				// exit early if we have an answer
-				log.Info("We have an answer,exit early")
-				return result, nil
-			default:
-				// when interval ticks, repeat loop
-				continue
-			}
+
+		// check for response or interval tick
+		select {
+		case result := <-resultChannel:
+			// exit early if we have an answer
+			return result, nil
+		// case <-ticker.C:
+		// 	log.WithFields(log.Fields{
+		// 		"ticker.C": ticker.C}).Info("time ticked sending query to another resolver")
+		// 	// when interval ticks, repeat loop
+		// 	continue
+		default:
+			log.WithFields(log.Fields{
+				"ticker.C": ticker.C}).Info("time ticked sending query to another resolver")
+			// when interval ticks, repeat loop
+			continue
 		}
+
 	}
 
 	// // if we get here, all queries have been launched

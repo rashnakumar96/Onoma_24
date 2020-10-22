@@ -49,7 +49,14 @@ type DNSQueryHandlerSettings struct {
 	isEnabledHostsFile        bool
 	isEnabledCounter          bool
 	// whether to count the lookup for the purposes of tracking user's top sites
+	experimentMode   bool
+	isEnabledDoH     bool
+	isEnabledProxy   bool
+	isEnabledPrivacy bool
+	isEnabledRacing  bool
 }
+
+// PingResult stores the result for ping command
 type PingResult struct {
 	Command string
 	Target  string
@@ -251,6 +258,56 @@ func (handler *DNSQueryHandler) SetIsEnabledHostsFile(isEnabled bool) {
 // SetIsEnabledCounter sets preference for counter
 func (handler *DNSQueryHandler) SetIsEnabledCounter(isEnabled bool) {
 	handler.settings.isEnabledCounter = isEnabled
+}
+
+// EnableExperiment enables direct resolution
+func (handler *DNSQueryHandler) EnableExperiment() {
+	handler.settings.experimentMode = true
+}
+
+// DisableExperiment disables direct resolution
+func (handler *DNSQueryHandler) DisableExperiment() {
+	handler.settings.experimentMode = false
+}
+
+// EnableDoH enables direct resolution
+func (handler *DNSQueryHandler) EnableDoH() {
+	handler.settings.isEnabledDoH = true
+}
+
+// DisableDoH disables direct resolution
+func (handler *DNSQueryHandler) DisableDoH() {
+	handler.settings.isEnabledDoH = false
+}
+
+// EnableProxy enables direct resolution
+func (handler *DNSQueryHandler) EnableProxy() {
+	handler.settings.isEnabledProxy = true
+}
+
+// DisableProxy disables direct resolution
+func (handler *DNSQueryHandler) DisableProxy() {
+	handler.settings.isEnabledProxy = false
+}
+
+// EnablePrivacy enables direct resolution
+func (handler *DNSQueryHandler) EnablePrivacy() {
+	handler.settings.isEnabledPrivacy = true
+}
+
+// DisablePrivacy disables direct resolution
+func (handler *DNSQueryHandler) DisablePrivacy() {
+	handler.settings.isEnabledPrivacy = false
+}
+
+// EnableRacing enables direct resolution
+func (handler *DNSQueryHandler) EnableRacing() {
+	handler.settings.isEnabledRacing = true
+}
+
+// DisableRacing disables direct resolution
+func (handler *DNSQueryHandler) DisableRacing() {
+	handler.settings.isEnabledRacing = false
 }
 
 // PerformDNSQuery performs a DNS Query using the following method:
