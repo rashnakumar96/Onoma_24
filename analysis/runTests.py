@@ -13,14 +13,15 @@ project_path = utils.project_path
 class WebPerformanceTests:
 	def __init__(self,countryPath):
 		self.countryPath=countryPath
-		self.resources=[]
+		# resources=[]
 
 	def paralleliseLighthouse(self,approach):
+		resources=[]
 		with open(self.countryPath+"AlexaUniqueResources.txt","r") as f:
 			for resource in f:
-				self.resources.append(resource.split("\n")[0])
-		print (len(self.resources))
-		chunkSize=int (len(self.resources)/5)
+				resources.append(resource.split("\n")[0])
+		print (len(resources))
+		chunkSize=int (len(resources)/5)
 		start=0
 		end=start+chunkSize
 		lastIter=False
@@ -28,7 +29,7 @@ class WebPerformanceTests:
 		while(1):
 			chunk=[]	
 			for i in range(start,end):
-				chunk.append(self.resources[i])
+				chunk.append(resources[i])
 			chunks.append(chunk)
 
 			if (lastIter==True):
@@ -36,8 +37,8 @@ class WebPerformanceTests:
 			start=end
 			end=end+chunkSize
 
-			if (end+chunkSize>len(self.resources)):
-				end=len(self.resources)		
+			if (end+chunkSize>len(resources)):
+				end=len(resources)		
 				lastIter=True		
 		print (len(chunks))
 
@@ -51,6 +52,7 @@ class WebPerformanceTests:
 				print (str(e))
 
 	def runLighthouse(self,approach,_resources,c):
+		print ("Length of chunk: ",len(_resources),str(c))
 		call(["node",project_path+"/runLighthouse.js",self.countryPath,approach,str(c)]+_resources)
 
 	def findminttb(self,approach,file1,file2,file3):
@@ -103,13 +105,13 @@ class WebPerformanceTests:
 		utils.dump_json(minttbdict, self.countryPath+"lighthouseTTB"+approach+".json")
 		
 	def runAllApproaches(self):
-		self.runWebPerformanceTests("GoogleDoH0")
-		self.runWebPerformanceTests("GoogleDoH1")
-		self.runWebPerformanceTests("GoogleDoH2")
-		self.findminttb("GoogleDoH","GoogleDoH0","GoogleDoH1","GoogleDoH2")
-		print("Done Testing Google DoH")
+		# self.runWebPerformanceTests("GoogleDoH0")
+		# self.runWebPerformanceTests("GoogleDoH1")
+		# self.runWebPerformanceTests("GoogleDoH2")
+		# self.findminttb("GoogleDoH","GoogleDoH0","GoogleDoH1","GoogleDoH2")
+		# print("Done Testing Google DoH")
 
-		time.sleep(1*20)
+		# time.sleep(1*20)
 		self.runWebPerformanceTests("CloudflareDoH0")
 		self.runWebPerformanceTests("CloudflareDoH1")
 		self.runWebPerformanceTests("CloudflareDoH2")
@@ -163,8 +165,8 @@ class WebPerformanceTests:
 if __name__ == "__main__":
 	#select country code you want to test with
 	country = input("Enter alpha-2 country code: ")
-	if not os.path.exists("measurements"):
-		os.mkdir("measurements")
-	tests=WebPerformanceTests("measurements"+"/")
+	if not os.path.exists(country):
+		os.mkdir(country)
+	tests=WebPerformanceTests(country+"/")
 	tests.runAllApproaches()
 	del tests
