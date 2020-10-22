@@ -161,19 +161,19 @@ if __name__ == "__main__":
 	if country not in top_sites:
 		print("ERROR: invalid country code or country provided does not have top site records")
 	else:
-		if not os.path.exists(project_path+"/"+"measurements"):
-			os.mkdir("measurements")
+		if not os.path.exists(project_path+"/"+country):
+			os.mkdir(country)
 		sites=[top_sites[country][x]["Site"] for x in range (len(top_sites[country]))]
 
 		# hars = hm.get_hars(sites[:2])
 		hars = hm.get_hars(sites)
-		rc.collect_resources(hars,"measurements")
-		rc.dump("measurements")
+		rc.collect_resources(hars,country)
+		rc.dump(country)
 		del hm
 
 
-		up=Url_processor("measurements")
+		up=Url_processor(country)
 		up.find_cdn()
-		up.collectPopularCDNResources("measurements")
-		up.dump("measurements")
+		up.collectPopularCDNResources(country)
+		up.dump(country)
 		del up
