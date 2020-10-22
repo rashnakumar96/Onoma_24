@@ -105,13 +105,13 @@ class WebPerformanceTests:
 		utils.dump_json(minttbdict, self.countryPath+"lighthouseTTB"+approach+".json")
 		
 	def runAllApproaches(self):
-		# self.runWebPerformanceTests("GoogleDoH0")
-		# self.runWebPerformanceTests("GoogleDoH1")
-		# self.runWebPerformanceTests("GoogleDoH2")
-		# self.findminttb("GoogleDoH","GoogleDoH0","GoogleDoH1","GoogleDoH2")
-		# print("Done Testing Google DoH")
+		self.runWebPerformanceTests("GoogleDoH0")
+		self.runWebPerformanceTests("GoogleDoH1")
+		self.runWebPerformanceTests("GoogleDoH2")
+		self.findminttb("GoogleDoH","GoogleDoH0","GoogleDoH1","GoogleDoH2")
+		print("Done Testing Google DoH")
 
-		# time.sleep(1*20)
+		time.sleep(1*20)
 		self.runWebPerformanceTests("CloudflareDoH0")
 		self.runWebPerformanceTests("CloudflareDoH1")
 		self.runWebPerformanceTests("CloudflareDoH2")
