@@ -363,7 +363,8 @@ func (program *Program) doMeasurement() error {
 	// //resolver mapping dict for privacy setting
 	handler.ResolverMapping=make(map[string][]string)
 	dir, err := os.Getwd()
-	testingDir:="/analysis/IN"
+	//add the countrycode we want to test with
+	testingDir:="/analysis/US"
 	// //stores all measurements
 	outPath:= filepath.Join(dir, testingDir)
 	if _, err := os.Stat(outPath); os.IsNotExist(err) {
