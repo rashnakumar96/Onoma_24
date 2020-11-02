@@ -35,10 +35,10 @@ var PublicDNSServers = []string{
 }
 var DNSServersToTest []string
 var DoHServersToTest []string
+var ResolverMapping map[string][]string
 var Experiment bool
 var DoHEnabled bool
 var Proxy bool
-var ResolverMapping map[string][]string
 var PrivacyEnabled bool
 var Racing bool
 
@@ -168,8 +168,6 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 		resolver.Client.AddUpstream("Google", "8.8.8.8/resolve", 443)
 		resolver.Client.AddUpstream("Cloudflare", "1.1.1.1/dns-query", 443)
 		resolver.Client.AddUpstream("Quad9", "9.9.9.9:5053/dns-query", 443)
-		// resolver.Client.AddUpstream("Comcast", "75.75.77.12/dns-query", 443)
-
 	}
 
 	return &dnsQueryHandler
