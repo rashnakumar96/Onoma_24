@@ -6,6 +6,7 @@ import subprocess
 from subprocess import call
 from joblib import Parallel, delayed
 import utils
+import ipaddress
 
 project_path = utils.project_path
 
@@ -104,62 +105,82 @@ class WebPerformanceTests:
 			minttbdict.append(dict)
 		utils.dump_json(minttbdict, self.countryPath+"lighthouseTTB"+approach+".json")
 		
-	def runAllApproaches(self):
-		self.runWebPerformanceTests("GoogleDoH0")
-		self.runWebPerformanceTests("GoogleDoH1")
-		self.runWebPerformanceTests("GoogleDoH2")
-		self.findminttb("GoogleDoH","GoogleDoH0","GoogleDoH1","GoogleDoH2")
-		print("Done Testing Google DoH")
+	def runAllApproaches(self,country):
+		publicDNSServers=[]
+		allpublicDNSServers=json.load(open("country_public_dns.json"))
+		for pDNS in allpublicDNSServers[country]:
+			if pDNS["reliability"]>0.90:
+				try:
+					ipaddress.IPv4Network(pDNS["ip"])
+					publicDNSServers.append(pDNS["ip"])
+				except:
+					print ("Not an IPv4 address: ",pDNS["ip"])
+					continue
+		with open(country+"/publicDNSServers.json",'w') as fp:
+			json.dump(publicDNSServers, fp, indent=4)
+
+		self.runWebPerformanceTests("Google0")
+		self.runWebPerformanceTests("Google1")
+		self.runWebPerformanceTests("Google2")
+		self.findminttb("Google_","Google0","Google1","Google2")
+		print("Done Testing Google ")
 
 		time.sleep(1*20)
-		self.runWebPerformanceTests("CloudflareDoH0")
-		self.runWebPerformanceTests("CloudflareDoH1")
-		self.runWebPerformanceTests("CloudflareDoH2")
-		self.findminttb("CloudflareDoH","CloudflareDoH0","CloudflareDoH1","CloudflareDoH2")
-		print("Done Testing Cloudflare DoH")
+		self.runWebPerformanceTests("Cloudflare0")
+		self.runWebPerformanceTests("Cloudflare1")
+		self.runWebPerformanceTests("Cloudflare2")
+		self.findminttb("Cloudflare_","Cloudflare0","Cloudflare1","Cloudflare2")
+		print("Done Testing Cloudflare ")
 
 		time.sleep(1*20)
-		self.runWebPerformanceTests("Quad9DoH0")
-		self.runWebPerformanceTests("Quad9DoH1")
-		self.runWebPerformanceTests("Quad9DoH2")
-		self.findminttb("Quad9DoH","Quad9DoH0","Quad9DoH1","Quad9DoH2")
-		print("Done Testing Quad9 DoH")
+		self.runWebPerformanceTests("Quad90")
+		self.runWebPerformanceTests("Quad91")
+		self.runWebPerformanceTests("Quad92")
+		self.findminttb("Quad9_","Quad90","Quad91","Quad92")
+		print("Done Testing Quad9 ")
 
+		for pDNS in publicDNSServers:
+			time.sleep(1*20)
+			self.runWebPerformanceTests(pDNS+"0")
+			self.runWebPerformanceTests(pDNS+"1")
+			self.runWebPerformanceTests(pDNS+"2")
+			self.findminttb(pDNS+"_",pDNS+"0",pDNS+"1",pDNS+"2")
+			print("Done Testing "+pDNS)
 
-		time.sleep(1*20)
-		self.runWebPerformanceTests("DoHProxy0")
-		self.runWebPerformanceTests("DoHProxy1")
-		self.runWebPerformanceTests("DoHProxy2")
-		self.findminttb("DoHProxy","DoHProxy0","DoHProxy1","DoHProxy2")
-		print("Done Testing DoHProxy")
+		# time.sleep(1*20)
+		# self.runWebPerformanceTests("DoHProxy0")
+		# self.runWebPerformanceTests("DoHProxy1")
+		# self.runWebPerformanceTests("DoHProxy2")
+		# self.findminttb("DoHProxy_","DoHProxy0","DoHProxy1","DoHProxy2")
+		# print("Done Testing DoHProxy")
 
 		time.sleep(1*20)
 		self.runWebPerformanceTests("DoHProxyNP0")
 		self.runWebPerformanceTests("DoHProxyNP1")
 		self.runWebPerformanceTests("DoHProxyNP2")
-		self.findminttb("DoHProxyNP","DoHProxyNP0","DoHProxyNP1","DoHProxyNP2")
+		self.findminttb("DoHProxyNP_","DoHProxyNP0","DoHProxyNP1","DoHProxyNP2")
 		print("Done Testing DoHProxyNP")
 
-		time.sleep(1*20)
-		self.runWebPerformanceTests("SubRosa0")
-		self.runWebPerformanceTests("SubRosa1")
-		self.runWebPerformanceTests("SubRosa2")
-		self.findminttb("SubRosa","SubRosa0","SubRosa1","SubRosa2")
-		print("Done Testing SubRosa")
+		# time.sleep(1*20)
+		# self.runWebPerformanceTests("SubRosa0")
+		# self.runWebPerformanceTests("SubRosa1")
+		# self.runWebPerformanceTests("SubRosa2")
+		# self.findminttb("SubRosa_","SubRosa0","SubRosa1","SubRosa2")
+		# print("Done Testing SubRosa")
 
 
 		time.sleep(1*20)
 		self.runWebPerformanceTests("SubRosaNP0")
 		self.runWebPerformanceTests("SubRosaNP1")
 		self.runWebPerformanceTests("SubRosaNP2")
-		self.findminttb("SubRosaNP","SubRosaNP0","SubRosaNP1","SubRosaNP2")
+		self.findminttb("SubRosaNP_","SubRosaNP0","SubRosaNP1","SubRosaNP2")
 		print("Done Testing SubRosaNP")
 
 		time.sleep(1*20)
 		self.runWebPerformanceTests("SubRosaNPR0")
 		self.runWebPerformanceTests("SubRosaNPR1")
 		self.runWebPerformanceTests("SubRosaNPR2")
-		self.findminttb("SubRosaNPR","SubRosaNPR0","SubRosaNPR1","SubRosaNPR2")
+		self.findminttb("SubRosaNPR_","SubRosaNPR0","SubRosaNPR1","SubRosaNPR2")
 		print("Done Testing SubRosaNPR")
 
 if __name__ == "__main__":
@@ -168,5 +189,5 @@ if __name__ == "__main__":
 	if not os.path.exists(country):
 		os.mkdir(country)
 	tests=WebPerformanceTests(country+"/")
-	tests.runAllApproaches()
+	tests.runAllApproaches(country)
 	del tests
