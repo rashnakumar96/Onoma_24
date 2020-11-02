@@ -4,24 +4,29 @@
 package handler
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
-	"fmt"
+	"net"
+	"sync"
+	"time"
+	"strconv"
 	"namehelp/cache"
 	"namehelp/hosts"
 	"namehelp/network"
 	"namehelp/resolver"
 	"namehelp/settings"
 	"namehelp/utils"
-	"net"
-	"net/url"
-	"os"
 	"os/exec"
-	"strconv"
+	"bytes"
 	"strings"
-	"sync"
-	"time"
+	"bufio"
+	"os"
+	"fmt"
+	"net/url"
+	"encoding/json"
+	"io/ioutil"
+
+
+
 
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
@@ -32,6 +37,7 @@ var PublicDNSServers = []string{
 	"8.8.8.8",        // Google
 	"4.2.2.5",        // Verizon (Level 3)
 	"208.67.222.222", // OpenDNS
+	"75.75.75.75",	//Comcast
 }
 var DNSServersToTest []string
 var DoHServersToTest []string
@@ -41,6 +47,9 @@ var Proxy bool
 var ResolverMapping map[string][]string
 var PrivacyEnabled bool
 var Racing bool
+var Decentralized bool
+var PDNSServers []string
+
 
 // DNSQueryHandlerSettings specifies settings for query handlers
 type DNSQueryHandlerSettings struct {
@@ -156,13 +165,38 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 		// topSites:      topSites,
 		doID: 0,
 	}
-
+	log.WithFields(log.Fields{
+			"pDNSServers":     PDNSServers}).Info("These are the PDNS servers")
 	if len(resolver.Client.Resolvers) == 0 {
 		resolver.Client.AddUpstream("Google", "8.8.8.8/resolve", 443)
 		resolver.Client.AddUpstream("Cloudflare", "1.1.1.1/dns-query", 443)
 		resolver.Client.AddUpstream("Quad9", "9.9.9.9:5053/dns-query", 443)
-		// resolver.Client.AddUpstream("Comcast", "75.75.77.12/dns-query", 443)
+		// // resolver.Client.AddUpstream("Comcast", "75.75.75.75", 53)
+		// resolver.Client.AddUpstream("Verizon", "4.2.2.5", 53)
+		// resolver.Client.AddUpstream("Verisign", "64.6.64.6", 53)
+		// localDNSServers := network.DhcpGetLocalDNSServers()
+		// localDNSServers=strings.Split(localDNSServers[0], ",")
+		// localdnsServer:=localDNSServers[0]
+		// resolver.Client.AddUpstream("LocalR",localdnsServer, 53)
+		// resolver.Client.AddUpstream("opendns","208.67.222.222", 53)
+		// for _, pDNS := range PDNSServers {
+		// 	resolver.Client.AddUpstream(pDNS,pDNS, 53)
+		// }
+		dir, err := os.Getwd()
+		testingDir:="/temp/AR/Decentralized"
+		jsonFile, err := os.Open(dir+testingDir+"/publicDNSServers.json")
+	    if err != nil {
+	        log.Info("error opening file: "+testingDir+"/publicDNSServers.json")
+	    }
+	    defer jsonFile.Close()
+	    byteValue, _ := ioutil.ReadAll(jsonFile)
+	    var publicDNSServers []string
+	    json.Unmarshal([]byte(byteValue), &publicDNSServers)
+		for i:=0;i<len(publicDNSServers);i++ {
+			resolver.Client.AddUpstream(publicDNSServers[i],publicDNSServers[i], 53)
 
+	    }
+		
 	}
 
 	return &dnsQueryHandler
@@ -343,7 +377,7 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		cacheKey := cache.KeyGen(question)
 		message, whichCache, isHit := handler.checkCache(question, cacheKey, IPQuery, doID)
 
-		if isHit {
+		if isHit{
 
 			// handle different types of hit, then return
 			if whichCache == &handler.cache {
@@ -352,20 +386,20 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 				messageCopy := *message
 				messageCopy.Id = dnsQueryMessage.Id
 				log.WithFields(log.Fields{
-					"question": question,
-					"message":  *message}).Info("dns_query_handler cache isHit")
+								"question": question,
+                 				"message": *message}).Info("dns_query_handler cache isHit")
 				return &messageCopy, true
 			} else if whichCache == &handler.negativeCache {
 				log.WithFields(log.Fields{
-					"question": question}).Info("Hit in negative cache")
+								"question": question}).Info("Hit in negative cache")
 				// negative cache
 				return nil, false
 			} else {
 				log.WithFields(log.Fields{
-					"id":       doID,
+					"id":    doID,
 					"question": question,
-					"message":  *message,
-					"cache":    *whichCache}).Info("Hit in unknown cache")
+					"message": *message,
+					"cache": *whichCache}).Info("Hit in unknown cache")
 				return message, false
 			}
 
@@ -375,19 +409,19 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		}
 	}
 	// not a cache hit so do Lookup
-	if DoHEnabled && Experiment {
-		dnsServersToQuery = DoHServersToTest
-	} else if !DoHEnabled && Experiment {
-		dnsServersToQuery = DNSServersToTest
+	if (DoHEnabled && Experiment){
+		dnsServersToQuery=DoHServersToTest
+	}else if (!DoHEnabled && Experiment){
+		dnsServersToQuery=DNSServersToTest
 	}
 	log.WithFields(log.Fields{
-		"question":                  question,
-		"DoHEnabled":                DoHEnabled,
-		"Experiment":                Experiment,
-		"dnsServersToQuery":         dnsServersToQuery,
-		"cacheEnabled":              isEnabledCache,
-		"isEnabledDirectResolution": isEnabledDirectResolution}).Info("Doing Lookup At NameServers")
-	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing)
+					"question": question,
+					"DoHEnabled":   DoHEnabled,
+					"Experiment":	Experiment,
+					"dnsServersToQuery": dnsServersToQuery,
+					"cacheEnabled": isEnabledCache,
+					"isEnabledDirectResolution" : isEnabledDirectResolution}).Info("Doing Lookup At NameServers")
+	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage,dnsServersToQuery,doID,DoHEnabled,Experiment,Proxy,ResolverMapping,PrivacyEnabled,Racing,Decentralized)
 
 	if err != nil {
 		// handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
@@ -399,7 +433,7 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		return nil, false
 	}
 
-	if isEnabledDirectResolution {
+	if isEnabledDirectResolution{
 
 		// check for redirection to CDN
 		isRedirect := true
@@ -422,9 +456,9 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 			if authoritativeNameServer != "" {
 				// If we are conveniently provided the NS without having to ask
 				log.WithFields(log.Fields{
-					"Authoritative Name Server": authoritativeNameServer,
-					"question":                  question.String()[1:],
-				}).Info("CDN REDIRECT")
+                		"Authoritative Name Server":authoritativeNameServer,
+                		"question": question.String()[1:],
+                	}).Info("CDN REDIRECT")
 				cNameQuery := handler.buildCnameQuery(cName, dnsQueryMessage.Id, question.Qtype)
 				authoritativeNameserverAndPort := authoritativeNameServer + ":53"
 				betterAnswerMessage, err = handler.resolver.LookupAtNameserver(
@@ -433,30 +467,30 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 					authoritativeNameserverAndPort,
 					doID)
 				log.WithFields(log.Fields{
-					"Authoritative Name Server": authoritativeNameServer,
-					"question":                  question.String()[1:],
-					"betterAnswerMessage":       betterAnswerMessage,
-				}).Info("Better answer message when conveniently provided the NS without having to ask")
+                		"Authoritative Name Server":authoritativeNameServer,
+                		"question": question.String()[1:],
+                		"betterAnswerMessage": betterAnswerMessage,
+                	}).Info("Better answer message when conveniently provided the NS without having to ask")
 
-			} else {
+			}else {
 				// If we don't know the NS
-				stime := time.Now()
+				stime:=time.Now()
 				betterAnswerMessage, err = handler.doSimpleDirectResolutionOfCname(
 					Net,
 					answerMessage,
 					cName,
 					doID)
-				elapsed := time.Since(stime)
+				elapsed:=time.Since(stime)
 				log.WithFields(log.Fields{
-					"TimeofDRwithnoNS": elapsed,
-					"question":         question.String()[1:]}).Info("Direct Resolution after contacting NS")
+                    		"TimeofDRwithnoNS": elapsed,
+                    		"question": question.String()[1:]}).Info("Direct Resolution after contacting NS")
 			}
 
 			if err != nil {
 				// if there is an error, we should be able to just provide the simple answer
 				log.WithFields(log.Fields{
-					"question": question.String()[1:],
-					"error":    err.Error()}).Warn("Error asking authoritative nameserver. Using original DNS answer as response.")
+					"question":    question.String()[1:],
+					"error": err.Error()}).Warn("Error asking authoritative nameserver. Using original DNS answer as response.")
 
 				return answerMessage, true
 			} else {
@@ -470,12 +504,13 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 					answerMessage.Answer[index].Header().Name = question.Name // make nodeName match
 				}
 
-				log.WithFields(log.Fields{
-					"question": dnsQueryMessage.Question[0],
-					"answer":   answerMessage}).Info("betterAnswerMessage added to cache")
+    			log.WithFields(log.Fields{
+	                               "question": dnsQueryMessage.Question[0],
+	                                "answer":answerMessage}).Info("betterAnswerMessage added to cache")
 
 				return answerMessage, true
 			}
+			
 
 		} // isRedirect
 	} // allowDirectResolution
@@ -512,76 +547,76 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 		Qclass: dns.ClassINET,
 	}
 
-	cacheAnswer := new(dns.Msg)
-	responseAuthoritativeServer := new(dns.Msg)
+    cacheAnswer:=new(dns.Msg)
+    responseAuthoritativeServer:=new(dns.Msg)
 
-	requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
+    requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
 
-	cacheKey := cache.KeyGen(requestAuthoritativeServer.Question[0])
-	log.WithFields(log.Fields{
-		"question": requestAuthoritativeServer.Question[0],
-		"cacheKey": cacheKey}).Info("Verifying CACHE KEY")
-	message, whichCache, isHit := handler.checkCache(requestAuthoritativeServer.Question[0], cacheKey, handler.whichIPVersion(requestAuthoritativeServer.Question[0]), doID)
+    cacheKey:=cache.KeyGen(requestAuthoritativeServer.Question[0])
+    log.WithFields(log.Fields{
+                               "question": requestAuthoritativeServer.Question[0],
+                                "cacheKey":cacheKey}).Info("Verifying CACHE KEY")
+    message,whichCache,isHit:=handler.checkCache(requestAuthoritativeServer.Question[0],cacheKey,handler.whichIPVersion(requestAuthoritativeServer.Question[0]),doID)
+    
+    cacheHit:=false
+    if isHit {
+    		
+            // handle different types of hit, then return
+            if whichCache == &handler.cache {
+                // positive cache
+                // we need this copy in case of concurrent modification of Id
+                messageCopy := *message
+                messageCopy.Id = requestAuthoritativeServer.Id
+                cacheAnswer=&messageCopy
+                cacheAnswer=message
+                cacheHit=true
+                log.WithFields(log.Fields{
+                                "id":    doID,
+                                "question": requestAuthoritativeServer.Question[0],
+                                "cache Answer": *cacheAnswer}).Info("Found NS in positive cache")
 
-	cacheHit := false
-	if isHit {
+            } else if whichCache == &handler.negativeCache {
+                // negative cache
+                cacheAnswer=nil
+                log.WithFields(log.Fields{
+                    "id":    doID,
+                    "question": requestAuthoritativeServer.Question[0]}).Info("NS In negative cache")
+                cacheHit=false
+            } else {
+                log.WithFields(log.Fields{
+                    "id":    doID,
+                    "question": requestAuthoritativeServer.Question[0],
+                    "cache": *whichCache}).Info("NS Hit in unknown cache")
+                cacheAnswer=message
+                cacheHit=true
 
-		// handle different types of hit, then return
-		if whichCache == &handler.cache {
-			// positive cache
-			// we need this copy in case of concurrent modification of Id
-			messageCopy := *message
-			messageCopy.Id = requestAuthoritativeServer.Id
-			cacheAnswer = &messageCopy
-			cacheAnswer = message
-			cacheHit = true
-			log.WithFields(log.Fields{
-				"id":           doID,
-				"question":     requestAuthoritativeServer.Question[0],
-				"cache Answer": *cacheAnswer}).Info("Found NS in positive cache")
+            }
+    }
+    if cacheHit==false{
 
-		} else if whichCache == &handler.negativeCache {
-			// negative cache
-			cacheAnswer = nil
-			log.WithFields(log.Fields{
-				"id":       doID,
-				"question": requestAuthoritativeServer.Question[0]}).Info("NS In negative cache")
-			cacheHit = false
-		} else {
-			log.WithFields(log.Fields{
-				"id":       doID,
-				"question": requestAuthoritativeServer.Question[0],
-				"cache":    *whichCache}).Info("NS Hit in unknown cache")
-			cacheAnswer = message
-			cacheHit = true
+        stime:=time.Now()
+        _responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID,Proxy,ResolverMapping,PrivacyEnabled,Racing,Decentralized)
+        responseAuthoritativeServer=_responseAuthoritativeServer
+        elapsed:=time.Since(stime)
+        log.WithFields(log.Fields{
+                "FindAuthoritativeTime": elapsed,
+                "question": requestAuthoritativeServer.Question[0].String(),
+                "response": responseAuthoritativeServer.String()}).Info("CACHING NS")
 
-		}
-	}
-	if cacheHit == false {
-
-		stime := time.Now()
-		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing)
-		responseAuthoritativeServer = _responseAuthoritativeServer
-		elapsed := time.Since(stime)
-		log.WithFields(log.Fields{
-			"FindAuthoritativeTime": elapsed,
-			"question":              requestAuthoritativeServer.Question[0].String(),
-			"response":              responseAuthoritativeServer.String()}).Info("CACHING NS")
-
-		if err != nil {
-			log.WithFields(log.Fields{
-				"id":    doID,
-				"error": err.Error()}).Error("Error occured: resolver lookup at NS")
-			return nil, err
-		}
-		//Cache the authoritativeNameServer
-		handler.cacheAnswer(requestAuthoritativeServer.Question[0], responseAuthoritativeServer, handler.whichIPVersion(requestAuthoritativeServer.Question[0]), doID)
-	} else {
-		log.WithFields(log.Fields{
-			"question":     requestAuthoritativeServer.Question,
-			"cache Answer": *cacheAnswer}).Info("Found Ns in cache,bypassed lookup")
-		responseAuthoritativeServer = cacheAnswer
-	}
+        if err != nil {
+            log.WithFields(log.Fields{
+                "id":    doID,
+                "error": err.Error()}).Error("Error occured: resolver lookup at NS")
+            return nil, err
+        }
+        //Cache the authoritativeNameServer
+        handler.cacheAnswer(requestAuthoritativeServer.Question[0],responseAuthoritativeServer,handler.whichIPVersion(requestAuthoritativeServer.Question[0]),doID)
+    }else{
+        log.WithFields(log.Fields{
+        						"question": requestAuthoritativeServer.Question,
+                                "cache Answer": *cacheAnswer}).Info("Found Ns in cache,bypassed lookup")
+        responseAuthoritativeServer=cacheAnswer
+    }
 
 	log.WithFields(log.Fields{
 		"id":       doID,
@@ -647,49 +682,49 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 	// perform lookup at the authoritative name server
 
 	// TODO check cache first--might not need to do lookup...or check before we even begin direct resolution!
-	log.WithFields(log.Fields{
-		"Searched for Authoritative Name Server": authoritativeNameserverAndPort,
-		"question":                               requestAuthoritativeServer.Question[0].String(),
-	}).Info("Lookup at the authoritative name server")
-	cacheKey = cache.KeyGen(requestAFromAuthoritativeServer.Question[0])
-	log.WithFields(log.Fields{
-		"question": requestAFromAuthoritativeServer.Question[0],
-		"cacheKey": cacheKey}).Info("Verifying CACHE KEY of DR")
-	message, whichCache, isHit = handler.checkCache(requestAFromAuthoritativeServer.Question[0], cacheKey, handler.whichIPVersion(requestAFromAuthoritativeServer.Question[0]), doID)
-	cacheHit = false
-	cacheAnswer = new(dns.Msg)
-	if isHit {
-		// handle different types of hit, then return
-		if whichCache == &handler.cache {
-			// positive cache
-			// we need this copy in case of concurrent modification of Id
-			messageCopy := *message
-			messageCopy.Id = requestAFromAuthoritativeServer.Id
-			cacheAnswer = &messageCopy
-			cacheHit = true
-			log.WithFields(log.Fields{
-				"question":     requestAFromAuthoritativeServer.Question[0],
-				"cache Answer": *cacheAnswer}).Info("Found betterAnswerMessage in positive cache")
+    log.WithFields(log.Fields{
+                    		"Searched for Authoritative Name Server":authoritativeNameserverAndPort,
+                    		"question": requestAuthoritativeServer.Question[0].String(),
+                    	}).Info("Lookup at the authoritative name server")
+    cacheKey=cache.KeyGen(requestAFromAuthoritativeServer.Question[0])
+    log.WithFields(log.Fields{
+                               "question": requestAFromAuthoritativeServer.Question[0],
+                                "cacheKey":cacheKey}).Info("Verifying CACHE KEY of DR")
+    message,whichCache,isHit=handler.checkCache(requestAFromAuthoritativeServer.Question[0],cacheKey,handler.whichIPVersion(requestAFromAuthoritativeServer.Question[0]),doID)
+    cacheHit=false
+    cacheAnswer=new(dns.Msg)
+    if isHit {
+            // handle different types of hit, then return
+        if whichCache == &handler.cache {
+            // positive cache
+            // we need this copy in case of concurrent modification of Id
+            messageCopy := *message
+            messageCopy.Id = requestAFromAuthoritativeServer.Id
+            cacheAnswer=&messageCopy
+            cacheHit=true
+            log.WithFields(log.Fields{
+                            "question":    requestAFromAuthoritativeServer.Question[0],
+                            "cache Answer": *cacheAnswer}).Info("Found betterAnswerMessage in positive cache")
 
-		} else if whichCache == &handler.negativeCache {
-			// negative cache
-			cacheAnswer = nil
-			log.WithFields(log.Fields{
-				"id":       doID,
-				"question": requestAFromAuthoritativeServer.Question[0]}).Info("betterAnswerMessage in negative cache")
-			cacheHit = false
-		} else {
-			log.WithFields(log.Fields{
-				"id":       doID,
-				"question": requestAFromAuthoritativeServer.Question[0],
-				"cache":    *whichCache}).Warn("betterAnswerMessage Hit in unknown cache")
-			cacheAnswer = message
-			cacheHit = true
+        } else if whichCache == &handler.negativeCache {
+            // negative cache
+            cacheAnswer=nil
+            log.WithFields(log.Fields{
+                "id":    doID,
+                "question": requestAFromAuthoritativeServer.Question[0]}).Info("betterAnswerMessage in negative cache")
+            cacheHit=false
+        } else {
+            log.WithFields(log.Fields{
+                "id":    doID,
+                "question":    requestAFromAuthoritativeServer.Question[0],
+                "cache": *whichCache}).Warn("betterAnswerMessage Hit in unknown cache")
+            cacheAnswer=message
+            cacheHit=true
 
-		}
-
-	}
-	if cacheHit == false {
+        }
+		
+    }
+    if cacheHit==false{
 		directResolutionResult, err = handler.resolver.LookupAtNameserver(
 			Net,
 			requestAFromAuthoritativeServer,
@@ -701,19 +736,19 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 				"error": err.Error()}).Warn("Direct resolution failed")
 			return nil, err
 		}
-		handler.cacheAnswer(requestAFromAuthoritativeServer.Question[0], directResolutionResult, handler.whichIPVersion(requestAFromAuthoritativeServer.Question[0]), doID)
-	} else {
+	    handler.cacheAnswer(requestAFromAuthoritativeServer.Question[0],directResolutionResult,handler.whichIPVersion(requestAFromAuthoritativeServer.Question[0]),doID)
+	}else{
 		log.WithFields(log.Fields{
-			"question":     requestAFromAuthoritativeServer.Question[0],
-			"cache Answer": *cacheAnswer}).Info("Found directResolutionResult in cache,bypassed lookup")
-		directResolutionResult = cacheAnswer
+						"question": requestAFromAuthoritativeServer.Question[0],
+                        "cache Answer": *cacheAnswer}).Info("Found directResolutionResult in cache,bypassed lookup")
+        directResolutionResult=cacheAnswer
 	}
 
 	return directResolutionResult, nil
 }
 
 func (handler *DNSQueryHandler) do(Net string, responseWriter dns.ResponseWriter, dnsQueryMessage *dns.Msg) {
-
+	
 	doID := handler.doID
 	handler.doID++
 
@@ -738,7 +773,7 @@ func (handler *DNSQueryHandler) do(Net string, responseWriter dns.ResponseWriter
 		handler.cacheAnswer(question, answerMessage, ipVersion, doID)
 	} else {
 		cacheKey := cache.KeyGen(question)
-		err := errors.New("Failed to perform DNSQuery")
+		err:=errors.New("Failed to perform DNSQuery")
 		handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
 		dns.HandleFailed(responseWriter, dnsQueryMessage)
 	}
@@ -751,13 +786,13 @@ func (handler *DNSQueryHandler) do(Net string, responseWriter dns.ResponseWriter
 func (handler *DNSQueryHandler) cacheAnswer(question dns.Question, answerMessage *dns.Msg, ipVersion int, doID int) {
 	// cache results
 
-	// 	if ipVersion > 0 && len(answerMessage.Answer) > 0 {
-	if len(answerMessage.Answer) > 0 {
+// 	if ipVersion > 0 && len(answerMessage.Answer) > 0 {
+    if len(answerMessage.Answer) > 0 {
 
-		// 	    log.WithFields(log.Fields{
-		//             			"id":       doID,
-		//             			"question": question.String()[1:],
-		//             			"cache answer": answerMessage.Answer}).Info("CACHING ANSWER")
+// 	    log.WithFields(log.Fields{
+//             			"id":       doID,
+//             			"question": question.String()[1:],
+//             			"cache answer": answerMessage.Answer}).Info("CACHING ANSWER")
 
 		cacheKey := cache.KeyGen(question)
 		err := handler.cache.Set(cacheKey, answerMessage)
@@ -768,10 +803,10 @@ func (handler *DNSQueryHandler) cacheAnswer(question dns.Question, answerMessage
 				"error":    err.Error()}).Info("Caching answer error")
 		}
 		log.WithFields(log.Fields{
-			"id":           doID,
-			"question":     question.String()[1:],
+			"id":       doID,
+			"question": question.String()[1:],
 			"cache answer": answerMessage.Answer,
-			"cacheKey":     cacheKey}).Info("Finished caching answer")
+			"cacheKey": cacheKey}).Info("Finished caching answer")
 	}
 }
 
@@ -781,9 +816,9 @@ func (handler *DNSQueryHandler) handleResolutionError(err error, responseWriter 
 
 	requestMessage *dns.Msg, cacheKey string, doID int) {
 	log.WithFields(log.Fields{
-		"id":             doID,
+		"id":    doID,
 		"requestMessage": requestMessage.Question[0].String(),
-		"error":          err}).Info("Resolve query error")
+		"error": err}).Info("Resolve query error")
 	// dns.HandleFailed(responseWriter, requestMessage)
 
 	// cache the failure in the negative cache
@@ -825,7 +860,7 @@ func (handler *DNSQueryHandler) doDirectResolutionOfCname(Net string, answerMess
 	}
 	requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
 
-	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing)
+	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID,Proxy,ResolverMapping,PrivacyEnabled,Racing,Decentralized)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id":    doID,
@@ -922,34 +957,34 @@ func (handler *DNSQueryHandler) buildCnameQuery(cName string, id uint16, qType u
 }
 
 func (handler *DNSQueryHandler) checkCache(question dns.Question, cacheKey string, IPQuery int, doID int) (message *dns.Msg, whichCache *cache.Cache, isCacheHit bool) {
-	// 	if IPQuery > 0 {
-	message, err := handler.cache.Get(cacheKey)
-
-	if err != nil {
-		// not in positive cache
-		message, err = handler.negativeCache.Get(cacheKey) // check negative cache
+// 	if IPQuery > 0 {
+		message, err := handler.cache.Get(cacheKey)
+		
 		if err != nil {
-			// not in negative cache
-			log.WithFields(log.Fields{
-				"id":       doID,
-				"key":      cacheKey,
-				"question": question.Name}).Error("Question didn't hit cache", doID, question.Name)
-			return message, nil, false
+			// not in positive cache
+			message, err = handler.negativeCache.Get(cacheKey) // check negative cache
+			if err != nil {
+				// not in negative cache
+				log.WithFields(log.Fields{
+					"id":       doID,
+					"key":		cacheKey,
+					"question": question.Name}).Error("Question didn't hit cache", doID, question.Name)
+				return message, nil, false
+			} else {
+				// hit in negative cache
+				log.WithFields(log.Fields{
+					"id":       doID,
+					"question": question.Name}).Info("Question hit negative cache")
+				return message, &handler.negativeCache, true
+			}
 		} else {
-			// hit in negative cache
+			// cache hit (positive cache)
 			log.WithFields(log.Fields{
 				"id":       doID,
-				"question": question.Name}).Info("Question hit negative cache")
-			return message, &handler.negativeCache, true
+				"question": question.Name}).Info("Question hit cache")
+			return message, &handler.cache, true
 		}
-	} else {
-		// cache hit (positive cache)
-		log.WithFields(log.Fields{
-			"id":       doID,
-			"question": question.Name}).Info("Question hit cache")
-		return message, &handler.cache, true
-	}
-	// 	}
+// 	}
 	return nil, nil, false
 }
 
@@ -1045,132 +1080,174 @@ func (handler *DNSQueryHandler) DoUDP(responseWriter dns.ResponseWriter, req *dn
 }
 
 // measure the DNS resolution time of each alexa site and measure min ping latency to the replica server
-func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile string, smartDnsSelectorId int, dohEnabled bool, experiment bool, iterations int, dict map[string]map[string]map[string]interface{}, resolver string) (dictionary map[string]map[string]map[string]interface{}, err error) {
+func (handler *DNSQueryHandler)MeasureDnsLatencies(indexW int, websiteFile string,smartDnsSelectorId int,dohEnabled bool,experiment bool,iterations int,dict map[string]map[string]map[string]interface{}, resolver string) (dictionary map[string]map[string]map[string]interface{}, err error) {
 	// dict:= make(map[string]map[string]map[string]interface{})
 	var serversToTest []string
-	if dohEnabled {
-		serversToTest = DoHServersToTest
-	} else {
-		serversToTest = DNSServersToTest
+	if (dohEnabled){
+		serversToTest=DoHServersToTest
+	}else{
+		serversToTest=DNSServersToTest
 	}
 
 	file, err := os.Open(websiteFile)
 	if err != nil {
-		log.Fatal(err)
+	    log.Fatal(err)
 	}
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(file)	
 
 	// TODO parallelize this for loop with goroutine (and channel?)
-	dict[resolver] = make(map[string]map[string]interface{})
-
+	dict[resolver]=make(map[string]map[string]interface{})
+	
 	// count:=0
-	var websites []string
+	var websites[]string
 	for scanner.Scan() {
 		// if count==10{
 		// 	break
 		// }
 		// count+=1
-		website := scanner.Text()
+		website:=scanner.Text()
 		u, err := url.Parse(website)
-		if err != nil {
-			log.Fatal("Error Parsing website", err)
-		}
+	    if err != nil {
+	        log.Fatal("Error Parsing website",err)
+	    }
 		if err := scanner.Err(); err != nil {
-			log.Fatal("Error while scanning for website", err)
+		    log.Fatal("Error while scanning for website",err)
 		}
-		found := 0
+		found:=0
 		for _, ele := range websites {
-			if ele == u.Hostname() {
-				found = 1
-			}
-		}
-		if found == 0 {
-			websites = append(websites, u.Hostname())
+	        if ele == u.Hostname() {
+	        	found=1
+	        }
+	    }
+	    if found==0{
+			websites=append(websites,u.Hostname())
 		}
 	}
 	log.WithFields(log.Fields{
-		"len of websites": len(websites),
-		"resolver":        resolver,
-		"serversToTest":   serversToTest}).Info("Testing DNS resolution time of this approach")
+				"len of websites": len(websites),
+				"websites": websites,
+				"resolver": resolver,
+				"serversToTest": serversToTest}).Info("Testing DNS resolution time of this approach")
 
+	// dir, err := os.Getwd()
+	// testingDir:="/temp/AR/Decentralized"
+	// f, err := os.Create(dir+testingDir+"/websiteDomains.txt")
+ //    if err != nil {
+ //        fmt.Println(err)
+ //        return
+ //    }
+	// sep := "\n"
+ //    for _, line := range websites {
+ //        if _, err = f.WriteString(line + sep); err != nil {
+ //            panic(err)
+ //        }
+ //    }
+	
 	for _, website := range websites {
 		dnsQueryMessage := utils.BuildDnsQuery(website, dns.TypeA, 0, true)
-		// var dnsServersToQuery []string
+		var dnsServersToQuery []string
 		var elapsedTime time.Duration
 		var answerMessage *dns.Msg
-		// var dnsResolutionTimes []time.Duration
-		var dnsResolutionTimes []string
-		var success bool
+		// var dnsResolutionTimes []time.Duration	
+		var dnsResolutionTimes []string	
+
 
 		log.WithFields(log.Fields{
-			"smart selector id":      smartDnsSelectorId,
-			"website":                website,
-			"experiment":             experiment,
-			"dohEnabled":             dohEnabled,
-			"Proxy":                  Proxy,
-			"PrivacyEnabled":         PrivacyEnabled,
-			"Racing":                 Racing,
-			"EnableDirectResolution": handler.settings.isEnabledDirectResolution,
-			"EnableHostsFile":        handler.settings.isEnabledHostsFile,
-			"isEnabledCache":         handler.settings.isEnabledCache,
-			"isEnabledCounter":       handler.settings.isEnabledCounter,
-			"DNS server":             resolver}).Info("Measuring DNS Latency for website")
+			"smart selector id": smartDnsSelectorId,
+			"website":           website,
+			"experiment":	experiment,
+			"dohEnabled":	dohEnabled,
+			"Proxy":		Proxy,
+			"PrivacyEnabled":	PrivacyEnabled,
+			"Racing":	Racing,
+			"EnableDirectResolution": handler.settings.isEnabledDirectResolution, 
+			"EnableHostsFile": handler.settings.isEnabledHostsFile, 
+			"isEnabledCache": handler.settings.isEnabledCache,
+			"isEnabledCounter": handler.settings.isEnabledCounter,
+			"DNS server":        resolver}).Info("Measuring DNS Latency for website")
 
-		for x := 0; x < iterations; x++ {
+		for x:=0; x<iterations; x++{
 			utils.FlushLocalDnsCache()
-			// dnsServersToQuery = serversToTest
-			Net := "udp"
-			// doID:=smartDnsSelectorId
-			startTime := time.Now()
-			answerMessage, success = handler.PerformDNSQuery(Net, dnsQueryMessage, net.ParseIP(utils.LOCALHOST), handler.settings.isEnabledDirectResolution, handler.settings.isEnabledHostsFile, handler.settings.isEnabledCache, handler.settings.isEnabledCounter)
-			// answerMessage, err= handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID,dohEnabled,experiment,Proxy,ResolverMapping,PrivacyEnabled,Racing)
-			elapsedTime = time.Since(startTime)
-			log.WithFields(log.Fields{
-				"DNS Latency":    strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10),
-				"website":        website,
-				"experiment":     experiment,
-				"dohEnabled":     dohEnabled,
-				"Proxy":          Proxy,
-				"PrivacyEnabled": PrivacyEnabled,
-				"Racing":         Racing,
-				"DNS server":     resolver}).Info("DNS Latency for website")
-
-			if !success {
+			dnsServersToQuery = serversToTest
+			Net:="udp"
+			doID:=smartDnsSelectorId
+			// startTime := time.Now()
+			answerMessage, err= handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID,dohEnabled,experiment,Proxy,ResolverMapping,PrivacyEnabled,Racing,Decentralized)
+			// elapsedTime = time.Since(startTime)
+			if err!=nil {
 				log.WithFields(log.Fields{
-					"DNS server": resolver,
-					"query":      dnsQueryMessage.Question[0].String()}).Error("No valid answer received from DNS server for question")
+					"smart selector id": smartDnsSelectorId,
+					"DNS server":        resolver,
+					"query":             dnsQueryMessage.Question[0].String()}).Error("No valid answer received from DNS server for question")
 				continue
 			}
-			dnsResolutionTimes = append(dnsResolutionTimes, strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10)+" ms")
+			// dnsResolutionTimes = append(dnsResolutionTimes,strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10)+ " ms")
+
+			log.WithFields(log.Fields{
+			"DNS Latency": strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10),
+			"website":           website,
+			"experiment":	experiment,
+			"dohEnabled":	dohEnabled,
+			"Proxy":		Proxy,
+			"PrivacyEnabled":	PrivacyEnabled,
+			"Racing":	Racing,
+			"DNS server":        resolver}).Info("DNS Latency for website")
+			var success bool	
+			startTime := time.Now()
+			answerMessage, success = handler.PerformDNSQuery(Net, dnsQueryMessage, net.ParseIP(utils.LOCALHOST),handler.settings.isEnabledDirectResolution, handler.settings.isEnabledHostsFile, handler.settings.isEnabledCache,handler.settings.isEnabledCounter)
+			elapsedTime = time.Since(startTime)
+			
+			if !success {
+				log.WithFields(log.Fields{
+					"DNS server":        resolver,
+					"query":             dnsQueryMessage.Question[0].String()}).Error("No valid answer received from DNS server for question")
+				continue
+			}
+			dnsResolutionTimes = append(dnsResolutionTimes,strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10)+ " ms")
+
+			
 		}
-		if len(dnsResolutionTimes) == 0 {
+		if len(dnsResolutionTimes)==0{
+			log.WithFields(log.Fields{
+					"DNS server":        resolver,
+					"query":             dnsQueryMessage.Question[0].String()}).Info("DNS resolution times empty")
 			continue
 		}
+		// minResolutionTime := dnsResolutionTimes[0]
 
-		dict[resolver][website] = make(map[string]interface{})
-		dict[resolver][website]["DNS Resolution Time"] = dnsResolutionTimes
+		// for _, value := range dnsResolutionTimes{
+  //       	if value < minResolutionTime {
+  //           	minResolutionTime = value // found another smaller value, replace previous value in min
+		// 	}
+		// }
+		
+		dict[resolver][website]=make(map[string]interface{})
+		dict[resolver][website]["DNS Resolution Time"]=dnsResolutionTimes
 		log.WithFields(log.Fields{
-			"DNS Latency":    dnsResolutionTimes,
-			"website":        website,
-			"experiment":     experiment,
-			"dohEnabled":     dohEnabled,
-			"Proxy":          Proxy,
-			"PrivacyEnabled": PrivacyEnabled,
-			"Racing":         Racing,
-			"DNS server":     resolver}).Info("Minimum DNS Resolution time for website")
+			"DNS Latency": dnsResolutionTimes,
+			"website":           website,
+			"experiment":	experiment,
+			"dohEnabled":	dohEnabled,
+			"Proxy":		Proxy,
+			"PrivacyEnabled":	PrivacyEnabled,
+			"Racing":	Racing,
+			"DNS server":        resolver}).Info("Minimum DNS Resolution time for website")
 
+		
 		ipAddress, err := utils.GetIpAddressFromAnswerMessage(answerMessage)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"smart selector id": smartDnsSelectorId,
 				"error":             err.Error(),
 				"answer":            answerMessage.String()}).Error("Error: Answer does not contain valid IP Address.")
-		} else {
+			dictionary=dict
+			continue
+		}else{
 			log.WithFields(log.Fields{
-				"website":   website,
-				"ipAddress": ipAddress}).Error("Error: Answer does not contain valid IP Address.")
+				"website":             website,
+				"ipAddress":            ipAddress}).Info("Answer does contain valid IP Address.")
 		}
 
 		var cmd string
@@ -1178,10 +1255,10 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 		var result *PingResult
 		var stdout bytes.Buffer
 
-		if cmd, err = exec.LookPath("ping.exe"); err == nil {
-			args = []string{"-n", strconv.Itoa(iterations), ipAddress}
-		} else if cmd, err = exec.LookPath("ping"); err == nil {
-			args = []string{"-c", strconv.Itoa(iterations), ipAddress}
+		if cmd, err = exec.LookPath("ping.exe"); err == nil{
+			args = []string{"-n", strconv.Itoa(iterations),ipAddress}
+		}else if cmd, err = exec.LookPath("ping"); err == nil{
+			args = []string{"-c",strconv.Itoa(iterations),ipAddress}
 		}
 		if cmd != "" {
 			// If a traceroute command was found, run it.
@@ -1195,79 +1272,87 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 			} else {
 				result = &PingResult{cmd, ipAddress, args, stdout.String(), stderr.String()}
 			}
-		} else {
+		}else{
 			// Otherwise we can't do anything
 			result = nil
 		}
-
-		if result != nil {
-			pingTimes := strings.Split(stdout.String(), "min/avg/max/stddev =")[1]
+		
+		if result!=nil{
+			pingTimes:=strings.Split(stdout.String(),"min/avg/max/stddev =")[1]
 			// minPingTime:=strings.Split(pingTimes,"/")[0]
 			// dict[resolver][website]["Replica Ping"]=minPingTime
-			dict[resolver][website]["Replica Ping"] = pingTimes
-
+			dict[resolver][website]["Replica Ping"]=pingTimes
 		}
 	}
-
-	dictionary = dict
+	
+	dictionary=dict
 	return dictionary, err
 }
 
 //run webperformance test on each alexa site
-func (handler *DNSQueryHandler) RunWebPerformanceTest(urlFile string, dohEnabled bool, experiment bool, iterations int, resultPath string, dnsServer string) {
+func (handler *DNSQueryHandler)RunWebPerformanceTest(urlFile string,dohEnabled bool,experiment bool,iterations int,resultPath string,dnsServer string) () {
 	// cmd := exec.Command("CHROME_PATH=/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge","lighthouse","http://google.com", "--quiet", "--only-categories=performance", "--output=json", "--output-path=./report.json")
 	// cmd := exec.Command("node","/Users/rashnakumar/Documents/subRosaLighthouse.js")
 	//brew install yarn
-	// yarn global add sitespeed.io to install site speed
+	// yarn global add sitespeed.io to install site speed 
 	f, err := os.Open(urlFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer f.Close()
 
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-		url := scanner.Text()
+    scanner := bufio.NewScanner(f)
+    for scanner.Scan() {
+        fmt.Println(scanner.Text())
+        url:=scanner.Text()
 		// cmd := exec.Command("docker", "run", "sitespeedio/sitespeed.io:14.2.3",url,"--headless","-n", strconv.Itoa(iterations),"--logToFile","--plugins.add", "analysisstorer","--plugins.remove", "coach,html,harstorer,assets,thirdparty,pagexray,budget,tracestorer,text,domains", "--outputFolder", resultPath+"/"+dnsServer, "--browsertime.retries", "0", "--browsertime.retryWaitTime", "10000")
-		cmd := exec.Command("sitespeed.io", url, "--headless", "-n", strconv.Itoa(iterations), "--logToFile", "--plugins.add", "analysisstorer", "--plugins.remove", "coach,html,harstorer,assets,thirdparty,pagexray,budget,tracestorer,text,domains", "--outputFolder", resultPath+"/"+dnsServer, "--browsertime.retries", "0", "--browsertime.retryWaitTime", "10000")
-		if err := cmd.Run(); err != nil {
-			log.WithFields(log.Fields{
-				"error":   err.Error(),
-				"website": url}).Info("Error: running sitespeed.io")
-		}
+		cmd := exec.Command("sitespeed.io",url,"--headless","-n", strconv.Itoa(iterations),"--logToFile","--plugins.add", "analysisstorer","--plugins.remove", "coach,html,harstorer,assets,thirdparty,pagexray,budget,tracestorer,text,domains", "--outputFolder", resultPath+"/"+dnsServer, "--browsertime.retries", "0", "--browsertime.retryWaitTime", "10000")
+	    if err := cmd.Run(); err != nil {
+	        log.WithFields(log.Fields{
+					"error":             err.Error(),
+					"website":            url}).Info("Error: running sitespeed.io")
+	    }
 	}
 }
 
 //measure the min ping latency to each DNS/DoH server
-func (handler *DNSQueryHandler) PingServers(dohEnabled bool, experiment bool, iterations int, dict map[string]map[string]interface{}) {
-	var serversToTest []string
+// func(handler *DNSQueryHandler)PingServers(dohEnabled bool,experiment bool,iterations int,dict map[string]map[string]interface{},resolverList []string){
+func(handler *DNSQueryHandler)PingServers(dohEnabled bool,experiment bool,iterations int,dict map[string]interface{},resolverList []string)(dictionary map[string]interface{}){
+
+	// var serversToTest []string
 	var cmd string
 	var args []string
 	var result *PingResult
 	utils.FlushLocalDnsCache()
+	
+	// dnsQueryMessage := utils.BuildDnsQuery("test.ana-aqualab.cs.northwestern.edu", dns.TypeA, 0, true)
+	// var answerMessage *dns.Msg
+	// var dnsServersToQuery []string
 
-	dnsQueryMessage := utils.BuildDnsQuery("test.ana-aqualab.cs.northwestern.edu", dns.TypeA, 0, true)
-	var answerMessage *dns.Msg
-	var dnsServersToQuery []string
+	// if (dohEnabled){
+	// 	serversToTest=DoHServersToTest
+	// }else{
+	// 	serversToTest=DNSServersToTest
+	// }	
+	// for _, dnsServer := range serversToTest {
+	for _, dnsServer := range resolverList {
 
-	if dohEnabled {
-		serversToTest = DoHServersToTest
-	} else {
-		serversToTest = DNSServersToTest
-	}
-	for _, dnsServer := range serversToTest {
-		dnsServersToQuery = []string{dnsServer}
+		// dnsServersToQuery = []string{dnsServer}
 		var err error
 		var stdout bytes.Buffer
 
-		Net := "udp"
-		doID := 0
-		answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, dohEnabled, experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing)
-		ipAddress, err := utils.GetIpAddressFromAnswerMessage(answerMessage)
-		if cmd, err = exec.LookPath("ping.exe"); err == nil {
+		// Net:="udp"
+		// doID:=0
+		//either use this or use ip of resolver directly and comment these two lines
+		// answerMessage, err= handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID,dohEnabled,experiment,Proxy,ResolverMapping,PrivacyEnabled,Racing,Decentralized)
+		// ipAddress, err := utils.GetIpAddressFromAnswerMessage(answerMessage)
+
+		//uncomment the following line:
+		ipAddress:=dnsServer
+
+		if cmd, err = exec.LookPath("ping.exe"); err == nil{
 			args = []string{"-n", strconv.Itoa(iterations), ipAddress}
-		} else if cmd, err = exec.LookPath("ping"); err == nil {
+		}else if cmd, err = exec.LookPath("ping"); err == nil{
 			args = []string{"-c", strconv.Itoa(iterations), ipAddress}
 		}
 		if cmd != "" {
@@ -1283,19 +1368,26 @@ func (handler *DNSQueryHandler) PingServers(dohEnabled bool, experiment bool, it
 				result = &PingResult{cmd, ipAddress, args, stdout.String(), stderr.String()}
 
 			}
-		} else {
+		}else{
 			// Otherwise we can't do anything
 			result = nil
 		}
 		log.WithFields(log.Fields{
-			"dnsServer":   dnsServer,
-			"ipAddress":   ipAddress,
-			"ping Result": result}).Info("Ping Response of DNS Server")
-		if result != nil {
-			pingTimes := strings.Split(stdout.String(), "min/avg/max/stddev =")[1]
-			minPingTime := strings.Split(pingTimes, "/")[0]
-			dict[dnsServer] = make(map[string]interface{})
-			dict[dnsServer][ipAddress] = minPingTime + " ms"
+				"dnsServer":  dnsServer,
+				"ipAddress":	ipAddress,
+				"ping Result": result}).Info("Ping Response of DNS Server")
+		if result!=nil{
+			pingTimes:=strings.Split(stdout.String(),"min/avg/max/stddev =")[1]
+			// minPingTime:=strings.Split(pingTimes,"/")[0]
+			//replace dnsServer with resolver and add it in function signature
+			// dict[dnsServer]=make(map[string]interface{})
+			// dict[dnsServer][ipAddress]=minPingTime+ " ms"
+			dict[dnsServer]=pingTimes
+
 		}
 	}
+	dictionary=dict
+	return dictionary
+	
+	
 }
