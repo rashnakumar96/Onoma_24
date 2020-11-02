@@ -1319,35 +1319,17 @@ func (handler *DNSQueryHandler)RunWebPerformanceTest(urlFile string,dohEnabled b
 // func(handler *DNSQueryHandler)PingServers(dohEnabled bool,experiment bool,iterations int,dict map[string]map[string]interface{},resolverList []string){
 func(handler *DNSQueryHandler)PingServers(dohEnabled bool,experiment bool,iterations int,dict map[string]interface{},resolverList []string)(dictionary map[string]interface{}){
 
-	// var serversToTest []string
 	var cmd string
 	var args []string
 	var result *PingResult
 	utils.FlushLocalDnsCache()
 	
-	// dnsQueryMessage := utils.BuildDnsQuery("test.ana-aqualab.cs.northwestern.edu", dns.TypeA, 0, true)
-	// var answerMessage *dns.Msg
-	// var dnsServersToQuery []string
-
-	// if (dohEnabled){
-	// 	serversToTest=DoHServersToTest
-	// }else{
-	// 	serversToTest=DNSServersToTest
-	// }	
-	// for _, dnsServer := range serversToTest {
+	
 	for _, dnsServer := range resolverList {
 
-		// dnsServersToQuery = []string{dnsServer}
 		var err error
 		var stdout bytes.Buffer
 
-		// Net:="udp"
-		// doID:=0
-		//either use this or use ip of resolver directly and comment these two lines
-		// answerMessage, err= handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID,dohEnabled,experiment,Proxy,ResolverMapping,PrivacyEnabled,Racing,Decentralized)
-		// ipAddress, err := utils.GetIpAddressFromAnswerMessage(answerMessage)
-
-		//uncomment the following line:
 		ipAddress:=dnsServer
 
 		if cmd, err = exec.LookPath("ping.exe"); err == nil{
@@ -1378,16 +1360,11 @@ func(handler *DNSQueryHandler)PingServers(dohEnabled bool,experiment bool,iterat
 				"ping Result": result}).Info("Ping Response of DNS Server")
 		if result!=nil{
 			pingTimes:=strings.Split(stdout.String(),"min/avg/max/stddev =")[1]
-			// minPingTime:=strings.Split(pingTimes,"/")[0]
-			//replace dnsServer with resolver and add it in function signature
-			// dict[dnsServer]=make(map[string]interface{})
-			// dict[dnsServer][ipAddress]=minPingTime+ " ms"
 			dict[dnsServer]=pingTimes
 
 		}
 	}
 	dictionary=dict
-	return dictionary
-	
+	return dictionary	
 	
 }
