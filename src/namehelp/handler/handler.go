@@ -6,8 +6,10 @@ package handler
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"namehelp/cache"
 	"namehelp/hosts"
 	"namehelp/network"
@@ -32,6 +34,7 @@ var PublicDNSServers = []string{
 	"8.8.8.8",        // Google
 	"4.2.2.5",        // Verizon (Level 3)
 	"208.67.222.222", // OpenDNS
+	"75.75.75.75",    //Comcast
 }
 var DNSServersToTest []string
 var DoHServersToTest []string
@@ -41,6 +44,8 @@ var DoHEnabled bool
 var Proxy bool
 var PrivacyEnabled bool
 var Racing bool
+var Decentralized bool
+var PDNSServers []string
 
 // DNSQueryHandlerSettings specifies settings for query handlers
 type DNSQueryHandlerSettings struct {
@@ -163,11 +168,38 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 		// topSites:      topSites,
 		doID: 0,
 	}
-
+	log.WithFields(log.Fields{
+		"pDNSServers": PDNSServers}).Info("These are the PDNS servers")
 	if len(resolver.Client.Resolvers) == 0 {
 		resolver.Client.AddUpstream("Google", "8.8.8.8/resolve", 443)
 		resolver.Client.AddUpstream("Cloudflare", "1.1.1.1/dns-query", 443)
 		resolver.Client.AddUpstream("Quad9", "9.9.9.9:5053/dns-query", 443)
+		// // resolver.Client.AddUpstream("Comcast", "75.75.75.75", 53)
+		// resolver.Client.AddUpstream("Verizon", "4.2.2.5", 53)
+		// resolver.Client.AddUpstream("Verisign", "64.6.64.6", 53)
+		// localDNSServers := network.DhcpGetLocalDNSServers()
+		// localDNSServers=strings.Split(localDNSServers[0], ",")
+		// localdnsServer:=localDNSServers[0]
+		// resolver.Client.AddUpstream("LocalR",localdnsServer, 53)
+		// resolver.Client.AddUpstream("opendns","208.67.222.222", 53)
+		// for _, pDNS := range PDNSServers {
+		// 	resolver.Client.AddUpstream(pDNS,pDNS, 53)
+		// }
+		dir, err := os.Getwd()
+		testingDir := "/temp/AR/Decentralized"
+		jsonFile, err := os.Open(dir + testingDir + "/publicDNSServers.json")
+		if err != nil {
+			log.Info("error opening file: " + testingDir + "/publicDNSServers.json")
+		}
+		defer jsonFile.Close()
+		byteValue, _ := ioutil.ReadAll(jsonFile)
+		var publicDNSServers []string
+		json.Unmarshal([]byte(byteValue), &publicDNSServers)
+		for i := 0; i < len(publicDNSServers); i++ {
+			resolver.Client.AddUpstream(publicDNSServers[i], publicDNSServers[i], 53)
+
+		}
+
 	}
 
 	return &dnsQueryHandler
@@ -442,7 +474,7 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		"dnsServersToQuery":         dnsServersToQuery,
 		"cacheEnabled":              isEnabledCache,
 		"isEnabledDirectResolution": isEnabledDirectResolution}).Info("Doing Lookup At NameServers")
-	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing)
+	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized)
 
 	if err != nil {
 		// handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
@@ -615,7 +647,7 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 	if cacheHit == false {
 
 		stime := time.Now()
-		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing)
+		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized)
 		responseAuthoritativeServer = _responseAuthoritativeServer
 		elapsed := time.Since(stime)
 		log.WithFields(log.Fields{
@@ -880,7 +912,7 @@ func (handler *DNSQueryHandler) doDirectResolutionOfCname(Net string, answerMess
 	}
 	requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
 
-	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing)
+	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id":    doID,
@@ -1147,17 +1179,31 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 	}
 	log.WithFields(log.Fields{
 		"len of websites": len(websites),
+		"websites":        websites,
 		"resolver":        resolver,
 		"serversToTest":   serversToTest}).Info("Testing DNS resolution time of this approach")
 
+	// dir, err := os.Getwd()
+	// testingDir:="/temp/AR/Decentralized"
+	// f, err := os.Create(dir+testingDir+"/websiteDomains.txt")
+	//    if err != nil {
+	//        fmt.Println(err)
+	//        return
+	//    }
+	// sep := "\n"
+	//    for _, line := range websites {
+	//        if _, err = f.WriteString(line + sep); err != nil {
+	//            panic(err)
+	//        }
+	//    }
+
 	for _, website := range websites {
 		dnsQueryMessage := utils.BuildDnsQuery(website, dns.TypeA, 0, true)
-		// var dnsServersToQuery []string
+		var dnsServersToQuery []string
 		var elapsedTime time.Duration
 		var answerMessage *dns.Msg
 		// var dnsResolutionTimes []time.Duration
 		var dnsResolutionTimes []string
-		var success bool
 
 		log.WithFields(log.Fields{
 			"smart selector id":      smartDnsSelectorId,
@@ -1175,13 +1221,21 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 
 		for x := 0; x < iterations; x++ {
 			utils.FlushLocalDnsCache()
-			// dnsServersToQuery = serversToTest
+			dnsServersToQuery = serversToTest
 			Net := "udp"
-			// doID:=smartDnsSelectorId
-			startTime := time.Now()
-			answerMessage, success = handler.PerformDNSQuery(Net, dnsQueryMessage, net.ParseIP(utils.LOCALHOST), handler.settings.isEnabledDirectResolution, handler.settings.isEnabledHostsFile, handler.settings.isEnabledCache, handler.settings.isEnabledCounter)
-			// answerMessage, err= handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID,dohEnabled,experiment,Proxy,ResolverMapping,PrivacyEnabled,Racing)
-			elapsedTime = time.Since(startTime)
+			doID := smartDnsSelectorId
+			// startTime := time.Now()
+			answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, dohEnabled, experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized)
+			// elapsedTime = time.Since(startTime)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"smart selector id": smartDnsSelectorId,
+					"DNS server":        resolver,
+					"query":             dnsQueryMessage.Question[0].String()}).Error("No valid answer received from DNS server for question")
+				continue
+			}
+			// dnsResolutionTimes = append(dnsResolutionTimes,strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10)+ " ms")
+
 			log.WithFields(log.Fields{
 				"DNS Latency":    strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10),
 				"website":        website,
@@ -1191,6 +1245,10 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 				"PrivacyEnabled": PrivacyEnabled,
 				"Racing":         Racing,
 				"DNS server":     resolver}).Info("DNS Latency for website")
+			var success bool
+			startTime := time.Now()
+			answerMessage, success = handler.PerformDNSQuery(Net, dnsQueryMessage, net.ParseIP(utils.LOCALHOST), handler.settings.isEnabledDirectResolution, handler.settings.isEnabledHostsFile, handler.settings.isEnabledCache, handler.settings.isEnabledCounter)
+			elapsedTime = time.Since(startTime)
 
 			if !success {
 				log.WithFields(log.Fields{
@@ -1199,10 +1257,21 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 				continue
 			}
 			dnsResolutionTimes = append(dnsResolutionTimes, strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10)+" ms")
+
 		}
 		if len(dnsResolutionTimes) == 0 {
+			log.WithFields(log.Fields{
+				"DNS server": resolver,
+				"query":      dnsQueryMessage.Question[0].String()}).Info("DNS resolution times empty")
 			continue
 		}
+		// minResolutionTime := dnsResolutionTimes[0]
+
+		// for _, value := range dnsResolutionTimes{
+		//       	if value < minResolutionTime {
+		//           	minResolutionTime = value // found another smaller value, replace previous value in min
+		// 	}
+		// }
 
 		dict[resolver][website] = make(map[string]interface{})
 		dict[resolver][website]["DNS Resolution Time"] = dnsResolutionTimes
@@ -1222,10 +1291,12 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 				"smart selector id": smartDnsSelectorId,
 				"error":             err.Error(),
 				"answer":            answerMessage.String()}).Error("Error: Answer does not contain valid IP Address.")
+			dictionary = dict
+			continue
 		} else {
 			log.WithFields(log.Fields{
 				"website":   website,
-				"ipAddress": ipAddress}).Error("Error: Answer does not contain valid IP Address.")
+				"ipAddress": ipAddress}).Info("Answer does contain valid IP Address.")
 		}
 
 		var cmd string
@@ -1260,7 +1331,6 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 			// minPingTime:=strings.Split(pingTimes,"/")[0]
 			// dict[resolver][website]["Replica Ping"]=minPingTime
 			dict[resolver][website]["Replica Ping"] = pingTimes
-
 		}
 	}
 
@@ -1295,31 +1365,21 @@ func (handler *DNSQueryHandler) RunWebPerformanceTest(urlFile string, dohEnabled
 }
 
 //measure the min ping latency to each DNS/DoH server
-func (handler *DNSQueryHandler) PingServers(dohEnabled bool, experiment bool, iterations int, dict map[string]map[string]interface{}) {
-	var serversToTest []string
+// func(handler *DNSQueryHandler)PingServers(dohEnabled bool,experiment bool,iterations int,dict map[string]map[string]interface{},resolverList []string){
+func (handler *DNSQueryHandler) PingServers(dohEnabled bool, experiment bool, iterations int, dict map[string]interface{}, resolverList []string) (dictionary map[string]interface{}) {
+
 	var cmd string
 	var args []string
 	var result *PingResult
 	utils.FlushLocalDnsCache()
 
-	dnsQueryMessage := utils.BuildDnsQuery("test.ana-aqualab.cs.northwestern.edu", dns.TypeA, 0, true)
-	var answerMessage *dns.Msg
-	var dnsServersToQuery []string
+	for _, dnsServer := range resolverList {
 
-	if dohEnabled {
-		serversToTest = DoHServersToTest
-	} else {
-		serversToTest = DNSServersToTest
-	}
-	for _, dnsServer := range serversToTest {
-		dnsServersToQuery = []string{dnsServer}
 		var err error
 		var stdout bytes.Buffer
 
-		Net := "udp"
-		doID := 0
-		answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, dohEnabled, experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing)
-		ipAddress, err := utils.GetIpAddressFromAnswerMessage(answerMessage)
+		ipAddress := dnsServer
+
 		if cmd, err = exec.LookPath("ping.exe"); err == nil {
 			args = []string{"-n", strconv.Itoa(iterations), ipAddress}
 		} else if cmd, err = exec.LookPath("ping"); err == nil {
@@ -1348,9 +1408,11 @@ func (handler *DNSQueryHandler) PingServers(dohEnabled bool, experiment bool, it
 			"ping Result": result}).Info("Ping Response of DNS Server")
 		if result != nil {
 			pingTimes := strings.Split(stdout.String(), "min/avg/max/stddev =")[1]
-			minPingTime := strings.Split(pingTimes, "/")[0]
-			dict[dnsServer] = make(map[string]interface{})
-			dict[dnsServer][ipAddress] = minPingTime + " ms"
+			dict[dnsServer] = pingTimes
+
 		}
 	}
+	dictionary = dict
+	return dictionary
+
 }

@@ -304,8 +304,7 @@ func (resolver *Resolver) Shard() []proxy.Server {
 // Will return as early as possible (have an answer)
 // It returns an error if no request has succeeded.
 func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Msg, nameservers []string,
-	doID int, dohEnabled bool, experiment bool, proxy bool, ResolverMapping map[string][]string,
-	PrivacyEnabled bool, Racing bool) (resultMessage *dns.Msg, err error) {
+	doID int, dohEnabled bool, experiment bool, _proxy bool, ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool, Decentralized bool) (resultMessage *dns.Msg, err error) {
 
 	if experiment && !dohEnabled {
 		nameservers = utils.AddPortToEach(nameservers, resolver.Config.Port)
@@ -332,12 +331,11 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	var mutex = &sync.Mutex{}
 	var stdout bytes.Buffer
 	var domain string
-	// The eperiment flag is turned on when testing individual resolvers and is off when testing DoHProxy and SubRosa
+	//The eperiment flag is turned on when testing individual resolvers and is off when testing DoHProxy and SubRosa
 	if experiment {
-		// Experiment mode, testing only the specified resolver
 		resolvers = nameservers
 	} else if !experiment && PrivacyEnabled {
-		// This condition is true when Privacy flag is turned on for DoHProxy and SubRosa, and all same 2lds go to the same resolver
+		//This condition is true when Privacy flag is turned on for DoHProxy and SubRosa, and all same 2lds go to the same resolver
 		val := strings.Split(question, "\\")
 		if len(val) == 1 {
 			domain = question
@@ -363,7 +361,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 		}
 		if val, ok := ResolverMapping[domain]; ok {
 			//do something here
-			if !proxy && len(val) == 1 {
+			if !_proxy && len(val) == 1 {
 				//if the resolvermapping has only one resolver and we are testing SubRosa, then add another resolver to the dictionary
 				resolvers = val
 				dohResolvers := resolver.Shard()
@@ -384,7 +382,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 				"website":   domain}).Info("These resolvers assigned to the domain")
 		} else {
 			//if domain not found in resolvermapping and if testing DoHProxy, shard and select a random resolver
-			if proxy {
+			if _proxy {
 				dohResolvers := resolver.Shard()
 				for _, resolver := range dohResolvers {
 					resolvers = append(resolvers, resolver.Name)
@@ -410,7 +408,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	} else {
 		//if experiment is false and privacy is also not enabled and
 		//if we are testing with DoHProxy or with racing disabled in SubRosa, pick one random resolver each time
-		if proxy || !Racing {
+		if _proxy || !Racing {
 			dohResolvers := resolver.Shard()
 			for _, resolver := range dohResolvers {
 				resolvers = append(resolvers, resolver.Name)
@@ -427,15 +425,39 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 		}
 	}
 	log.WithFields(log.Fields{
-		"proxy":          proxy,
+		"proxy":          _proxy,
 		"PrivacyEnabled": PrivacyEnabled,
 		"Racing":         Racing,
+		"Decentralized":  Decentralized,
 		"resolvers":      resolvers}).Info("These are the resolvers assigned")
 	// for _, nameserver := range nameservers {
 	for _, nameserver := range resolvers {
+
+		// add to waitGroup and launch goroutine to do lookup
+		waitGroup.Add(1)
+
+		if Decentralized {
+			var _resolver proxy.Server
+
+			for _, ns := range Client.Resolvers {
+				if ns.Name == nameserver {
+					_resolver = ns
+					break
+				}
+			}
+			if _resolver.Port == 443 {
+				dohEnabled = true
+				nameserver = _resolver.Name
+			} else {
+				dohEnabled = false
+				_nameservers := utils.AddPortToEach([]string{_resolver.Upstream}, resolver.Config.Port)
+				nameserver = _nameservers[0]
+			}
+		}
 		if strings.Contains(nameserver, "127.0.0.1") {
 			continue // don't send query to yourself (infinite recursion sort of)
 		}
+		//if doh enabled use that otherwise use dnslookup
 
 		// add to waitGroup and launch goroutine to do lookup
 		waitGroup.Add(1)
@@ -526,7 +548,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 
 // Lookup performs dns lookup at the specific resolver for the given message
 // Returns dns response message
-func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int, proxy bool, ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool) (message *dns.Msg, err error) {
+func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int, _proxy bool, ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool, Decentralized bool) (message *dns.Msg, err error) {
 	nameservers := resolver.Config.Servers
 	dohEnabled := true
 	experiment := false
@@ -535,7 +557,7 @@ func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int, 
 	// }else if (!handler.DoHEnabled && handler.Experiment){
 	// 	dnsServersToQuery=handler.DNSServersToTest
 	// }
-	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID, dohEnabled, experiment, proxy, ResolverMapping, PrivacyEnabled, Racing)
+	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID, dohEnabled, experiment, _proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized)
 }
 
 // Nameservers return the array of nameservers, with port number appended.
