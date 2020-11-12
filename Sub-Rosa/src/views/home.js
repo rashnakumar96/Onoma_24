@@ -1,24 +1,34 @@
 const { ipcRenderer } = require('electron');
 const path = require('path');
 
+var { PythonShell } = require('python-shell');
 var sudo = require('sudo-prompt');
 var options = {
-  name: 'Sub Rosa',
+    name: 'Sub Rosa',
 };
 
 var projectSrc = __dirname.split('/').slice(0, -1).join('/');
 console.log(projectSrc);
 
 document.getElementById("start").addEventListener("click", function(){
-    alert("Starting Sub-Rosa Service");
     sudo.exec(path.join(projectSrc, "bin", getOS(), "namehelp --service start"), options, function(error, stdout, stderr) {
         if (error) throw error;
         console.log('stdout: ' + stdout);
     });
 });
 
+document.getElementById("measurement").addEventListener("click", function(){
+    var pyOptions = {
+        args: []
+    };
+    PythonShell.run(path.join(projectSrc, "script", "test.py"), pyOptions, function (err, results) {
+        if (err) throw err;
+        // results is an array consisting of messages collected during execution
+        console.log('results:', results);
+    });
+});
+
 document.getElementById("stop").addEventListener("click", function(){
-    alert("Stopping Sub-Rosa Service");
     sudo.exec(path.join(projectSrc, "bin", getOS(), "namehelp --service stop"), options, function(error, stdout, stderr) {
         if (error) throw error;
         console.log('stdout: ' + stdout);
@@ -48,16 +58,16 @@ function getOS() {
         os = null;
   
     if (macosPlatforms.indexOf(platform) !== -1) {
-      os = 'MacOS';
+        os = 'MacOS';
     } else if (iosPlatforms.indexOf(platform) !== -1) {
-      os = 'iOS';
+        os = 'iOS';
     } else if (windowsPlatforms.indexOf(platform) !== -1) {
-      os = 'Windows';
+        os = 'Windows';
     } else if (/Android/.test(userAgent)) {
-      os = 'Android';
+        os = 'Android';
     } else if (!os && /Linux/.test(platform)) {
-      os = 'Linux';
+        os = 'Linux';
     } 
   
     return os;
-  }
+}

@@ -2,6 +2,8 @@
 *.txt
 har
 nohup.out
+node_modules
+yarn.lock
 __pycache__
 
 bin

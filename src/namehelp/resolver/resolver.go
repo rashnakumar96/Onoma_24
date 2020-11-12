@@ -317,8 +317,15 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	}
 
 	resultChannel := make(chan *dns.Msg, 1)
-	defer close(resultChannel)
 	var waitGroup sync.WaitGroup
+
+	// Reaper for channel
+	defer func(wg *sync.WaitGroup, c chan *dns.Msg) {
+		go func(wg *sync.WaitGroup, c chan *dns.Msg) {
+			wg.Wait()
+			close(c)
+		}(wg, c)
+	}(&waitGroup, resultChannel)
 
 	ticker := time.NewTicker(time.Duration(settings.NamehelpSettings.ResolvConfig.Interval) * time.Millisecond)
 	defer ticker.Stop()
