@@ -7,6 +7,30 @@ import matplotlib.colors as mcolors
 import random
 mpl.use('agg')
 import matplotlib.pyplot as plt
+import subprocess
+
+def runtraceroutes(resultFile,dir):
+	resFile=json.load(open(dir+resultFile))
+	replicaIPs=[]
+	for resolver in resFile:
+		for site in resFile[resolver]:
+			try:
+				replica=resFile[resolver][site]['ReplicaIP']
+				if replica not in replicaIPs:
+					replicaIPs.append(replica)
+			except:
+				continue
+	print (len(replicaIPs))
+	dict={}
+	dict['replicaIPs']=replicaIPs
+	with open(dir+"replicaIPs.json",'w') as fp:
+		json.dump(dict,fp,indent=4)
+	# for hostname in replicaIPs:
+	# 	traceroute = subprocess.Popen(["traceroute", '-w', '100',hostname],stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	# 	for line in iter(traceroute.stdout.readline,""):
+	# 		print(line)
+	# 	break
+
 
 def PingPlots(resultFile,dir):
 	resFile=json.load(open(dir+resultFile))
@@ -49,57 +73,90 @@ def DNSLatencyPlots(resultFile,metric,feature,_type,dir):
 
 	myresolvers=["SubRosa","SubRosaNP","SubRosaNPR","DoHProxy","DoHProxyNP"]
 	dict={}
+	publicDNSResolvers=json.load(open(dir+"publicDNSServers.json"))
+	# print ("publicDNSResolvers: ",publicDNSResolvers)
+
+
+	mainResolvers=["Google","Quad9","Cloudflare","DoHProxy","SubRosa"]
+	
+	#set a threshold, if a resolver has sites less than threshold, discard that resolver
+	_max=0
+	resolverlengths=[]
 	for resolver in resFile:
+		resolverlengths.append(len(resFile[resolver]))
+	_max=max(resolverlengths)
+	threshhold=(0.1*_max)
+
+	workingResolvers=0
+	for resolver in resFile:
+		if len(resFile[resolver])<threshhold:
+			continue
+		workingResolvers+=1
 		for site in resFile[resolver]:
-			values=[]
+			if site not in dict:
+				dict[site]={}
 			try:
-				print (metric)
 				if metric=="DNS Resolution Time":
+					values=[]
 					for value in resFile[resolver][site][metric]:
 						values.append(int(value.split(" ms")[0]))
-					print (values)
-					resFile[resolver][site][metric]={}
-					resFile[resolver][site][metric]['max']=max(values)
-					resFile[resolver][site][metric]['min']=min(values)
-					print (resFile[resolver][site][metric]['min'],resFile[resolver][site][metric]['max'])
+					if resolver not in dict[site]:
+						dict[site][resolver]={}
+					dict[site][resolver][metric]={}
+					dict[site][resolver][metric]['min']=min(values)
+					dict[site][resolver][metric]['max']=max(values)
 				elif metric=="Replica Ping":
-					print (resolver,site,metric)
-					print (resFile[resolver][site][metric])
 					value=resFile[resolver][site][metric]
-					print (value)
-					resFile[resolver][site][metric]={}
-					resFile[resolver][site][metric]['max']=float(value.split("/")[2])
-					resFile[resolver][site][metric]['min']=float(value.split("/")[0])
-					print (resFile[resolver][site][metric]['min'],resFile[resolver][site][metric]['max'])
-			except:
+					if resolver not in dict[site]:
+						dict[site][resolver]={}
+					dict[site][resolver][metric]={}
+					dict[site][resolver][metric]['min']=float(value.split("/")[0])
+					dict[site][resolver][metric]['max']=float(value.split("/")[2])
+			except Exception as e:
+				# print (resolver,site,metric)
 				continue
-
+	# with open(dir+"dnsLatenciesbyResolver.json",'w') as fp:
+	# 	json.dump(dict,fp,indent=4)
+	# print (len(resolverlengths),workingResolvers)
+	
 	graphdict={}
-	for resolver in resFile:
-		for site in resFile[resolver]:
-			try:
-				if resolver=="SubRosa" and feature=="":
-					_resolver="SubRosa"
-				elif resolver=="DoHProxy" and feature=="":
-					_resolver="DoHProxy"
-				elif resolver=="SubRosaNP" and feature=="PrivacyDisabled":
-					_resolver="SubRosa"
-				elif resolver=="DoHProxyNP" and feature=="PrivacyDisabled":
-					_resolver="DoHProxy"
-				elif resolver=="SubRosaNPR" and feature=="Privacy+RacingDisabled":
-					_resolver="SubRosa"
-				elif resolver=="DoHProxyNP" and feature=="Privacy+RacingDisabled":
-					_resolver="DoHProxy"
-				elif resolver not in myresolvers:
-					_resolver=resolver
-				if _resolver not in graphdict:
-					graphdict[_resolver]={}
-					graphdict[_resolver][metric]=[]
-				graphdict[_resolver][metric].append(resFile[resolver][site][metric][_type])
-			except:
-				continue
+	for site in dict:
+		if len(dict[site])<workingResolvers:
+			continue
+		for resolver in dict[site]:
+			_resolver=""
 
+			if resolver=="SubRosa" and feature=="":
+				_resolver="SubRosa"
+			elif resolver=="DoHProxy" and feature=="":
+				_resolver="DoHProxy"
+			elif resolver=="SubRosaNP" and feature=="PrivacyDisabled":
+				_resolver="SubRosa"
+			elif resolver=="DoHProxyNP" and feature=="PrivacyDisabled":
+				_resolver="DoHProxy"
+			elif resolver=="SubRosaNPR" and feature=="Privacy+RacingDisabled":
+				_resolver="SubRosa"
+			elif resolver=="DoHProxyNP" and feature=="Privacy+RacingDisabled":
+				_resolver="DoHProxy"
+			elif resolver not in myresolvers:
+				_resolver=resolver
+			if (_resolver not in mainResolvers and _resolver not in publicDNSResolvers):
+				continue
+			if _resolver not in graphdict:
+				graphdict[_resolver]={}
+				graphdict[_resolver][metric]=[]
+			# print (resolver,_resolver,metric,_type,dict[site][resolver],site)
+
+			graphdict[_resolver][metric].append(dict[site][resolver][metric][_type])
+			# except:
+				# continue
+	# print (graphdict.keys())
 	for resolver in graphdict:
+		print (resolver,len(graphdict[resolver][metric]))
+	# 	if len (graphdict[resolver]["ReplicaPing"])==0:
+	# 		print (metric,graphdict[resolver])
+	# 		continue
+	# 	# print (metric,graphdict[resolver])
 		q25, q75 = percentile(graphdict[resolver][metric], 25), percentile(graphdict[resolver][metric], 75)
 		iqr = q75 - q25
 		cut_off = iqr * 1.5
@@ -107,9 +164,13 @@ def DNSLatencyPlots(resultFile,metric,feature,_type,dir):
 		graphdict[resolver]["percentile"]=[x for x in graphdict[resolver][metric] if x >= lower and x <= upper]
 
 	for resolver in graphdict:
+		if "percentile" not in graphdict[resolver]:
+			continue
 		graphdict[resolver]["sorted"]=np.sort(graphdict[resolver]["percentile"])
 
 	for resolver in graphdict:
+		if "sorted" not in graphdict[resolver]:
+			continue
 		graphdict[resolver]["p"]=1. * np.arange(len(graphdict[resolver]["sorted"]))/(len(graphdict[resolver]["sorted"]) - 1)
 
 	plt.clf()
@@ -119,12 +180,12 @@ def DNSLatencyPlots(resultFile,metric,feature,_type,dir):
 		colorArray.append(key)
 
 	for resolver in graphdict:
-		if resolver in mainResolvers:
+		if resolver in mainResolvers or "sorted" not in graphdict[resolver]:
 			continue
 		else:
 			while 1:
 				rcolor=random.randint(0,len(colorArray)-1)
-				print (colorArray[rcolor])
+				# print (colorArray[rcolor])
 				if "green" not in colorArray[rcolor] and "red" not in colorArray[rcolor] and "white" not in colorArray[rcolor] and "snow" not in colorArray[rcolor]:
 					break
 			plt.plot(graphdict[resolver]["sorted"],graphdict[resolver]["p"],color=colorArray[rcolor],marker='.',label=resolver)
@@ -237,9 +298,8 @@ def resourcesCDF(file,cdn,dir,feature):
 	Verizon=[]
 	LocalR=[]
 	ttbdict=json.load(open(file))
-	publicDNSResolvers=json.load(open(dir+"publicDNSServers.json"))
-	print ("publicDNSResolvers: ",publicDNSResolvers)
-
+	# publicDNSResolvers=json.load(open(dir+"publicDNSServers.json"))
+	publicDNSResolvers=[]
 
 	graphdict={}
 	myresolvers=["SubRosa","SubRosaNP","SubRosaNPR","DoHProxy","DoHProxyNP"]
@@ -258,6 +318,12 @@ def resourcesCDF(file,cdn,dir,feature):
 				elif feature=="Privacy+RacingDisabled":
 					if "SubRosaNPR" not in ttbByCDN[site].keys() or "DoHProxyNP" not in ttbByCDN[site].keys():
 						continue
+				shouldContinue=False
+				for resolver in mainResolvers[:3]:
+					if resolver not in ttbByCDN[site].keys():
+						shouldContinue=True
+				if shouldContinue:
+					continue
 				_resolver=""
 				for resolver in ttbByCDN[site]:
 					if resolver=="SubRosa" and feature=="":
@@ -284,7 +350,6 @@ def resourcesCDF(file,cdn,dir,feature):
 
 	else:
 		ttbByCDN=ttbdict[cdn]
-		# print (feature,cdn)
 
 		for site in ttbByCDN:
 			if feature=="":
@@ -296,6 +361,12 @@ def resourcesCDF(file,cdn,dir,feature):
 			elif feature=="Privacy+RacingDisabled":
 				if "SubRosaNPR" not in ttbByCDN[site].keys() or "DoHProxyNP" not in ttbByCDN[site].keys():
 					continue
+			shouldContinue=False
+			for resolver in mainResolvers[:3]:
+				if resolver not in ttbByCDN[site].keys():
+					shouldContinue=True
+			if shouldContinue:
+				continue
 			_resolver=""
 			for resolver in ttbByCDN[site]:
 				if resolver=="SubRosa" and feature=="":
@@ -318,8 +389,32 @@ def resourcesCDF(file,cdn,dir,feature):
 				if _resolver in mainResolvers or _resolver in publicDNSResolvers:
 					graphdict[_resolver]["ttb"].append(ttbByCDN[site][resolver])
 			
-	# for key in graphdict:
-		# print(key,len(graphdict[key]["ttb"]))
+	for key in graphdict:
+		print(key,len(graphdict[key]["ttb"]))
+
+	avg=[]
+	bars=[]
+	for resolver in mainResolvers:
+		if resolver=="DoHProxy":
+			continue
+		bars.append(resolver)
+		# avg.append(min(graphdict[resolver]['ttb'])/len(graphdict[resolver]['ttb']))
+		avg.append(sum(graphdict[resolver]['ttb'])/len(graphdict[resolver]['ttb']))
+		print (resolver+": ",sum(graphdict[resolver]['ttb'])/len(graphdict[resolver]['ttb']))	
+
+	# y_pos = np.arange(len(bars))
+	# fig, ax = plt.subplots()
+
+	# ax.bar(y_pos, avg, color=('c','hotpink','sandybrown','mediumseagreen'))
+	# ax.set_xticks(y_pos)
+	# ax.set_xticklabels(bars)
+	# ax.set_title("Average Time to first Byte of Alexa top sites' resources")
+	# ax.set_ylabel('ms')
+
+
+	# ax.yaxis.grid(True)
+	# plt.savefig(dir+"graphs/siteTTFB"+cdn+feature)
+
 	
 	for resolver in graphdict:
 		q25, q75 = percentile(graphdict[resolver]["ttb"], 25), percentile(graphdict[resolver]["ttb"], 75)
@@ -372,8 +467,8 @@ def resourcesCDF(file,cdn,dir,feature):
 
 def plotLighthouseGraphs(countrycode):
 
-	resourcesttb(countrycode) 
-	resourcesttbbyCDN(countrycode+"lighthouseResourcesttb.json",countrycode+"cdnMapping.json","lighthouse",countrycode)
+	# resourcesttb(countrycode) 
+	# resourcesttbbyCDN(countrycode+"lighthouseResourcesttb.json",countrycode+"cdnMapping.json","lighthouse",countrycode)
 	
 	# resourcesCDF(countrycode+"resourcesttbbyCDNLighthouse.json","Google",countrycode,"")
 	# resourcesCDF(countrycode+"resourcesttbbyCDNLighthouse.json","Cloudflare",countrycode,"")
@@ -416,8 +511,8 @@ def plotDNSLatencyGraphs(countrycode):
 def main():
 	countryPath="IN"
 	plotLighthouseGraphs(countryPath+"/")
-	PingPlots("pingServers.json",countryPath+"/")
-	plotDNSLatencyGraphs(countryPath)
+	# PingPlots("pingServers.json",countryPath+"/")
+	# plotDNSLatencyGraphs(countryPath)
 
 main()
 

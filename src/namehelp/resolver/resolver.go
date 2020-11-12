@@ -294,7 +294,8 @@ func (resolver *Resolver) Shard() []proxy.Server {
 	// cutOff:=3
 	// return Client.Resolvers[:cutOff]
 	log.WithFields(log.Fields{
-		"resolvers": Client.Resolvers}).Info("These are the shuffled resolvers")
+			"resolversLength": len(Client.Resolvers),
+			"resolvers":     Client.Resolvers}).Info("These are the shuffled resolvers")
 	return Client.Resolvers
 
 }
@@ -439,13 +440,11 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 		"resolvers":      resolvers}).Info("These are the resolvers assigned")
 	// for _, nameserver := range nameservers {
 	for _, nameserver := range resolvers {
-
 		// add to waitGroup and launch goroutine to do lookup
 		waitGroup.Add(1)
 
 		if Decentralized {
 			var _resolver proxy.Server
-
 			for _, ns := range Client.Resolvers {
 				if ns.Name == nameserver {
 					_resolver = ns
@@ -496,47 +495,70 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	}
 
 	// if Racing enabled in subrosa wait for the go routines to finish in another go routine and when done write in lookupFinished channel
-	// if Racing {
+// 	lookupFinished := make(chan bool, 1)
+// 	go func(lookupFinished chan bool, waitGroup sync.WaitGroup) {
+// 		log.WithFields(log.Fields{
+// 			"question": question}).Info("Waiting for lookup queries to finish.")
+// 		waitGroup.Wait() // wait for all the goroutines to finish
+// 		log.WithFields(log.Fields{
+// 			"question": question}).Info("All lookup queries have finished.")
+// 		lookupFinished <- true
+// 	}(lookupFinished, waitGroup)
 
-	lookupFinished := make(chan bool, 1)
-	go func(lookupFinished chan bool, waitGroup sync.WaitGroup) {
-		log.WithFields(log.Fields{
-			"question": question}).Info("Waiting for lookup queries to finish.")
-		waitGroup.Wait() // wait for all the goroutines to finish
-		log.WithFields(log.Fields{
-			"question": question}).Info("All lookup queries have finished.")
-		lookupFinished <- true
-	}(lookupFinished, waitGroup)
-
-	// 	// while waiting for previous go routines to finish, we are listening on result Channel for a resultmsg, if we get it,
-	// 	//we return early or are listening on lookupFinished channel for prev goroutines to finish
-	// 	for {
-	// 		waitDone := false
-	select {
-	case result := <-resultChannel:
-		// at least one succeeded
-		log.WithFields(log.Fields{
-			"question": question,
-			"response": result.String()}).Info("Early Response from nameserver")
-		return result, nil
-	case <-lookupFinished:
-		log.WithFields(log.Fields{
-			"question": question}).Info("WaitGroup done for all lookup queries")
-	}
-	// 		if waitDone {
-	// 			break
-	// 		}
-	// 	}
-	// } else {
-	// 	//racing is false so we just wait for go routines to finish
-	// 	log.WithFields(log.Fields{
-	// 		"id": doID}).Info("Racing disabled,Waiting for lookup queries to finish.")
-	// 	waitGroup.Wait() // wait for all the goroutines to finish
-	// 	log.WithFields(log.Fields{
-	// 		"id": doID}).Info("Racing disabled,All lookup queries have finished.")
-	// }
+// 	select {
+// 	case result := <-resultChannel:
+// 		// at least one succeeded
+// 		log.WithFields(log.Fields{
+// 			"question": question,
+// 			"response": result.String()}).Info("Early Response from nameserver")
+// 		return result, nil
+// 	case <-lookupFinished:
+// 		log.WithFields(log.Fields{
+// 			"question": question}).Info("WaitGroup done for all lookup queries")
+// 	}
 
 	// go routines have finished we check if we get anything on resultChannel otherwise it's a serve fail
+	if Racing{
+		lookupFinished:= make(chan bool, 1)
+		go func(lookupFinished chan bool,waitGroup sync.WaitGroup){
+			log.WithFields(log.Fields{
+			"question": question}).Info("Waiting for lookup queries to finish.")
+			waitGroup.Wait() // wait for all the goroutines to finish
+			log.WithFields(log.Fields{
+				"question": question}).Info("All lookup queries have finished.")
+			lookupFinished<-true
+		}(lookupFinished,waitGroup)
+
+		// while waiting for previous go routines to finish, we are listening on result Channel for a resultmsg, if we get it,
+		//we return early or are listening on lookupFinished channel for prev goroutines to finish
+		// for{
+			// waitDone:=false
+			select {
+			case resultMessage := <-resultChannel:
+			// at least one succeeded
+			log.WithFields(log.Fields{
+				"question":       question,
+				"response": resultMessage.String()}).Info("Early Response from nameserver")
+			return resultMessage, nil
+			case <-lookupFinished:
+				log.WithFields(log.Fields{
+				"question":       question}).Info("WaitGroup done for all lookup queries")
+				// waitDone=true
+			}
+			// if waitDone{
+			// 	break
+			// }
+		// }
+	}else{
+		//racing is false so we just wait for go routines to finish
+		log.WithFields(log.Fields{
+			"id": doID}).Info("Racing disabled,Waiting for lookup queries to finish.")
+		waitGroup.Wait() // wait for all the goroutines to finish
+		log.WithFields(log.Fields{
+			"id": doID}).Info("Racing disabled,All lookup queries have finished.")
+	}
+	
+	//go routines have finished we check if we get anything on resultChannel otherwise it's a serve fail
 	select {
 	case resultMessage := <-resultChannel:
 		// at least one succeeded
