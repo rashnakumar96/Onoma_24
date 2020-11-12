@@ -38,7 +38,8 @@ function measureResourcePerformance(i,dir,dict,topSites,dirPath,chrome,fileNumbe
       const obj=JSON.parse(results)
       dict.push({
         website:url,
-        ttfb:obj["audits"]["server-response-time"]["numericValue"]
+        // ttfb:obj["audits"]["server-response-time"]["numericValue"]
+        ttfb:obj["audits"]["time-to-first-byte"]["numericValue"]
       });      
       console.log("finished running web performance on link", i)  
       measureResourcePerformance(i+1,dir,dict,topSites,dirPath,chrome,fileNumber);
