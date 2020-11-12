@@ -5,6 +5,8 @@ project_path = os.getcwd()
 # Convert a url (string) to the domain name (string) of the index page
 def url_to_domain(url):
     ext = tldextract.extract(url)
+    if ext[0] == '':
+        ext = ext[1:]
     return ".".join(ext)
 
 # Load file into a json object

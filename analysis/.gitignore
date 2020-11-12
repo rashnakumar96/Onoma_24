@@ -1,5 +1,7 @@
 *.json
+*.txt
 har
 nohup.out
+__pycache__
 
 bin

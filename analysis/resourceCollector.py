@@ -3,6 +3,7 @@ import json
 from browsermobproxy import Server
 from bs4 import BeautifulSoup
 import os, time
+from webdriver_manager.chrome import ChromeDriverManager
 
 import utils
 
@@ -20,7 +21,7 @@ class Har_generator:
 		options.add_argument("--ignore-certificate-errors")
 		# options.add_argument("--headless")
 
-		self.driver = webdriver.Chrome("/usr/local/bin/chromedriver", chrome_options=options)
+		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)
 
 	def __del__(self):
 		self.server.stop()
@@ -79,15 +80,20 @@ class Url_processor:
 		self.cdn_mapping = {}
 		self.resources_mapping = utils.load_json(country+"/alexaResources"+country+".json")
 
-		options = webdriver.ChromeOptions()
-		options.add_argument("--ignore-ssl-errors=yes")
-		options.add_argument("--ignore-certificate-errors")
+		self.options = webdriver.ChromeOptions()
+		self.options.add_argument("--ignore-ssl-errors=yes")
+		self.options.add_argument("--ignore-certificate-errors")
 		# options.add_argument("--headless")
 
-		self.driver = webdriver.Chrome("/usr/local/bin/chromedriver", chrome_options=options)
+		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=self.options)
 
 	def __del__(self):
 		self.driver.quit()
+
+	def restart_drive(self):
+		print("Restarting...")
+		self.driver.quit()
+		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=self.options)
 
 	def dump(self, fn_prefix):
 		utils.dump_json(self.cdn_mapping, project_path+"/"+fn_prefix + "/PopularcdnMapping.json")
@@ -104,6 +110,10 @@ class Url_processor:
 		self.driver.get("https://www.cdnplanet.com/tools/cdnfinder/")
 		total = len(domains)
 		for resource in domains:
+			if i > 0 and i % 50 == 0:
+				self.restart_drive()
+				self.driver.get("https://www.cdnplanet.com/tools/cdnfinder/")
+
 			print("%.2f%% completed" % (100 * i / total))
 
 			for _ in range(3):
