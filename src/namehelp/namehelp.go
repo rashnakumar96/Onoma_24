@@ -30,6 +30,7 @@ import (
 	// "namehelp/network"
 	"encoding/json"
 	"namehelp/reporter"
+	"net/http"
 
 
 	"namehelp/handler"
@@ -232,6 +233,43 @@ func (program *Program) initializeDNSServers() {
 }
 
 func (program *Program) launchNamehelpDNSServer() error {
+	url:= "http://ipinfo.io/json"
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+	json_map := make(map[string]interface{})
+	
+	jsonErr := json.Unmarshal(body, &json_map)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+	log.WithFields(log.Fields{
+				"country":    json_map["country"]}).Info("Country code")
+	country:=json_map["country"].(string)
+	testingDir:="/analysis/measurements/"+country
+	dir, err := os.Getwd()
+	//testingDir has the countrycode we want to test with e.g.
+	// testingDir:="/analysis/measurements/IN"    
+
+	//////////
+	jsonFile, err := os.Open(dir+testingDir+"/publicDNSServers.json")
+    if err != nil {
+        log.Info("error opening file: "+testingDir+"/publicDNSServers.json")
+    }
+    defer jsonFile.Close()
+    byteValue, _ := ioutil.ReadAll(jsonFile)
+    var publicDNSServers []string
+    json.Unmarshal([]byte(byteValue), &publicDNSServers)
+    log.WithFields(log.Fields{
+			"publicDNSServers":     publicDNSServers}).Info("These are the public DNS servers")
+	handler.PDNSServers=publicDNSServers
+
 	program.initializeDNSServers()
 
 	// start DNS servers for UDP and TCP requests
@@ -242,7 +280,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	go program.startDNSServer(program.tcpServer)
 	// this go func does the testing as soon as SubRosa is started
 	// TODO: change this to per-trigger base
-	go program.doMeasurement()
+	go program.doMeasurement(testingDir)
 	return nil
 }
 
@@ -317,7 +355,6 @@ func (program *Program) DnsLatenciesSettings(dir string,testingDir string,public
 	for i:=0;i<len(publicDNSServers);i++ {
 		program.MeasureDnsLatencies(publicDNSServers[i],publicDNSServers[i],dir+testingDir,dict1,dnsLatencyFile,iterations,testingDir)
     }
-	handler.PDNSServers=publicDNSServers
 
 	handler.DoHEnabled=true
 	handler.Experiment=false
@@ -350,7 +387,18 @@ func (program *Program) DnsLatenciesSettings(dir string,testingDir string,public
 
 }
 
-func (program *Program) doMeasurement() error {
+func (program *Program) doMeasurement(testingDir string) error {
+	
+	dir, err := os.Getwd()
+	d1 := []byte("start Measurements\n")
+    err = ioutil.WriteFile(dir+"/dat", d1, 0644)
+    if err!=nil{
+		log.WithFields(log.Fields{
+				"error":    err}).Info("couldn't start measurements")
+		panic(err)
+	}
+
+	publicDNSServers:=handler.PDNSServers
 	//handler.Proxy is true when testing DoHProxy
 	//handler.Racing is true when testing racing in SubRosa
 	//handler.PrivacyEnabled is true when testing SubRosa and DoHProxy with privacy enabled, and all same 2lds go to the same resolver
@@ -362,9 +410,7 @@ func (program *Program) doMeasurement() error {
 
 	// //resolver mapping dict for privacy setting
 	handler.ResolverMapping=make(map[string][]string)
-	dir, err := os.Getwd()
-	//add the countrycode we want to test with
-	testingDir:="/analysis/US"
+	
 	// //stores all measurements
 	outPath:= filepath.Join(dir, testingDir)
 	if _, err := os.Stat(outPath); os.IsNotExist(err) {
@@ -391,20 +437,10 @@ func (program *Program) doMeasurement() error {
 
 ///testing publicDns servers
 //publicDNSServers.json file should have ips of public DNS servers of a country to test
-	jsonFile, err := os.Open(dir+testingDir+"/publicDNSServers.json")
-    if err != nil {
-        log.Info("error opening file: "+testingDir+"/publicDNSServers.json")
-    }
-    defer jsonFile.Close()
-    byteValue, _ := ioutil.ReadAll(jsonFile)
-    var publicDNSServers []string
-    json.Unmarshal([]byte(byteValue), &publicDNSServers)
-    log.WithFields(log.Fields{
-			"publicDNSServers":     publicDNSServers}).Info("These are the public DNS servers")
+	
 	for i:=0;i<len(publicDNSServers);i++ {
 		program.runTests(publicDNSServers[i],publicDNSServers[i],dir+testingDir,testingDir)
     }
-	handler.PDNSServers=publicDNSServers
 // Done testing them
 //////////////////
 
@@ -527,7 +563,7 @@ func (program *Program) doMeasurement() error {
 	dict2=program.dnsQueryHandler.PingServers(handler.DoHEnabled,handler.Experiment,iterations,dict2,resolverList)
 	file,_:=json.MarshalIndent(dict2, "", " ")
 	_ = ioutil.WriteFile(dir+testingDir+"/pingServers.json", file, 0644)
-
+	
 	// Measuring DNSLatencies and Pings to Replicas  
 	program.DnsLatenciesSettings(dir,testingDir,publicDNSServers)
 	// program.reporter.PushToMongoDB("SubRosa-Test", "PingServers.json", dict2)
@@ -906,6 +942,11 @@ func main() {
 
 	// wait for signal from run until shut down completed
 	<-namehelpProgram.shutdownChan
+	dir, err := os.Getwd()
+	e := os.Remove(dir+"/dat") 
+    if e != nil { 
+        log.Fatal(e) 
+    } 
 
 	log.Info("Main exiting...")
 }
