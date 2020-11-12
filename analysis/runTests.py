@@ -7,6 +7,9 @@ from subprocess import call
 from joblib import Parallel, delayed
 import utils
 import ipaddress
+import re
+import urllib.request
+from pathlib import Path
 
 project_path = utils.project_path
 
@@ -106,19 +109,6 @@ class WebPerformanceTests:
 		utils.dump_json(minttbdict, self.countryPath+"lighthouseTTB"+approach+".json")
 		
 	def runAllApproaches(self,country):
-		publicDNSServers=[]
-		allpublicDNSServers=json.load(open("country_public_dns.json"))
-		for pDNS in allpublicDNSServers[country]:
-			if pDNS["reliability"]>0.90:
-				try:
-					ipaddress.IPv4Network(pDNS["ip"])
-					publicDNSServers.append(pDNS["ip"])
-				except:
-					print ("Not an IPv4 address: ",pDNS["ip"])
-					continue
-		with open(country+"/publicDNSServers.json",'w') as fp:
-			json.dump(publicDNSServers, fp, indent=4)
-
 		self.runWebPerformanceTests("Google0")
 		self.runWebPerformanceTests("Google1")
 		self.runWebPerformanceTests("Google2")
@@ -138,6 +128,8 @@ class WebPerformanceTests:
 		self.runWebPerformanceTests("Quad92")
 		self.findminttb("Quad9_","Quad90","Quad91","Quad92")
 		print("Done Testing Quad9 ")
+
+		publicDNSServers=json.load(open(country+"/publicDNSServers.json"))
 
 		for pDNS in publicDNSServers:
 			time.sleep(1*20)
@@ -185,9 +177,39 @@ class WebPerformanceTests:
 
 if __name__ == "__main__":
 	#select country code you want to test with
-	country = input("Enter alpha-2 country code: ")
-	if not os.path.exists(country):
-		os.mkdir(country)
-	tests=WebPerformanceTests(country+"/")
-	tests.runAllApproaches(country)
+	# country = input("Enter alpha-2 country code: ")
+	if not os.path.exists("measurements"):
+		os.mkdir("measurements")
+	url = 'http://ipinfo.io/json'
+	response = urllib.request.urlopen(url)
+	data = json.load(response)
+	country=data['country']
+
+	if not os.path.exists("measurements/"+country):
+		os.mkdir("measurements/"+country)
+
+	publicDNSServers=[]
+	allpublicDNSServers=json.load(open("country_public_dns.json"))
+	for pDNS in allpublicDNSServers[country]:
+		if pDNS["reliability"]>=0.95:
+			try:
+				ipaddress.IPv4Network(pDNS["ip"])
+				publicDNSServers.append(pDNS["ip"])
+			except:
+				print ("Not an IPv4 address: ",pDNS["ip"])
+				continue
+	if len(publicDNSServers)>8:
+		publicDNSServers=publicDNSServers[:8]
+	with open("measurements/"+country+"/publicDNSServers.json",'w') as fp:
+		json.dump(publicDNSServers, fp, indent=4)
+
+	print (Path(os.getcwd()).parent)
+
+	while 1:
+		if os.path.exists(str(Path(os.getcwd()).parent)+"/dat"):
+			print ("starting measurements")
+			break
+	
+	tests=WebPerformanceTests("measurements/"+country+"/")
+	tests.runAllApproaches("measurements/"+country)
 	del tests
