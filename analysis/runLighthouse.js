@@ -19,7 +19,7 @@ function launchChromeAndRunLighthouse(url, opts,config = null) {
 
         // return chrome.kill().then(() => results.report)
         return results.report
-    }).catch((err)=>{console.log("Lighthouse threw an error with the url ",url);});
+    }).catch((err)=>{console.log("Lighthouse threw an error with the url", url, err);});
     
   // });
 }
@@ -38,12 +38,12 @@ function measureResourcePerformance(i,dir,dict,topSites,dirPath,chrome,fileNumbe
       const obj=JSON.parse(results)
       dict.push({
         website:url,
-        ttfb:obj["audits"]["time-to-first-byte"]["numericValue"]
+        ttfb:obj["audits"]["server-response-time"]["numericValue"]
       });      
-      console.log("finished running web performance on link",i)  
+      console.log("finished running web performance on link", i)  
       measureResourcePerformance(i+1,dir,dict,topSites,dirPath,chrome,fileNumber);
     }).catch((err)=>{
-      console.log("Lighthouse threw an error with the url ",url);
+      console.log("Lighthouse threw an error with the url", url, err);
       measureResourcePerformance(i+1,dir,dict,topSites,dirPath,chrome,fileNumber);
 
     });
@@ -74,10 +74,10 @@ function measureWebsitePerformance(i,dir){
       }
       fs.writeFile(dir+topSites[i]+'Lighthouse.json',results,(err)=>{
         if (err){
-          console.log('Error in writting Data to file',err);
+          console.log('Error in writting Data to file', err);
         }
         else{
-          console.log("finished running web performance on link",i)
+          console.log("finished running web performance on link", i)
           measureWebsitePerformance(i+1,dir)
         }
       });

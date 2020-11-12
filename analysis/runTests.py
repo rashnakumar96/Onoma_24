@@ -1,6 +1,5 @@
 import json
 import os
-import json
 import time
 import subprocess
 from subprocess import call
@@ -57,7 +56,9 @@ class WebPerformanceTests:
 
 	def runLighthouse(self,approach,_resources,c):
 		print ("Length of chunk: ",len(_resources),str(c))
-		call(["node",project_path+"/runLighthouse.js",self.countryPath,approach,str(c)]+_resources)
+		# call(["node",project_path+"/runLighthouse.js",self.countryPath,approach,str(c)]+_resources)
+		stream = os.popen("node " + project_path+"/runLighthouse.js " + self.countryPath + approach + " " + str(c) + " " + str(_resources))
+		_ = stream.read()
 
 	def findminttb(self,approach,file1,file2,file3):
 		ttbDict1=utils.load_json(self.countryPath+"lighthouseTTB"+file1+".json")
