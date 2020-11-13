@@ -815,7 +815,7 @@ func (handler *DNSQueryHandler) do(Net string, responseWriter dns.ResponseWriter
 		err := errors.New("Failed to perform DNSQuery")
 		log.WithFields(log.Fields{
 			"question": question.String()[1:],
-			"err":   err}).Info("DNS query succeeded")
+			"err":      err}).Info("DNS query succeeded")
 		// handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
 		dns.HandleFailed(responseWriter, dnsQueryMessage)
 	}

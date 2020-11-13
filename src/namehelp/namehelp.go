@@ -559,7 +559,6 @@ func (program *Program) doMeasurement(testingDir string) error {
 	_ = ioutil.WriteFile(dir+testingDir+"/pingServers.json", file, 0644)
 	program.reporter.PushToMongoDB("SubRosa-Test", "PingServers.json_"+testingDir[len(testingDir)-2:], dict2)
 
-
 	// Measuring DNSLatencies and Pings to Replicas
 	program.DnsLatenciesSettings(dir, testingDir, publicDNSServers)
 
@@ -572,8 +571,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	json_map := make(map[string]map[string]map[string]interface{})
 	json.Unmarshal([]byte(byteValue), &json_map)
-	program.reporter.PushToMongoDB("SubRosa-Test", "resourcesttbbyCDNLighthouse_"+testingDir[len(testingDir)-2:],json_map)
-
+	program.reporter.PushToMongoDB("SubRosa-Test", "resourcesttbbyCDNLighthouse_"+testingDir[len(testingDir)-2:], json_map)
 
 	return err
 }
