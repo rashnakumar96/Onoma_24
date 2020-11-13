@@ -4,6 +4,7 @@ from browsermobproxy import Server
 from bs4 import BeautifulSoup
 import os, time
 from webdriver_manager.chrome import ChromeDriverManager
+import urllib.request
 
 import utils
 
@@ -78,7 +79,7 @@ class Resource_collector:
 class Url_processor:
 	def __init__(self,country):
 		self.cdn_mapping = {}
-		self.resources_mapping = utils.load_json(country+"/alexaResources"+country+".json")
+		self.resources_mapping = utils.load_json("measurements/"+country+"/alexaResources"+country+".json")
 
 		self.options = webdriver.ChromeOptions()
 		self.options.add_argument("--ignore-ssl-errors=yes")
@@ -147,7 +148,7 @@ class Url_processor:
 
 	def collectPopularCDNResources(self,country):
 		unique=[]
-		with open(country+"/AlexaUniqueResources.txt","w") as f:
+		with open("measurements/"+country+"/AlexaUniqueResources.txt","w") as f:
 			for cdn in self.cdn_mapping:
 				for domain in self.cdn_mapping[cdn]:
 					for resource in self.resources_mapping:
@@ -164,26 +165,35 @@ if __name__ == "__main__":
 	rc = Resource_collector()
 
 	top_sites = {}
-	country = input("Enter alpha-2 country code: ")
+	if not os.path.exists("measurements"):
+		os.mkdir("measurements")
+	url = 'http://ipinfo.io/json'
+	response = urllib.request.urlopen(url)
+	data = json.load(response)
+	country=data['country']
+
+	if not os.path.exists("measurements/"+country):
+		os.mkdir("measurements/"+country)
+	# country = input("Enter alpha-2 country code: ")
 
 	with open(project_path+"/alexaTop50SitesCountries.json", 'r') as fp:
 		top_sites = json.load(fp)
 	if country not in top_sites:
 		print("ERROR: invalid country code or country provided does not have top site records")
 	else:
-		if not os.path.exists(project_path+"/"+country):
-			os.mkdir(country)
+		# if not os.path.exists(project_path+"/"+country):
+		# 	os.mkdir(country)
 		sites=[top_sites[country][x]["Site"] for x in range (len(top_sites[country]))]
 
 		# hars = hm.get_hars(sites[:2])
 		hars = hm.get_hars(sites)
 		rc.collect_resources(hars,country)
-		rc.dump(country)
+		rc.dump("measurements/"+country)
 		del hm
 
 
 		up=Url_processor(country)
 		up.find_cdn()
 		up.collectPopularCDNResources(country)
-		up.dump(country)
+		up.dump("measurements/"+country)
 		del up

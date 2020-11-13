@@ -544,9 +544,9 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 					answerMessage.Answer[index].Header().Name = question.Name // make nodeName match
 				}
 
-				log.WithFields(log.Fields{
-					"question": dnsQueryMessage.Question[0],
-					"answer":   answerMessage}).Info("betterAnswerMessage added to cache")
+				// log.WithFields(log.Fields{
+				// 	"question": dnsQueryMessage.Question[0],
+				// 	"answer":   answerMessage}).Info("betterAnswerMessage added to cache")
 
 				return answerMessage, true
 			}
@@ -811,9 +811,12 @@ func (handler *DNSQueryHandler) do(Net string, responseWriter dns.ResponseWriter
 
 		handler.cacheAnswer(question, answerMessage, ipVersion, doID)
 	} else {
-		cacheKey := cache.KeyGen(question)
+		// cacheKey := cache.KeyGen(question)
 		err := errors.New("Failed to perform DNSQuery")
-		handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
+		log.WithFields(log.Fields{
+			"question": question.String()[1:],
+			"err":   err}).Info("DNS query succeeded")
+		// handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
 		dns.HandleFailed(responseWriter, dnsQueryMessage)
 	}
 

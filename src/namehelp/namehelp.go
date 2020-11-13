@@ -380,7 +380,7 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.MeasureDnsLatencies("SubRosaNPR", "", dir+testingDir, dict1, dnsLatencyFile, iterations, testingDir)
 
-	// program.reporter.PushToMongoDB("SubRosa-Test", "dnsLatencies", dict1)
+	program.reporter.PushToMongoDB("SubRosa-Test", "dnsLatencies"+testingDir[len(testingDir)-2:], dict1)
 
 }
 
@@ -557,10 +557,24 @@ func (program *Program) doMeasurement(testingDir string) error {
 	dict2 = program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2, resolverList)
 	file, _ := json.MarshalIndent(dict2, "", " ")
 	_ = ioutil.WriteFile(dir+testingDir+"/pingServers.json", file, 0644)
+	program.reporter.PushToMongoDB("SubRosa-Test", "PingServers.json_"+testingDir[len(testingDir)-2:], dict2)
+
 
 	// Measuring DNSLatencies and Pings to Replicas
 	program.DnsLatenciesSettings(dir, testingDir, publicDNSServers)
-	// program.reporter.PushToMongoDB("SubRosa-Test", "PingServers.json", dict2)
+
+	// push resourcesttbbyCDNLighthouse.json to server
+	jsonFile, err := os.Open(dir + testingDir + "/resourcesttbbyCDNLighthouse.json")
+	if err != nil {
+		log.Info("error opening file: " + testingDir + "/resourcesttbbyCDNLighthouse.json")
+	}
+	defer jsonFile.Close()
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	json_map := make(map[string]map[string]map[string]interface{})
+	json.Unmarshal([]byte(byteValue), &json_map)
+	program.reporter.PushToMongoDB("SubRosa-Test", "resourcesttbbyCDNLighthouse_"+testingDir[len(testingDir)-2:],json_map)
+
+
 	return err
 }
 

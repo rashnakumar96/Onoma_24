@@ -9,6 +9,8 @@ import ipaddress
 import re
 import urllib.request
 from pathlib import Path
+from os import listdir
+from os.path import isfile, join
 
 project_path = utils.project_path
 
@@ -17,6 +19,74 @@ class WebPerformanceTests:
 	def __init__(self,countryPath):
 		self.countryPath=countryPath
 		# resources=[]
+
+	def resourcesttb(self,dir):
+		onlyfiles = [f for f in listdir(dir) if isfile(join(dir, f))]
+		approachList=[]
+		for file in onlyfiles:
+			if "lighthouseTTB" in file and ".json" in file:
+				approach=file.split("lighthouseTTB")[1].split(".json")[0]
+				approach=approach[:-1]
+				if approach not in approachList:
+					approachList.append(approach)
+		print (approachList)
+
+		resourcesttfb={}
+		for approach in approachList:
+			ttbDict=json.load(open(dir+"lighthouseTTB"+approach+"_.json"))
+			for dict in ttbDict:
+				if "ttfb" in dict.keys():
+					if approach not in resourcesttfb:
+						resourcesttfb[approach]={}
+					if dict["website"] not in resourcesttfb[approach]:
+						resourcesttfb[approach][dict["website"]]={}
+					resourcesttfb[approach][dict["website"]]["ttfb"]=dict["ttfb"]
+
+		
+		utils.dump_json(resourcesttfb,dir+"lighthouseResourcesttb.json")
+
+
+	def resourcesttbbyCDN(self,ttbfile,cdnfile,tool,dir):
+		
+		ttbdict=json.load(open(ttbfile))
+		cdndict=json.load(open(cdnfile))
+		count=0
+		dict={}
+		for approach in ttbdict:
+			for site in ttbdict[approach]:
+				found=0
+				domain=site
+				if "https" in domain:
+					domain=domain.split("https://")[1]
+				elif "http" in domain:
+					domain=domain.split("http://")[1]
+				if "/" in domain:
+					domain=domain.split("/")[0]
+				if "www." in domain:
+					domain=domain.split("www.")[1]
+				for cdn in cdndict:
+					if domain in cdndict[cdn]:
+						if "Amazon" in cdn:
+							cdn="Amazon"
+						if cdn not in dict:
+							dict[cdn]={}
+						if site not in dict[cdn]:
+							dict[cdn][site]={}
+						if tool=="sitespeed":
+							try:
+								dict[cdn][site][approach]=ttbdict[approach][site]["ttfb"]["min"]
+							except:
+								print (site)
+						elif tool=="lighthouse":
+							dict[cdn][site][approach]=ttbdict[approach][site]["ttfb"]
+
+						found=1
+						break
+				if found==0:
+					count+=1
+
+		print (count)
+		utils.dump_json(dict,dir+"resourcesttbbyCDNLighthouse.json")
 
 	def paralleliseLighthouse(self,approach):
 		resources=[]
@@ -56,9 +126,12 @@ class WebPerformanceTests:
 
 	def runLighthouse(self,approach,_resources,c):
 		print ("Length of chunk: ",len(_resources),str(c))
+		# print ("utils.project_path",project_path)
 		# call(["node",project_path+"/runLighthouse.js",self.countryPath,approach,str(c)]+_resources)
-		stream = os.popen("node " + project_path+"/runLighthouse.js " + self.countryPath + approach + " " + str(c) + " " + str(_resources))
-		_ = stream.read()
+		# stream = os.popen("node " + project_path+"/runLighthouse.js " + self.countryPath + approach + " " + str(c) + " " + str(_resources))
+		# _ = stream.read()
+		print ("Length of chunk: ",len(_resources),str(c))
+		call(["node",project_path+"/runLighthouse.js",self.countryPath,approach,str(c)]+_resources)
 
 	def findminttb(self,approach,file1,file2,file3):
 		ttbDict1=utils.load_json(self.countryPath+"lighthouseTTB"+file1+".json")
@@ -176,6 +249,10 @@ class WebPerformanceTests:
 		self.findminttb("SubRosaNPR_","SubRosaNPR0","SubRosaNPR1","SubRosaNPR2")
 		print("Done Testing SubRosaNPR")
 
+		self.resourcesttb(country+"/") 
+		self.resourcesttbbyCDN(country+"/lighthouseResourcesttb.json",country+"/PopularcdnMapping.json","lighthouse",country+"/")
+
+
 if __name__ == "__main__":
 	#select country code you want to test with
 	# country = input("Enter alpha-2 country code: ")
@@ -191,14 +268,17 @@ if __name__ == "__main__":
 
 	publicDNSServers=[]
 	allpublicDNSServers=json.load(open("country_public_dns.json"))
+	mainpDNS=["8.8.8.8","9.9.9.9","1.1.1.1"]
+
 	for pDNS in allpublicDNSServers[country]:
-		if pDNS["reliability"]>=0.95:
+		if pDNS["reliability"]>=0.95 and pDNS["ip"] not in mainpDNS:
 			try:
 				ipaddress.IPv4Network(pDNS["ip"])
 				publicDNSServers.append(pDNS["ip"])
 			except:
-				print ("Not an IPv4 address: ",pDNS["ip"])
+				# print ("Not an IPv4 address: ",pDNS["ip"])
 				continue
+
 	if len(publicDNSServers)>8:
 		publicDNSServers=publicDNSServers[:8]
 	with open("measurements/"+country+"/publicDNSServers.json",'w') as fp:
