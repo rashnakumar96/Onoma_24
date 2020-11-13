@@ -24,8 +24,9 @@ cd analysis
 #collect resources
 python3 resourceCollector.py
 
-# collect lighthouse tests (this script and SubRosa should run simultaneously)
 python3 runTests.py
 
 #start running SubRosa now
+
+# runTests.py and SubRosa should run simultaneously)
 
