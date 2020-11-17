@@ -122,13 +122,3 @@ console.log(approach)
 console.log("fileNumber: ",fileNumber)
 
 startLighthouse(approach,dirPath,resources,fileNumber)
-
-
-
-
-
-
-
-
-
-
