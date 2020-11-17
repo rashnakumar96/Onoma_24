@@ -1,13 +1,13 @@
 const { ipcRenderer } = require('electron');
 const path = require('path');
-
+const childProcess = require('child_process');
 var { PythonShell } = require('python-shell');
 var sudo = require('sudo-prompt');
 var options = {
     name: 'Sub Rosa',
 };
 
-var projectSrc = __dirname.split('/').slice(0, -1).join('/');
+var projectSrc = __dirname.split(path.sep).slice(0, -1).join(path.sep);
 console.log(projectSrc);
 
 document.getElementById("start").addEventListener("click", function(){
@@ -19,13 +19,24 @@ document.getElementById("start").addEventListener("click", function(){
 
 document.getElementById("measurement").addEventListener("click", function(){
     var pyOptions = {
+        pythonPath: path.join(projectSrc, "script", "envs", "bin", "python"),
         args: []
     };
-    PythonShell.run(path.join(projectSrc, "script", "test.py"), pyOptions, function (err, results) {
+    PythonShell.run(path.join(projectSrc, "script", "runTests.py"), pyOptions, function (err, results) {
         if (err) throw err;
         // results is an array consisting of messages collected during execution
         console.log('results:', results);
     });
+    // const command = `conda run -n subrosa_env python runTests.py`
+    
+    // const pythonProcess = childProcess.spwan(command, { shell: true });
+    
+    // pythonProcess.stdin.on('data', (data) => console.log(data.toString()));
+    // pythonProcess.stderr.on('data', (data) => console.error(data.toString()));
+    
+    // pythonProcess.on('close', (code) => {
+    //     console.log('Process Exited:', code);
+    // });
 });
 
 document.getElementById("stop").addEventListener("click", function(){

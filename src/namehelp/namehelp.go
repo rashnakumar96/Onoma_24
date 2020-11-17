@@ -246,9 +246,38 @@ func (program *Program) launchNamehelpDNSServer() error {
 	if jsonErr != nil {
 		log.Fatal(jsonErr)
 	}
-	log.WithFields(log.Fields{
-		"country": json_map["country"]}).Info("Country code")
-	country := json_map["country"].(string)
+
+	country, ok := json_map["country"].(string)
+	if ok {
+		log.WithFields(log.Fields{
+			"country": json_map["country"]}).Info("Country code")
+	} else {
+		url := "https://extreme-ip-lookup.com/json"
+		resp, err := http.Get(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer resp.Body.Close()
+		body, readErr := ioutil.ReadAll(resp.Body)
+		if readErr != nil {
+			log.Fatal(readErr)
+		}
+		json_map := make(map[string]interface{})
+
+		jsonErr := json.Unmarshal(body, &json_map)
+		if jsonErr != nil {
+			log.Fatal(jsonErr)
+		}
+
+		country, ok = json_map["countryCode"].(string)
+		if ok {
+			log.WithFields(log.Fields{
+				"country": json_map["countryCode"]}).Info("Country code")
+		} else {
+			log.Fatal("Failed to get country code")
+		}
+	}
+
 	testingDir := "/analysis/measurements/" + country
 	dir, err := os.Getwd()
 	//testingDir has the countrycode we want to test with e.g.
