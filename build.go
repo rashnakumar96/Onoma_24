@@ -9,6 +9,8 @@ package main
 // github.com/alexthemonk/DoH_Proxy
 // go.mongodb.org/mongo-driver/mongo
 // github.com/inconshreveable/go-update
+// github.com/blang/semver
+// github.com/rhysd/go-github-selfupdate/selfupdate
 
 //go:generate go build -o bin/namehelp namehelp
 
