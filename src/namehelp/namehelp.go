@@ -278,15 +278,15 @@ func (program *Program) launchNamehelpDNSServer() error {
 		}
 	}
 
-	testingDir := "/analysis/measurements/" + country
+	testingDir := filepath.Join("analysis", "measurements", country)
 	dir, err := os.Getwd()
 	//testingDir has the countrycode we want to test with e.g.
 	// testingDir:="/analysis/measurements/IN"
 
 	//////////
-	jsonFile, err := os.Open(dir + testingDir + "/publicDNSServers.json")
+	jsonFile, err := os.Open(filepath.Join(dir, testingDir, "publicDNSServers.json"))
 	if err != nil {
-		log.Info("error opening file: " + testingDir + "/publicDNSServers.json")
+		log.Info("error opening file: " + filepath.Join(dir, testingDir, "publicDNSServers.json"))
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
@@ -328,7 +328,7 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 		"dir": dir}).Info("confirming Directory")
 
 	for {
-		if _, err := os.Stat(dir + "/lighthouseTTB" + resolverName + "_.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, "lighthouseTTB", resolverName, "_.json")); os.IsNotExist(err) {
 			continue
 		} else {
 			log.Info("FileFound")
@@ -352,19 +352,19 @@ func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir 
 	}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, resolverName)
 	file, _ := json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(dir+"/dnsLatencies.json", file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, "/dnsLatencies.json"), file, 0644)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err}).Info("DNS Latency Command produced error")
 	}
 	log.WithFields(log.Fields{
-		"dnsLatencyFile: ": dir + "/dnsLatencies.json"}).Info("Looking for this file")
+		"dnsLatencyFile: ": filepath.Join(dir, "/dnsLatencies.json")}).Info("Looking for this file")
 }
 
 func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string) {
 	dict1 := make(map[string]map[string]map[string]interface{})
 	iterations := 3
-	dnsLatencyFile := dir + testingDir + "/AlexaUniqueResources.txt"
+	dnsLatencyFile := filepath.Join(dir, testingDir, "AlexaUniqueResources.txt")
 
 	handler.Experiment = true
 	handler.Proxy = false
@@ -585,16 +585,16 @@ func (program *Program) doMeasurement(testingDir string) error {
 	resolverList := append(publicDNSServers, dohresolvers...)
 	dict2 = program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2, resolverList)
 	file, _ := json.MarshalIndent(dict2, "", " ")
-	_ = ioutil.WriteFile(dir+testingDir+"/pingServers.json", file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "pingServers.json"), file, 0644)
 	program.reporter.PushToMongoDB("SubRosa-Test", "PingServers.json_"+testingDir[len(testingDir)-2:], dict2)
 
 	// Measuring DNSLatencies and Pings to Replicas
 	program.DnsLatenciesSettings(dir, testingDir, publicDNSServers)
 
 	// push resourcesttbbyCDNLighthouse.json to server
-	jsonFile, err := os.Open(dir + testingDir + "/resourcesttbbyCDNLighthouse.json")
+	jsonFile, err := os.Open(filepath.Join(dir, testingDir, "resourcesttbbyCDNLighthouse.json"))
 	if err != nil {
-		log.Info("error opening file: " + testingDir + "/resourcesttbbyCDNLighthouse.json")
+		log.Info("error opening file: " + filepath.Join(dir, testingDir, "resourcesttbbyCDNLighthouse.json"))
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
