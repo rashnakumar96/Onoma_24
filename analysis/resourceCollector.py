@@ -167,10 +167,18 @@ if __name__ == "__main__":
 	top_sites = {}
 	if not os.path.exists("measurements"):
 		os.mkdir("measurements")
-	url = 'http://ipinfo.io/json'
-	response = urllib.request.urlopen(url)
-	data = json.load(response)
-	country=data['country']
+	
+	country = ""
+	try:
+		url = 'http://ipinfo.io/json'
+		response = urllib.request.urlopen(url)
+		data = json.load(response)
+		country = data['country']
+	except:
+		url = "https://extreme-ip-lookup.com/json"
+		response = urllib.request.urlopen(url)
+		data = json.load(response)
+		country = data['countryCode']
 
 	if not os.path.exists("measurements/"+country):
 		os.mkdir("measurements/"+country)
