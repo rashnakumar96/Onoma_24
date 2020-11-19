@@ -1,0 +1,5 @@
+name: subrosa_env
+channels:
+  - defaults
+prefix: C:\Users\liush\anaconda3\envs\subrosa_env
+
