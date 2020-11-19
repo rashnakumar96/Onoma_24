@@ -296,6 +296,8 @@ if __name__ == "__main__":
 	mainpDNS=["8.8.8.8","9.9.9.9","1.1.1.1"]
 
 	for pDNS in allpublicDNSServers[country]:
+		if len(publicDNSServers)>8:
+			break
 		if pDNS["reliability"]>=0.95 and pDNS["ip"] not in mainpDNS:
 			try:
 				ipaddress.IPv4Network(pDNS["ip"])

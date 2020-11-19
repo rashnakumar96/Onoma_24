@@ -284,6 +284,14 @@ func (program *Program) launchNamehelpDNSServer() error {
 	// testingDir:="/analysis/measurements/IN"
 
 	//////////
+	for {
+		if _, err := os.Stat(dir + testingDir + "/publicDNSServers.json"); os.IsNotExist(err) {
+			continue
+		} else {
+			log.Info("FileFound")
+			break
+		}
+	}
 	jsonFile, err := os.Open(filepath.Join(dir, testingDir, "publicDNSServers.json"))
 	if err != nil {
 		log.Info("error opening file: " + filepath.Join(dir, testingDir, "publicDNSServers.json"))
