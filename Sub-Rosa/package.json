@@ -27,7 +27,7 @@
     "forge": {
       "make_targets": {
         "win32": [
-          "zip"
+          "squirrel"
         ],
         "darwin": [
           "dmg",
@@ -35,8 +35,7 @@
           "zip"
         ],
         "linux": [
-          "deb",
-          "zip"
+          "deb"
         ]
       },
       "packagerConfig": {
@@ -44,7 +43,8 @@
         "icon": "resources/icon.icns",
         "osxSign": {
           "identity": "Developer ID Application: Shucheng Liu (NQLJVMV784)"
-        }
+        },
+        "asar": true
       },
       "makers": [
         {
