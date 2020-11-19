@@ -20,6 +20,23 @@ class WebPerformanceTests:
 		self.countryPath=countryPath
 		# resources=[]
 
+	def checkResolver(self,ip):
+		host_name="google.com"
+		cmd='dig @'+ip+' '+host_name
+		print (cmd)
+
+		out = subprocess.Popen(["dig","@"+ip,host_name], 
+           stdout=subprocess.PIPE, 
+           stderr=subprocess.STDOUT)
+		stdout,stderr = out.communicate()
+
+		
+		list=str(stdout).split(';')
+		for ele in  list:
+			if " connection timed out" in ele:
+				return False
+		return True
+
 	def resourcesttb(self,dir):
 		onlyfiles = [f for f in listdir(dir) if isfile(join(dir, f))]
 		approachList=[]
@@ -282,6 +299,8 @@ if __name__ == "__main__":
 		if pDNS["reliability"]>=0.95 and pDNS["ip"] not in mainpDNS:
 			try:
 				ipaddress.IPv4Network(pDNS["ip"])
+				if tests.checkResolver(pDNS["ip"])==False:
+					continue
 				publicDNSServers.append(pDNS["ip"])
 			except:
 				# print ("Not an IPv4 address: ",pDNS["ip"])
