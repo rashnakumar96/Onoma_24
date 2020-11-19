@@ -18,10 +18,18 @@ document.getElementById("start").addEventListener("click", function(){
 });
 
 document.getElementById("measurement").addEventListener("click", function(){
-    var pyOptions = {
-        pythonPath: path.join(projectSrc, "script", "envs", "bin", "python"),
-        args: []
-    };
+    if (getOS() == "Windows") {
+        var pyOptions = {
+            pythonPath: path.join(projectSrc, "script", "envs", "python"),
+            args: []
+        };
+    } else if (getOS() == "MacOS") {
+        var pyOptions = {
+            pythonPath: path.join(projectSrc, "script", "envs", "bin", "python"),
+            args: []
+        };
+    }
+
     PythonShell.run(path.join(projectSrc, "script", "runTests.py"), pyOptions, function (err, results) {
         if (err) throw err;
         // results is an array consisting of messages collected during execution
