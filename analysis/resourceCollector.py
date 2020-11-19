@@ -70,10 +70,11 @@ class Resource_collector:
 	# stores in the object resources
 	def collect_resources(self, hars,country):
 		for har in hars:
-			for entry in har["log"]["entries"]:
-				resource = entry["request"]["url"]
-				if resource not in self.resources:
-					self.resources.append(str(resource))
+			if har and "log" in har.keys() and "entries" in har["log"].keys():
+				for entry in har["log"]["entries"]:
+					resource = entry["request"]["url"]
+					if resource not in self.resources:
+						self.resources.append(str(resource))
 
 
 class Url_processor:

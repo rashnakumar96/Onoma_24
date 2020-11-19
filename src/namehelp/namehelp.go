@@ -285,7 +285,9 @@ func (program *Program) launchNamehelpDNSServer() error {
 
 	//////////
 	for {
-		if _, err := os.Stat(dir + testingDir + "/publicDNSServers.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, testingDir, "publicDNSServers.json")); os.IsNotExist(err) {
+			time.Sleep(time.Second)
+			// fmt.Println("Waiting on", filepath.Join(dir, testingDir, "publicDNSServers.json"))
 			continue
 		} else {
 			log.Info("FileFound")
@@ -794,7 +796,9 @@ func (program *Program) setDNSServer(primaryDNS string, backupDNSList []string, 
 		log.WithFields(log.Fields{
 			"interface":   networkInterface,
 			"primary DNS": primaryDNS,
-			"backup DNS":  backupDNSList}).Info("changing DNS server for interface to primary and backup")
+			"backup DNS":  backupDNSList,
+			"OS":          runtime.GOOS,
+		}).Info("changing DNS server for interface to primary and backup")
 
 		// "..." flattens the list to use each element as separate argument
 		if runtime.GOOS == "darwin" {
@@ -830,7 +834,14 @@ func (program *Program) setDNSServer(primaryDNS string, backupDNSList []string, 
 				log.Fatal(err)
 				return
 			}
-			log.Println(output)
+			log.WithFields(log.Fields{"output": output}).Info("Windows IPv4 DNS setting finished")
+			command = exec.Command("cmd", "/C", fmt.Sprintf(" netsh interface ipv6 add dnsservers %q address=::1 index=1", networkInterface.String()))
+			output, err = command.Output()
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			log.WithFields(log.Fields{"output": output}).Info("Windows IPv6 DNS setting finished")
 		}
 	}
 }

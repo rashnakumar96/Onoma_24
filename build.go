@@ -17,7 +17,7 @@ package main
 // For Building other OS on MacOS
 /*
 //go:generate env GOOS=darwin GOARCH=amd64 go build -o Sub-Rosa/src/bin/MacOS/namehelp namehelp
-//go:generate env GOOS=windows GOARCH=amd64 go build -o Sub-Rosa/src/bin/Windows/namehelp namehelp
+//go:generate env GOOS=windows GOARCH=amd64 go build -o Sub-Rosa/src/bin/Windows/namehelp.exe namehelp
 //go:generate env GOOS=linux GOARCH=amd64 go build -o Sub-Rosa/src/bin/Linux/namehelp namehelp
 */
 
