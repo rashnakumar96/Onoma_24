@@ -38,5 +38,4 @@ dependencies:
     - tldextract==3.0.2
     - urllib3==1.26.2
     - webdriver-manager==3.2.2
-prefix: /Users/alexliu/opt/miniconda3/envs/subrosa_env
 
