@@ -90,6 +90,7 @@ func NewProgram() *Program {
 }
 
 var namehelpProgram = NewProgram()
+var srcDir string
 
 // init is called before main when starting a program.
 // intializes loggers
@@ -117,7 +118,7 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{ForceColors: true})
 	// Only log the Info level or above.
 	log.SetLevel(log.InfoLevel)
-
+	srcDir = path.Dir(path.Dir(exeDir))
 }
 
 // Start is the Service.Interface method invoked when run with "--service start"
@@ -279,24 +280,25 @@ func (program *Program) launchNamehelpDNSServer() error {
 	}
 
 	testingDir := filepath.Join("analysis", "measurements", country)
-	dir, err := os.Getwd()
+	// TODO: this definitely will not work in an actual app
+
 	//testingDir has the countrycode we want to test with e.g.
 	// testingDir:="/analysis/measurements/IN"
 
 	//////////
 	for {
-		if _, err := os.Stat(filepath.Join(dir, testingDir, "publicDNSServers.json")); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(srcDir, testingDir, "publicDNSServers.json")); os.IsNotExist(err) {
 			time.Sleep(time.Second)
-			// fmt.Println("Waiting on", filepath.Join(dir, testingDir, "publicDNSServers.json"))
+			// fmt.Println("Waiting on", filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
 			continue
 		} else {
 			log.Info("FileFound")
 			break
 		}
 	}
-	jsonFile, err := os.Open(filepath.Join(dir, testingDir, "publicDNSServers.json"))
+	jsonFile, err := os.Open(filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
 	if err != nil {
-		log.Info("error opening file: " + filepath.Join(dir, testingDir, "publicDNSServers.json"))
+		log.Info("error opening file: " + filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
@@ -332,7 +334,7 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 	}
 
 	//this for loop ensures that ServersToTest is resolverName till we collect all measurements with this resolverName
-	//and file dir+testingDir+"/lighthouseTTBresolverName.json" is made in the directory
+	//and file filepath.Join(srcDir, testingDir)+"/lighthouseTTBresolverName.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	log.WithFields(log.Fields{
 		"dir": dir}).Info("confirming Directory")
@@ -362,13 +364,13 @@ func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir 
 	}
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, resolverName)
 	file, _ := json.MarshalIndent(dict1, "", " ")
-	_ = ioutil.WriteFile(filepath.Join(dir, "/dnsLatencies.json"), file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(dir, "dnsLatencies.json"), file, 0644)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err}).Info("DNS Latency Command produced error")
 	}
 	log.WithFields(log.Fields{
-		"dnsLatencyFile: ": filepath.Join(dir, "/dnsLatencies.json")}).Info("Looking for this file")
+		"dnsLatencyFile: ": filepath.Join(dir, "dnsLatencies.json")}).Info("Looking for this file")
 }
 
 func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string) {
@@ -383,12 +385,12 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	handler.Racing = false
 	handler.Decentralized = false
 	handler.DoHEnabled = true
-	program.MeasureDnsLatencies("Google", "", dir+testingDir, dict1, dnsLatencyFile, iterations, testingDir)
-	program.MeasureDnsLatencies("Cloudflare", "", dir+testingDir, dict1, dnsLatencyFile, iterations, testingDir)
-	program.MeasureDnsLatencies("Quad9", "", dir+testingDir, dict1, dnsLatencyFile, iterations, testingDir)
+	program.MeasureDnsLatencies("Google", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
+	program.MeasureDnsLatencies("Cloudflare", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
+	program.MeasureDnsLatencies("Quad9", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 	handler.DoHEnabled = false
 	for i := 0; i < len(publicDNSServers); i++ {
-		program.MeasureDnsLatencies(publicDNSServers[i], publicDNSServers[i], dir+testingDir, dict1, dnsLatencyFile, iterations, testingDir)
+		program.MeasureDnsLatencies(publicDNSServers[i], publicDNSServers[i], filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 	}
 	handler.PDNSServers = publicDNSServers
 
@@ -402,14 +404,14 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	handler.Racing = false
 	utils.FlushLocalDnsCache()
 	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.MeasureDnsLatencies("DoHProxyNP", "", dir+testingDir, dict1, dnsLatencyFile, iterations, testingDir)
+	program.MeasureDnsLatencies("DoHProxyNP", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 	utils.FlushLocalDnsCache()
 	handler.PrivacyEnabled = false
 	handler.Racing = true
 	program.dnsQueryHandler.EnableDirectResolution()
 	handler.Proxy = false
 	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.MeasureDnsLatencies("SubRosaNP", "", dir+testingDir, dict1, dnsLatencyFile, iterations, testingDir)
+	program.MeasureDnsLatencies("SubRosaNP", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 
 	utils.FlushLocalDnsCache()
 	handler.PrivacyEnabled = false
@@ -417,17 +419,15 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	program.dnsQueryHandler.EnableDirectResolution()
 	handler.Proxy = false
 	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.MeasureDnsLatencies("SubRosaNPR", "", dir+testingDir, dict1, dnsLatencyFile, iterations, testingDir)
+	program.MeasureDnsLatencies("SubRosaNPR", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 
 	program.reporter.PushToMongoDB("SubRosa-Test", "dnsLatencies"+testingDir[len(testingDir)-2:], dict1)
 
 }
 
 func (program *Program) doMeasurement(testingDir string) error {
-
-	dir, err := os.Getwd()
 	d1 := []byte("start Measurements\n")
-	err = ioutil.WriteFile(dir+"/dat", d1, 0644)
+	err := ioutil.WriteFile(filepath.Join(srcDir, "dat"), d1, 0644)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err}).Info("couldn't start measurements")
@@ -448,7 +448,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	handler.ResolverMapping = make(map[string][]string)
 
 	// //stores all measurements
-	outPath := filepath.Join(dir, testingDir)
+	outPath := filepath.Join(srcDir, testingDir)
 	if _, err := os.Stat(outPath); os.IsNotExist(err) {
 		os.Mkdir(outPath, 0755)
 	}
@@ -463,16 +463,16 @@ func (program *Program) doMeasurement(testingDir string) error {
 	handler.Decentralized = false
 	handler.DoHEnabled = true
 
-	program.runTests("Google", "", dir+testingDir, testingDir)
-	program.runTests("Cloudflare", "", dir+testingDir, testingDir)
-	program.runTests("Quad9", "", dir+testingDir, testingDir)
+	program.runTests("Google", "", filepath.Join(srcDir, testingDir), testingDir)
+	program.runTests("Cloudflare", "", filepath.Join(srcDir, testingDir), testingDir)
+	program.runTests("Quad9", "", filepath.Join(srcDir, testingDir), testingDir)
 
 	handler.DoHEnabled = false
 
 	///testing publicDns servers
 	//publicDNSServers.json file should have ips of public DNS servers of a country to test
 	for i := 0; i < len(publicDNSServers); i++ {
-		program.runTests(publicDNSServers[i], publicDNSServers[i], dir+testingDir, testingDir)
+		program.runTests(publicDNSServers[i], publicDNSServers[i], filepath.Join(srcDir, testingDir), testingDir)
 	}
 	handler.PDNSServers = publicDNSServers
 	// Done testing them
@@ -491,14 +491,14 @@ func (program *Program) doMeasurement(testingDir string) error {
 	// handler.DoHServersToTest=[]string{"127.0.0.1"}
 	// dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dnsLatencyFile,0,handler.DoHEnabled,handler.Experiment,iterations,dict1,"DoHProxy")
 	// file,_=json.MarshalIndent(dict1, "", " ")
-	// _ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	// _ = ioutil.WriteFile(filepath.Join(srcDir, testingDir)+"/dnsLatencies.json", file, 0644)
 
 	// //these for loops ensure that DoHServersToTest is DoHProxy with Privacy enabled (but new resolver mapping dict btw each run)
 	// // till we collect all measurements with this resolver
-	// //and file dir+testingDir+"/lighthouseTTBDoHProxy.json" is made in the directory
+	// //and file filepath.Join(srcDir, testingDir)+"/lighthouseTTBDoHProxy.json" is made in the directory
 	// utils.FlushLocalDnsCache()
 	// for{
-	// 	if _, err := os.Stat(dir+testingDir+"/lighthouseTTBDoHProxy0.json"); os.IsNotExist(err) {
+	// 	if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBDoHProxy0.json"); os.IsNotExist(err) {
 	// 		continue
 	// 	}else{
 	// 		break
@@ -507,7 +507,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 
 	// handler.ResolverMapping=make(map[string][]string)
 	// for{
-	// 	if _, err := os.Stat(dir+testingDir+"/lighthouseTTBDoHProxy1.json"); os.IsNotExist(err) {
+	// 	if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBDoHProxy1.json"); os.IsNotExist(err) {
 	// 		continue
 	// 	}else{
 	// 		break
@@ -515,7 +515,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	// }
 	// handler.ResolverMapping=make(map[string][]string)
 	// for{
-	// 	if _, err := os.Stat(dir+testingDir+"/lighthouseTTBDoHProxy.json"); os.IsNotExist(err) {
+	// 	if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBDoHProxy.json"); os.IsNotExist(err) {
 	// 		continue
 	// 	}else{
 	// 		break
@@ -528,7 +528,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	handler.Racing = false
 	utils.FlushLocalDnsCache()
 	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.runTests("DoHProxyNP", "", dir+testingDir, testingDir)
+	program.runTests("DoHProxyNP", "", filepath.Join(srcDir, testingDir), testingDir)
 
 	//testing SubRosa with Privacy Enabled and Racing
 	// handler.PrivacyEnabled=true
@@ -539,14 +539,14 @@ func (program *Program) doMeasurement(testingDir string) error {
 	// handler.DoHServersToTest=[]string{"127.0.0.1"}
 	// dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0,dnsLatencyFile,0,handler.DoHEnabled,handler.Experiment,iterations,dict1,"SubRosa")
 	// file,_=json.MarshalIndent(dict1, "", " ")
-	// _ = ioutil.WriteFile(dir+testingDir+"/dnsLatencies.json", file, 0644)
+	// _ = ioutil.WriteFile(filepath.Join(srcDir, testingDir)+"/dnsLatencies.json", file, 0644)
 
 	// //these for loops ensure that DoHServersToTest is SubRosa with Privacy enabled & Racing (but new resolver mapping dict btw each run)
 	// // till we collect all measurements with this resolver
-	// //and file dir+testingDir+"/lighthouseTTBSubRosa.json" is made in the directory
+	// //and file filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa.json" is made in the directory
 	// utils.FlushLocalDnsCache()
 	// for{
-	// 	if _, err := os.Stat(dir+testingDir+"/lighthouseTTBSubRosa0.json"); os.IsNotExist(err) {
+	// 	if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa0.json"); os.IsNotExist(err) {
 	// 		continue
 	// 	}else{
 	// 		break
@@ -554,7 +554,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	// }
 	// handler.ResolverMapping=make(map[string][]string)
 	// for{
-	// 	if _, err := os.Stat(dir+testingDir+"/lighthouseTTBSubRosa1.json"); os.IsNotExist(err) {
+	// 	if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa1.json"); os.IsNotExist(err) {
 	// 		continue
 	// 	}else{
 	// 		break
@@ -562,7 +562,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	// }
 	// handler.ResolverMapping=make(map[string][]string)
 	// for{
-	// 	if _, err := os.Stat(dir+testingDir+"/lighthouseTTBSubRosa.json"); os.IsNotExist(err) {
+	// 	if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa.json"); os.IsNotExist(err) {
 	// 		continue
 	// 	}else{
 	// 		break
@@ -577,7 +577,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	program.dnsQueryHandler.EnableDirectResolution()
 	handler.Proxy = false
 	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.runTests("SubRosaNP", "", dir+testingDir, testingDir)
+	program.runTests("SubRosaNP", "", filepath.Join(srcDir, testingDir), testingDir)
 
 	//testing SubRosa with No Privacy Enabled and No Racing Enabled(SubRosaNPR)
 	utils.FlushLocalDnsCache()
@@ -586,7 +586,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	program.dnsQueryHandler.EnableDirectResolution()
 	handler.Proxy = false
 	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.runTests("SubRosaNPR", "", dir+testingDir, testingDir)
+	program.runTests("SubRosaNPR", "", filepath.Join(srcDir, testingDir), testingDir)
 
 	//Measuring Pings to Resolvers
 	dict2 := make(map[string]interface{})
@@ -595,16 +595,16 @@ func (program *Program) doMeasurement(testingDir string) error {
 	resolverList := append(publicDNSServers, dohresolvers...)
 	dict2 = program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2, resolverList)
 	file, _ := json.MarshalIndent(dict2, "", " ")
-	_ = ioutil.WriteFile(filepath.Join(dir, testingDir, "pingServers.json"), file, 0644)
+	_ = ioutil.WriteFile(filepath.Join(srcDir, testingDir, "pingServers.json"), file, 0644)
 	program.reporter.PushToMongoDB("SubRosa-Test", "PingServers.json_"+testingDir[len(testingDir)-2:], dict2)
 
 	// Measuring DNSLatencies and Pings to Replicas
-	program.DnsLatenciesSettings(dir, testingDir, publicDNSServers)
+	program.DnsLatenciesSettings(srcDir, testingDir, publicDNSServers)
 
 	// push resourcesttbbyCDNLighthouse.json to server
-	jsonFile, err := os.Open(filepath.Join(dir, testingDir, "resourcesttbbyCDNLighthouse.json"))
+	jsonFile, err := os.Open(filepath.Join(srcDir, testingDir, "resourcesttbbyCDNLighthouse.json"))
 	if err != nil {
-		log.Info("error opening file: " + filepath.Join(dir, testingDir, "resourcesttbbyCDNLighthouse.json"))
+		log.Info("error opening file: " + filepath.Join(srcDir, testingDir, "resourcesttbbyCDNLighthouse.json"))
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
@@ -612,6 +612,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	json.Unmarshal([]byte(byteValue), &json_map)
 	program.reporter.PushToMongoDB("SubRosa-Test", "resourcesttbbyCDNLighthouse_"+testingDir[len(testingDir)-2:], json_map)
 
+	// TODO: not sure but maybe need to restore to actual subrosa setting
 	return err
 }
 
@@ -994,8 +995,7 @@ func main() {
 
 	// wait for signal from run until shut down completed
 	<-namehelpProgram.shutdownChan
-	dir, err := os.Getwd()
-	e := os.Remove(dir + "/dat")
+	e := os.Remove(filepath.Join(srcDir, "dat"))
 	if e != nil {
 		log.Fatal(e)
 	}

@@ -12,7 +12,7 @@ package main
 // github.com/blang/semver
 // github.com/rhysd/go-github-selfupdate/selfupdate
 
-//go:generate go build -o bin/namehelp namehelp
+//go:generate go build -o bin/test/namehelp namehelp
 
 // For Building other OS on MacOS
 /*

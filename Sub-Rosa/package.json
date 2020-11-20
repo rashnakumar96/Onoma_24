@@ -43,8 +43,7 @@
         "icon": "resources/icon.icns",
         "osxSign": {
           "identity": "Developer ID Application: Shucheng Liu (NQLJVMV784)"
-        },
-        "asar": true
+        }
       },
       "makers": [
         {
