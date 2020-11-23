@@ -115,7 +115,7 @@ class WebPerformanceTests:
 		end=start+chunkSize
 		lastIter=False
 		chunks=[]
-		while(1):
+		while 1:
 			chunk=[]
 			for i in range(start,end):
 				chunk.append(resources[i])
@@ -270,7 +270,6 @@ class WebPerformanceTests:
 
 
 if __name__ == "__main__":
-	#select country code you want to test with
 	# country = input("Enter alpha-2 country code: ")
 	if not os.path.exists(join(project_path, "analysis", "measurements")):
 		os.mkdir(join(project_path, "analysis", "measurements"))
@@ -294,6 +293,8 @@ if __name__ == "__main__":
 	allpublicDNSServers = json.load(open(join(project_path, "data", "country_public_dns.json")))
 	mainpDNS=["8.8.8.8","9.9.9.9","1.1.1.1"]
 
+	tests = WebPerformanceTests(join(project_path, "analysis", "measurements", country))
+
 	for pDNS in allpublicDNSServers[country]:
 		if len(publicDNSServers)>8:
 			break
@@ -301,11 +302,14 @@ if __name__ == "__main__":
 			try:
 				ipaddress.IPv4Network(pDNS["ip"])
 				if tests.checkResolver(pDNS["ip"])==False:
+					print("Failed: %s not valid" % pDNS["ip"])
 					continue
+				print("Succeeded: adding %s to test list" % pDNS["ip"])
 				publicDNSServers.append(pDNS["ip"])
-			except:
-				# print ("Not an IPv4 address: ",pDNS["ip"])
+			except Exception as e:
+				print ("Invalid IP", pDNS["ip"], e)
 				continue
+	print("Done filtering")
 
 	if len(publicDNSServers)>8:
 		publicDNSServers=publicDNSServers[:8]
@@ -318,6 +322,5 @@ if __name__ == "__main__":
 			break
 		time.sleep(1)
 	
-	tests = WebPerformanceTests(join(project_path, "analysis", "measurements", country))
 	tests.runAllApproaches(join(project_path, "analysis", "measurements", country))
 	del tests

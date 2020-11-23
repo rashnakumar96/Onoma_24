@@ -154,6 +154,10 @@ func (program *Program) run() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	log.Info("Starting app.")
 
+	// Capture and handle Ctrl-C signal
+	signalChannel = make(chan os.Signal)
+	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
+
 	err := program.launchNamehelpDNSServer()
 	if err != nil {
 		message := fmt.Sprintf(
@@ -175,10 +179,6 @@ func (program *Program) run() {
 	// go program.smartDNSSelector.routine_Do()
 
 	// TODO run aquarium measurements
-
-	// Capture and handle Ctrl-C signal
-	signalChannel = make(chan os.Signal)
-	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info("Waiting for signal from signalChannel (blocking)")
 
@@ -288,9 +288,16 @@ func (program *Program) launchNamehelpDNSServer() error {
 	//////////
 	for {
 		if _, err := os.Stat(filepath.Join(srcDir, testingDir, "publicDNSServers.json")); os.IsNotExist(err) {
-			time.Sleep(time.Second)
-			// fmt.Println("Waiting on", filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
-			continue
+			// To ensure proper exit during testing
+			select {
+			case <-signalChannel:
+				os.Exit(0)
+				break
+			default:
+				time.Sleep(time.Second)
+				// fmt.Println("Waiting on", filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
+				continue
+			}
 		} else {
 			log.Info("FileFound")
 			break
@@ -324,6 +331,12 @@ func (program *Program) launchNamehelpDNSServer() error {
 
 func (program *Program) runTests(resolverName string, ip string, dir string, testingDir string) {
 	utils.FlushLocalDnsCache()
+
+	log.WithFields(log.Fields{
+		"resolver name": resolverName,
+		"ip":            ip,
+		"dir":           dir,
+		"testing dir":   testingDir}).Info("Namehelp run tests")
 	if !handler.Experiment {
 		handler.DoHServersToTest = []string{"127.0.0.1"}
 	}
@@ -337,10 +350,11 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 	//and file filepath.Join(srcDir, testingDir)+"/lighthouseTTBresolverName.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	log.WithFields(log.Fields{
-		"dir": dir}).Info("confirming Directory")
+		"dir": filepath.Join(dir, "lighthouseTTB"+resolverName+"_.json")}).Info("Confirming Directory")
 
 	for {
-		if _, err := os.Stat(filepath.Join(dir, "lighthouseTTB", resolverName, "_.json")); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(dir, "lighthouseTTB"+resolverName+"_.json")); os.IsNotExist(err) {
+			time.Sleep(time.Second)
 			continue
 		} else {
 			log.Info("FileFound")
@@ -353,6 +367,7 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 
 func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir string, dict1 map[string]map[string]map[string]interface{}, dnsLatencyFile string, iterations int, testingDir string) {
 	utils.FlushLocalDnsCache()
+	log.WithFields(log.Fields{"resolver": resolverName}).Info("Measuring DNS latency")
 	var err error
 	if !handler.Experiment {
 		handler.DoHServersToTest = []string{"127.0.0.1"}
@@ -370,10 +385,11 @@ func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir 
 			"error": err}).Info("DNS Latency Command produced error")
 	}
 	log.WithFields(log.Fields{
-		"dnsLatencyFile: ": filepath.Join(dir, "dnsLatencies.json")}).Info("Looking for this file")
+		"dnsLatencyFile: ": filepath.Join(dir, "dnsLatencies.json")}).Info("Write DNS latency result to file")
 }
 
 func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string) {
+	log.WithFields(log.Fields{"dir": dir, "testing dir": testingDir}).Info("Setting up for DNS latency testing")
 	dict1 := make(map[string]map[string]map[string]interface{})
 	iterations := 3
 	dnsLatencyFile := filepath.Join(dir, testingDir, "AlexaUniqueResources.txt")
@@ -426,6 +442,8 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 }
 
 func (program *Program) doMeasurement(testingDir string) error {
+	log.WithFields(log.Fields{"testing dir": testingDir}).Info("Namehelp start measurement")
+
 	d1 := []byte("start Measurements\n")
 	err := ioutil.WriteFile(filepath.Join(srcDir, "dat"), d1, 0644)
 	if err != nil {
@@ -464,8 +482,11 @@ func (program *Program) doMeasurement(testingDir string) error {
 	handler.DoHEnabled = true
 
 	program.runTests("Google", "", filepath.Join(srcDir, testingDir), testingDir)
+	log.Info("Namehelp finish Google")
 	program.runTests("Cloudflare", "", filepath.Join(srcDir, testingDir), testingDir)
+	log.Info("Namehelp finish Cloudflare")
 	program.runTests("Quad9", "", filepath.Join(srcDir, testingDir), testingDir)
+	log.Info("Namehelp finish Quad9")
 
 	handler.DoHEnabled = false
 
@@ -475,6 +496,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 		program.runTests(publicDNSServers[i], publicDNSServers[i], filepath.Join(srcDir, testingDir), testingDir)
 	}
 	handler.PDNSServers = publicDNSServers
+	log.Info("Namehelp finish Top Site measurement")
 	// Done testing them
 	//////////////////
 
@@ -612,7 +634,8 @@ func (program *Program) doMeasurement(testingDir string) error {
 	json.Unmarshal([]byte(byteValue), &json_map)
 	program.reporter.PushToMongoDB("SubRosa-Test", "resourcesttbbyCDNLighthouse_"+testingDir[len(testingDir)-2:], json_map)
 
-	// TODO: not sure but maybe need to restore to actual subrosa setting
+	log.Info("Namehelp finish measurement")
+
 	return err
 }
 

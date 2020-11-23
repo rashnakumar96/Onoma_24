@@ -1,6 +1,7 @@
 import tldextract, json, os
+from pathlib import Path
 
-project_path = os.getcwd()
+project_path = Path(__file__).parent.parent
 
 # Convert a url (string) to the domain name (string) of the index page
 def url_to_domain(url):
