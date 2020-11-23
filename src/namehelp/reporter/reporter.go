@@ -28,7 +28,7 @@ func NewReporter(version string) *Reporter {
 	reporter.Version = version
 
 	// DB settings
-	reporter.MongoStr = "mongodb+srv://admin:admin@doh.eyeb4.mongodb.net/test?retryWrites=true&w=majority"
+	reporter.MongoStr = "mongodb+srv://subrosa_client:subrosa@doh.eyeb4.mongodb.net/test?retryWrites=true&w=majority"
 
 	return &reporter
 }
@@ -62,7 +62,7 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		log.WithFields(log.Fields{
 			"reporter": r,
 			"error":    err,
-		}).Error("Creating Mongo Client failed.")
+		}).Error("Reporter: Creating Mongo Client failed.")
 		return err
 	}
 	// TODO: move client connection to initialization to avoid redundent reconnecting
@@ -89,7 +89,7 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		log.WithFields(log.Fields{
 			"result": result,
 			"error":  err,
-		}).Error("MongoDB Bulkwrite failed.")
+		}).Error("Reporter: MongoDB Bulkwrite failed.")
 		return err
 	}
 
@@ -97,7 +97,7 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		"result":     result,
 		"db":         databaseName,
 		"collection": collectionName,
-	}).Info("MongoDB data store finished.")
+	}).Info("Reporter: MongoDB data store finished.")
 
 	return nil
 }
@@ -117,7 +117,7 @@ func (r *Reporter) PushToMongoDBMulti(dataMap map[string]map[string][]interface{
 		log.WithFields(log.Fields{
 			"client": client,
 			"error":  err,
-		}).Error("Creating Mongo Client failed.")
+		}).Error("Reporter: Creating Mongo Client failed.")
 		return err
 	}
 	// TODO: move client connection to initialization to avoid redundent reconnecting
@@ -146,7 +146,7 @@ func (r *Reporter) PushToMongoDBMulti(dataMap map[string]map[string][]interface{
 			log.WithFields(log.Fields{
 				"db":         databaseName,
 				"collection": collectionName,
-			}).Info("MongoDB data store finished.")
+			}).Info("Reporter: MongoDB data store finished.")
 		}
 	}
 
