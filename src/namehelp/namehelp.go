@@ -392,7 +392,7 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	log.WithFields(log.Fields{"dir": dir, "testing dir": testingDir}).Info("Setting up for DNS latency testing")
 	dict1 := make(map[string]map[string]map[string]interface{})
 	iterations := 3
-	dnsLatencyFile := filepath.Join(dir, testingDir, "AlexaUniqueResources.txt")
+	dnsLatencyFile := filepath.Join(dir, testingDir, "AlexaUniqueWResources.txt")
 
 	handler.Experiment = true
 	handler.Proxy = false
