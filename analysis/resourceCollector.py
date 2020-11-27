@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import os, time
 from webdriver_manager.chrome import ChromeDriverManager
 import urllib.request
-
+from os.path import isfile, join
 import utils
 
 project_path = utils.project_path
@@ -62,8 +62,12 @@ class Resource_collector:
 	def __init__(self):
 		self.resources = []
 
-	def dump(self, fn_prefix):	
-		utils.dump_json(self.resources, project_path+"/"+fn_prefix + "/alexaResources"+country+".json")
+	def dump(self, fn_prefix,country):
+		print (str(project_path)+"/"+fn_prefix + "/alexaResources"+country+".json")	
+		utils.dump_json(self.resources, join(fn_prefix,"alexaResources"+country+".json"))
+
+		# utils.dump_json(self.resources, join(project_path,fn_prefix,"alexaResources"+country+".json"))
+
 
 	# extracts all the resources from each har object
 	# takes a list of har json objects
@@ -98,7 +102,10 @@ class Url_processor:
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=self.options)
 
 	def dump(self, fn_prefix):
-		utils.dump_json(self.cdn_mapping, project_path+"/"+fn_prefix + "/PopularcdnMapping.json")
+		# utils.dump_json(self.cdn_mapping, project_path+"/"+fn_prefix + "/PopularcdnMapping.json")
+		utils.dump_json(self.cdn_mapping, join(fn_prefix,"PopularcdnMapping.json"))
+
+
 
 	# Find cdn given a file of the domains
 	# Takes a list of unique domains
@@ -161,13 +168,16 @@ class Url_processor:
 			f.close()
 		
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
+def runResourceCollector():
 	hm = Har_generator()
 	rc = Resource_collector()
 
+	print (project_path)
+
 	top_sites = {}
-	if not os.path.exists("measurements"):
-		os.mkdir("measurements")
+	if not os.path.exists(join(project_path, "analysis", "measurements")):
+		os.mkdir(join(project_path, "analysis", "measurements"))
 	
 	country = ""
 	try:
@@ -184,9 +194,10 @@ if __name__ == "__main__":
 	if not os.path.exists("measurements/"+country):
 		os.mkdir("measurements/"+country)
 	# country = input("Enter alpha-2 country code: ")
+	# print (project_path,"/alexaTop50SitesCountries.json")
+	top_sites=json.load(open(join(project_path,"alexaTop50SitesCountries.json")))
 
-	with open(project_path+"/alexaTop50SitesCountries.json", 'r') as fp:
-		top_sites = json.load(fp)
+	
 	if country not in top_sites:
 		print("ERROR: invalid country code or country provided does not have top site records")
 	else:
@@ -197,12 +208,14 @@ if __name__ == "__main__":
 		# hars = hm.get_hars(sites[:2])
 		hars = hm.get_hars(sites)
 		rc.collect_resources(hars,country)
-		rc.dump("measurements/"+country)
+		rc.dump(join(project_path, "analysis", "measurements",country),country)
+		# rc.dump("measurements/"+country,country)
 		del hm
 
 
 		up=Url_processor(country)
 		up.find_cdn()
 		up.collectPopularCDNResources(country)
-		up.dump("measurements/"+country)
+		up.dump(join(project_path, "analysis", "measurements",country))
+		# up.dump("measurements/"+country)
 		del up

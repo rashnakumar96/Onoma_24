@@ -421,14 +421,7 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	utils.FlushLocalDnsCache()
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.MeasureDnsLatencies("DoHProxyNP", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
-	utils.FlushLocalDnsCache()
-	handler.PrivacyEnabled = false
-	handler.Racing = true
-	program.dnsQueryHandler.EnableDirectResolution()
-	handler.Proxy = false
-	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.MeasureDnsLatencies("SubRosaNP", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
-
+	
 	utils.FlushLocalDnsCache()
 	handler.PrivacyEnabled = false
 	handler.Racing = false
@@ -437,6 +430,15 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.MeasureDnsLatencies("SubRosaNPR", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 
+	utils.FlushLocalDnsCache()
+	handler.PrivacyEnabled = false
+	handler.Racing = true
+	program.dnsQueryHandler.EnableDirectResolution()
+	handler.Proxy = false
+	handler.DoHServersToTest = []string{"127.0.0.1"}
+	program.MeasureDnsLatencies("SubRosaNP", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
+
+	
 	program.reporter.PushToMongoDB("SubRosa-Test", "dnsLatencies"+testingDir[len(testingDir)-2:], dict1)
 
 }
@@ -496,7 +498,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 		program.runTests(publicDNSServers[i], publicDNSServers[i], filepath.Join(srcDir, testingDir), testingDir)
 	}
 	handler.PDNSServers = publicDNSServers
-	log.Info("Namehelp finish Top Site measurement")
+	log.Info("Namehelp finished publicDNSServers")
 	// Done testing them
 	//////////////////
 
@@ -592,6 +594,15 @@ func (program *Program) doMeasurement(testingDir string) error {
 	// }
 	// log.Info("Done Testing SubRosa")
 
+	//testing SubRosa with No Privacy Enabled and No Racing Enabled(SubRosaNPR)
+	utils.FlushLocalDnsCache()
+	handler.PrivacyEnabled = false
+	handler.Racing = false
+	program.dnsQueryHandler.EnableDirectResolution()
+	handler.Proxy = false
+	handler.DoHServersToTest = []string{"127.0.0.1"}
+	program.runTests("SubRosaNPR", "", filepath.Join(srcDir, testingDir), testingDir)
+
 	//testing SubRosa with No Privacy Enabled,but Racing enabled(SubRosaNP)
 	utils.FlushLocalDnsCache()
 	handler.PrivacyEnabled = false
@@ -601,14 +612,6 @@ func (program *Program) doMeasurement(testingDir string) error {
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.runTests("SubRosaNP", "", filepath.Join(srcDir, testingDir), testingDir)
 
-	//testing SubRosa with No Privacy Enabled and No Racing Enabled(SubRosaNPR)
-	utils.FlushLocalDnsCache()
-	handler.PrivacyEnabled = false
-	handler.Racing = false
-	program.dnsQueryHandler.EnableDirectResolution()
-	handler.Proxy = false
-	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.runTests("SubRosaNPR", "", filepath.Join(srcDir, testingDir), testingDir)
 
 	//Measuring Pings to Resolvers
 	dict2 := make(map[string]interface{})

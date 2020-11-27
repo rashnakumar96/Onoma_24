@@ -1146,10 +1146,11 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 	// count:=0
 	var websites []string
 	for scanner.Scan() {
-		// if count==20{
-		// 	break
-		// }
-		// count+=1
+		//measure latencies of 100 resources
+		if count==100{
+			break
+		}
+		count+=1
 		website := scanner.Text()
 		u, err := url.Parse(website)
 		if err != nil {
