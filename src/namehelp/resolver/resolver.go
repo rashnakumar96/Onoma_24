@@ -59,7 +59,8 @@ func waitTimeout(waitGroup *sync.WaitGroup, timeoutDuration time.Duration) bool 
 }
 
 // routine_DoLookup performs dns lookup using go routine
-func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.WaitGroup, requestMessage *dns.Msg, net string, resultChannel chan *dns.Msg, doID int) {
+func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.WaitGroup,
+	requestMessage *dns.Msg, net string, resultChannel chan *dns.Msg, doID int) {
 
 	defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
 
@@ -72,7 +73,7 @@ func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.
 			"id":          doID,
 			"query":       qname,
 			"error":       err.Error(),
-			"name server": nameserver}).Error("Resolver: Socket error")
+			"name server": nameserver}).Error("Resolver: DNS Client Exchange Socket error")
 		return
 	}
 
@@ -148,7 +149,7 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 			"id":          doID,
 			"query":       qname,
 			"error":       err.Error(),
-			"name server": nameserver}).Error("Resolver: Socket error")
+			"name server": nameserver}).Error("Resolver: DoH Client Resolve Socket error")
 		return
 	}
 	log.WithFields(log.Fields{
@@ -303,7 +304,8 @@ func (resolver *Resolver) Shard() []proxy.Server {
 // Will return as early as possible (have an answer)
 // It returns an error if no request has succeeded.
 func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Msg, nameservers []string,
-	doID int, dohEnabled bool, experiment bool, _proxy bool, ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool, Decentralized bool) (resultMessage *dns.Msg, err error) {
+	doID int, dohEnabled bool, experiment bool, _proxy bool, ResolverMapping map[string][]string,
+	PrivacyEnabled bool, Racing bool, Decentralized bool) (resultMessage *dns.Msg, err error) {
 
 	if experiment && !dohEnabled {
 		nameservers = utils.AddPortToEach(nameservers, resolver.Config.Port)
@@ -575,7 +577,8 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 
 // Lookup performs dns lookup at the specific resolver for the given message
 // Returns dns response message
-func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int, _proxy bool, ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool, Decentralized bool) (message *dns.Msg, err error) {
+func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int, _proxy bool,
+	ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool, Decentralized bool) (message *dns.Msg, err error) {
 	nameservers := resolver.Config.Servers
 	dohEnabled := true
 	experiment := false

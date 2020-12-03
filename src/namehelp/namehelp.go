@@ -60,13 +60,15 @@ type Config struct {
 
 // Program of Namehelp
 type Program struct {
+	clientID        string
 	oldDNSServers   map[string][]string
 	dnsQueryHandler *handler.DNSQueryHandler
 	tcpServer       *dns.Server
 	udpServer       *dns.Server
 	// smartDNSSelector *SmartDNSSelector
-	shutdownChan chan bool
-	reporter     *reporter.Reporter
+	stopHeartBeat chan bool
+	shutdownChan  chan bool
+	reporter      *reporter.Reporter
 }
 
 var appConfig = Config{
@@ -85,7 +87,39 @@ var appConfig = Config{
 // NewProgram initialize a new namehelp program
 func NewProgram() *Program {
 	var newProgram *Program = &Program{}
+	newProgram.stopHeartBeat = make(chan bool)
 	newProgram.shutdownChan = make(chan bool)
+
+	program.initializeReporter()
+
+	// Load config file, read the configuration value and update accordingly
+	jsonFile, err := os.Open(filepath.Join(srcDir, "data", "config.json"))
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("Namehelp: Failed to open config file")
+	}
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	jsonFile.Close()
+
+	var configJson map[string]interface{}
+	json.Unmarshal([]byte(byteValue), &configJson)
+
+	// Get the client ID
+	newProgram.clientID = configJson["clientID"].(string)
+	// Indicate that the program is not first time open anymore
+	configJson["first"] = false
+
+	byteValue, _ = json.MarshalIndent(configJson, "", "    ")
+	err = ioutil.WriteFile(filepath.Join(srcDir, "data", "config.json"), byteValue, 0644)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("Namehelp: Failed to update config file")
+	}
+
+	if newProgram.clientID == "" {
+		// TODO: fetch client ID from server
+	}
+	// Starting the heartbeat
+	go newProgram.heartbeat(10)
+
 	return newProgram
 }
 
@@ -125,7 +159,7 @@ func init() {
 func (program *Program) Start(s service.Service) error {
 
 	log.WithFields(log.Fields{"app": appConfig.Name}).
-		Debug("program.Start(service) invoked.")
+		Debug("Namehelp: program.Start(service) invoked.")
 
 	// Start() should return immediately. Kick off async execution.
 	go program.run()
@@ -136,12 +170,12 @@ func (program *Program) Start(s service.Service) error {
 func (program *Program) Stop(s service.Service) error {
 
 	// Stop should not block. Return with a few seconds.
-	log.Debug("program.Stop(service) invoked")
+	log.Debug("Namehelp: program.Stop(service) invoked")
 	go func() {
 		for signalChannel == nil {
 			// Make sure that shutdown channel has been initilized.
 		}
-		log.Info("Sending SIGINT on signalChannel")
+		log.Info("Namehelp: Sending SIGINT on signalChannel")
 		signalChannel <- syscall.SIGINT
 	}()
 
@@ -150,9 +184,9 @@ func (program *Program) Stop(s service.Service) error {
 
 // run is the main process running
 func (program *Program) run() {
-	log.Debug("program.run() invoked.")
+	log.Debug("Namehelp: program.run() invoked.")
 	rand.Seed(time.Now().UTC().UnixNano())
-	log.Info("Starting app.")
+	log.Info("Namehelp: Starting app.")
 
 	// Capture and handle Ctrl-C signal
 	signalChannel = make(chan os.Signal)
@@ -160,10 +194,7 @@ func (program *Program) run() {
 
 	err := program.launchNamehelpDNSServer()
 	if err != nil {
-		message := fmt.Sprintf(
-			"Failed to launch namehelp.  Error: [%s]\nShutting down.",
-			err.Error())
-		log.Error(message)
+		log.WithFields(log.Fields{"error": err.Error()}).Error("Namehelp: Failed to launch namehelp.  Error: [%s]\nShutting down.")
 		// TODO shut self down gracefully (including Aquarium)
 	}
 
@@ -180,19 +211,19 @@ func (program *Program) run() {
 
 	// TODO run aquarium measurements
 
-	log.Info("Waiting for signal from signalChannel (blocking)")
+	log.Info("Namehelp: Waiting for signal from signalChannel (blocking)")
 
 	thisSignal := <-signalChannel
 
 	log.WithFields(log.Fields{
-		"signal": thisSignal.String()}).Info("Signal received")
+		"signal": thisSignal.String()}).Info("Namehelp: Signal received")
 
 	// restore original DNS settings
 	program.restoreOldDNSServers(program.oldDNSServers)
 	// save user's top sites to file
 	// program.dnsQueryHandler.topSites.SaveUserSites()
 
-	log.Info("Shutdown complete. Exiting.")
+	log.Info("Namehelp: Shutdown complete. Exiting.")
 	program.shutdownChan <- true
 }
 
@@ -251,7 +282,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	country, ok := json_map["country"].(string)
 	if ok {
 		log.WithFields(log.Fields{
-			"country": json_map["country"]}).Info("Country code")
+			"country": json_map["country"]}).Info("Namehelp: Country code")
 	} else {
 		url := "https://extreme-ip-lookup.com/json"
 		resp, err := http.Get(url)
@@ -273,7 +304,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 		country, ok = json_map["countryCode"].(string)
 		if ok {
 			log.WithFields(log.Fields{
-				"country": json_map["countryCode"]}).Info("Country code")
+				"country": json_map["countryCode"]}).Info("Namehelp: Country code")
 		} else {
 			log.Fatal("Failed to get country code")
 		}
@@ -299,32 +330,30 @@ func (program *Program) launchNamehelpDNSServer() error {
 				continue
 			}
 		} else {
-			log.Info("FileFound")
+			log.Info("Namehelp: FileFound")
 			break
 		}
 	}
 	jsonFile, err := os.Open(filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
 	if err != nil {
-		log.Info("error opening file: " + filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
+		log.Info("Namehelp: error opening file: " + filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	var publicDNSServers []string
 	json.Unmarshal([]byte(byteValue), &publicDNSServers)
 	log.WithFields(log.Fields{
-		"publicDNSServers": publicDNSServers}).Info("These are the public DNS servers")
+		"publicDNSServers": publicDNSServers}).Info("Namehelp: These are the public DNS servers")
 	handler.PDNSServers = publicDNSServers
 
 	program.initializeDNSServers()
 
 	// start DNS servers for UDP and TCP requests
-	program.initializeReporter()
-	program.initializeDNSServers()
-
 	go program.startDNSServer(program.udpServer)
 	go program.startDNSServer(program.tcpServer)
 	// this go func does the testing as soon as SubRosa is started
-	// TODO: change this to per-trigger base
+
+	// TODO: Currently if not run the doMeasurement the whole namehelp service fails with error mission port in address
 	go program.doMeasurement(testingDir)
 	return nil
 }
@@ -336,7 +365,7 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 		"resolver name": resolverName,
 		"ip":            ip,
 		"dir":           dir,
-		"testing dir":   testingDir}).Info("Namehelp run tests")
+		"testing dir":   testingDir}).Info("Namehelp: Namehelp run tests")
 	if !handler.Experiment {
 		handler.DoHServersToTest = []string{"127.0.0.1"}
 	}
@@ -350,24 +379,24 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 	//and file filepath.Join(srcDir, testingDir)+"/lighthouseTTBresolverName.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	log.WithFields(log.Fields{
-		"dir": filepath.Join(dir, "lighthouseTTB"+resolverName+"_.json")}).Info("Confirming Directory")
+		"dir": filepath.Join(dir, "lighthouseTTB"+resolverName+"_.json")}).Info("Namehelp: Confirming Directory")
 
 	for {
 		if _, err := os.Stat(filepath.Join(dir, "lighthouseTTB"+resolverName+"_.json")); os.IsNotExist(err) {
 			time.Sleep(time.Second)
 			continue
 		} else {
-			log.Info("FileFound")
+			log.Info("Namehelp: FileFound")
 			break
 		}
 	}
-	log.Info("Done Testing " + resolverName)
+	log.Info("Namehelp: Done Testing " + resolverName)
 
 }
 
 func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir string, dict1 map[string]map[string]map[string]interface{}, dnsLatencyFile string, iterations int, testingDir string) {
 	utils.FlushLocalDnsCache()
-	log.WithFields(log.Fields{"resolver": resolverName}).Info("Measuring DNS latency")
+	log.WithFields(log.Fields{"resolver": resolverName}).Info("Namehelp: Measuring DNS latency")
 	var err error
 	if !handler.Experiment {
 		handler.DoHServersToTest = []string{"127.0.0.1"}
@@ -382,75 +411,108 @@ func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir 
 	_ = ioutil.WriteFile(filepath.Join(dir, "dnsLatencies.json"), file, 0644)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error": err}).Info("DNS Latency Command produced error")
+			"error": err}).Info("Namehelp: DNS Latency Command produced error")
 	}
 	log.WithFields(log.Fields{
-		"dnsLatencyFile: ": filepath.Join(dir, "dnsLatencies.json")}).Info("Write DNS latency result to file")
+		"dnsLatencyFile: ": filepath.Join(dir, "dnsLatencies.json")}).Info("Namehelp: Write DNS latency result to file")
 }
 
 func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string) {
-	log.WithFields(log.Fields{"dir": dir, "testing dir": testingDir}).Info("Setting up for DNS latency testing")
+	log.WithFields(log.Fields{"dir": dir, "testing dir": testingDir}).Info("Namehelp: Setting up for DNS latency testing")
 	dict1 := make(map[string]map[string]map[string]interface{})
 	iterations := 3
 	dnsLatencyFile := filepath.Join(dir, testingDir, "AlexaUniqueWResources.txt")
 
 	handler.Experiment = true
+	program.dnsQueryHandler.EnableExperiment()
 	handler.Proxy = false
+	program.dnsQueryHandler.DisableProxy()
+
 	program.dnsQueryHandler.DisableDirectResolution()
+
 	handler.PrivacyEnabled = false
+	program.dnsQueryHandler.DisablePrivacy()
 	handler.Racing = false
+	program.dnsQueryHandler.DisableRacing()
 	handler.Decentralized = false
+	program.dnsQueryHandler.DisableDecentralization()
 	handler.DoHEnabled = true
+	program.dnsQueryHandler.EnableDoH()
+
 	program.MeasureDnsLatencies("Google", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 	program.MeasureDnsLatencies("Cloudflare", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 	program.MeasureDnsLatencies("Quad9", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
+
 	handler.DoHEnabled = false
+	program.dnsQueryHandler.DisableDoH()
+
 	for i := 0; i < len(publicDNSServers); i++ {
 		program.MeasureDnsLatencies(publicDNSServers[i], publicDNSServers[i], filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 	}
 	handler.PDNSServers = publicDNSServers
 
 	handler.DoHEnabled = true
+	program.dnsQueryHandler.EnableDoH()
 	handler.Experiment = false
+	program.dnsQueryHandler.DisableExperiment()
 	handler.Decentralized = true
-	program.dnsQueryHandler.DisableDirectResolution()
-	handler.Proxy = true
+	program.dnsQueryHandler.EnableDecentralization()
 
+	program.dnsQueryHandler.DisableDirectResolution()
+
+	handler.Proxy = true
+	program.dnsQueryHandler.EnableProxy()
 	handler.PrivacyEnabled = false
+	program.dnsQueryHandler.DisablePrivacy()
 	handler.Racing = false
+	program.dnsQueryHandler.DisableRacing()
+
 	utils.FlushLocalDnsCache()
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.MeasureDnsLatencies("DoHProxyNP", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
-	
+
 	utils.FlushLocalDnsCache()
+
 	handler.PrivacyEnabled = false
+	program.dnsQueryHandler.DisablePrivacy()
 	handler.Racing = false
+	program.dnsQueryHandler.DisableRacing()
+
 	program.dnsQueryHandler.EnableDirectResolution()
+
 	handler.Proxy = false
+	program.dnsQueryHandler.DisableProxy()
+
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.MeasureDnsLatencies("SubRosaNPR", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 
 	utils.FlushLocalDnsCache()
+
 	handler.PrivacyEnabled = false
+	program.dnsQueryHandler.DisablePrivacy()
 	handler.Racing = true
+	program.dnsQueryHandler.EnableRacing()
+
 	program.dnsQueryHandler.EnableDirectResolution()
+
 	handler.Proxy = false
+	program.dnsQueryHandler.DisableProxy()
+
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.MeasureDnsLatencies("SubRosaNP", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
 
-	
 	program.reporter.PushToMongoDB("SubRosa-Test", "dnsLatencies"+testingDir[len(testingDir)-2:], dict1)
 
 }
 
 func (program *Program) doMeasurement(testingDir string) error {
-	log.WithFields(log.Fields{"testing dir": testingDir}).Info("Namehelp start measurement")
+	log.WithFields(log.Fields{"testing dir": testingDir}).Info("Namehelp: Namehelp start measurement")
 
 	d1 := []byte("start Measurements\n")
 	err := ioutil.WriteFile(filepath.Join(srcDir, "dat"), d1, 0644)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error": err}).Info("couldn't start measurements")
+			"error": err}).Info("Namehelp: couldn't start measurements")
 		panic(err)
 	}
 
@@ -462,6 +524,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 
 	// //for testing individual resolvers it's true, for testing DoHProxy and SubRosa it's false
 	handler.Experiment = true
+	program.dnsQueryHandler.EnableExperiment()
 	// //for testing DoH resolvers
 
 	// //resolver mapping dict for privacy setting
@@ -473,24 +536,32 @@ func (program *Program) doMeasurement(testingDir string) error {
 		os.Mkdir(outPath, 0755)
 	}
 	if err != nil {
-		log.Info("Error getting current working directory")
+		log.Info("Namehelp: Error getting current working directory")
 	}
 
 	handler.Proxy = false
+	program.dnsQueryHandler.DisableProxy()
+
 	program.dnsQueryHandler.DisableDirectResolution()
+
 	handler.PrivacyEnabled = false
+	program.dnsQueryHandler.DisablePrivacy()
 	handler.Racing = false
+	program.dnsQueryHandler.DisableRacing()
 	handler.Decentralized = false
+	program.dnsQueryHandler.DisableDecentralization()
 	handler.DoHEnabled = true
+	program.dnsQueryHandler.EnableDoH()
 
 	program.runTests("Google", "", filepath.Join(srcDir, testingDir), testingDir)
-	log.Info("Namehelp finish Google")
+	log.Info("Namehelp: Namehelp finish Google")
 	program.runTests("Cloudflare", "", filepath.Join(srcDir, testingDir), testingDir)
-	log.Info("Namehelp finish Cloudflare")
+	log.Info("Namehelp: Namehelp finish Cloudflare")
 	program.runTests("Quad9", "", filepath.Join(srcDir, testingDir), testingDir)
-	log.Info("Namehelp finish Quad9")
+	log.Info("Namehelp: Namehelp finish Quad9")
 
 	handler.DoHEnabled = false
+	program.dnsQueryHandler.DisableDoH()
 
 	///testing publicDns servers
 	//publicDNSServers.json file should have ips of public DNS servers of a country to test
@@ -498,15 +569,21 @@ func (program *Program) doMeasurement(testingDir string) error {
 		program.runTests(publicDNSServers[i], publicDNSServers[i], filepath.Join(srcDir, testingDir), testingDir)
 	}
 	handler.PDNSServers = publicDNSServers
-	log.Info("Namehelp finished publicDNSServers")
+	log.Info("Namehelp: Namehelp finished publicDNSServers")
 	// Done testing them
 	//////////////////
 
 	handler.DoHEnabled = true
+	program.dnsQueryHandler.EnableDoH()
 	handler.Experiment = false
+	program.dnsQueryHandler.DisableExperiment()
 	handler.Decentralized = true
+	program.dnsQueryHandler.EnableDecentralization()
+
 	program.dnsQueryHandler.DisableDirectResolution()
+
 	handler.Proxy = true
+	program.dnsQueryHandler.EnableProxy()
 
 	// //testing DoHProxy with Privacy Enabled
 	// handler.PrivacyEnabled=true
@@ -549,7 +626,10 @@ func (program *Program) doMeasurement(testingDir string) error {
 
 	//testing DoHProxy with No Privacy Enabled(DoHProxyNP)
 	handler.PrivacyEnabled = false
+	program.dnsQueryHandler.DisablePrivacy()
 	handler.Racing = false
+	program.dnsQueryHandler.DisableRacing()
+
 	utils.FlushLocalDnsCache()
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.runTests("DoHProxyNP", "", filepath.Join(srcDir, testingDir), testingDir)
@@ -596,22 +676,35 @@ func (program *Program) doMeasurement(testingDir string) error {
 
 	//testing SubRosa with No Privacy Enabled and No Racing Enabled(SubRosaNPR)
 	utils.FlushLocalDnsCache()
+
 	handler.PrivacyEnabled = false
+	program.dnsQueryHandler.DisablePrivacy()
 	handler.Racing = false
+	program.dnsQueryHandler.DisableRacing()
+
 	program.dnsQueryHandler.EnableDirectResolution()
+
 	handler.Proxy = false
+	program.dnsQueryHandler.DisableProxy()
+
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.runTests("SubRosaNPR", "", filepath.Join(srcDir, testingDir), testingDir)
 
 	//testing SubRosa with No Privacy Enabled,but Racing enabled(SubRosaNP)
 	utils.FlushLocalDnsCache()
+
 	handler.PrivacyEnabled = false
+	program.dnsQueryHandler.DisablePrivacy()
 	handler.Racing = true
+	program.dnsQueryHandler.EnableRacing()
+
 	program.dnsQueryHandler.EnableDirectResolution()
+
 	handler.Proxy = false
+	program.dnsQueryHandler.DisableProxy()
+
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.runTests("SubRosaNP", "", filepath.Join(srcDir, testingDir), testingDir)
-
 
 	//Measuring Pings to Resolvers
 	dict2 := make(map[string]interface{})
@@ -629,7 +722,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	// push resourcesttbbyCDNLighthouse.json to server
 	jsonFile, err := os.Open(filepath.Join(srcDir, testingDir, "resourcesttbbyCDNLighthouse.json"))
 	if err != nil {
-		log.Info("error opening file: " + filepath.Join(srcDir, testingDir, "resourcesttbbyCDNLighthouse.json"))
+		log.Info("Namehelp: error opening file: " + filepath.Join(srcDir, testingDir, "resourcesttbbyCDNLighthouse.json"))
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
@@ -637,7 +730,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	json.Unmarshal([]byte(byteValue), &json_map)
 	program.reporter.PushToMongoDB("SubRosa-Test", "resourcesttbbyCDNLighthouse_"+testingDir[len(testingDir)-2:], json_map)
 
-	log.Info("Namehelp finish measurement")
+	log.Info("Namehelp: Namehelp finish measurement")
 
 	return err
 }
@@ -645,7 +738,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 // Saves the current system configuration for future restoration
 // Returns a map of {networkinterface: <list of old dns servers>}
 func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string][]string) {
-	log.Info("Saving original DNS configuration.")
+	log.Info("Namehelp: Saving original DNS configuration.")
 	oldDNSServers = make(map[string][]string)
 
 	command := exec.Command("")
@@ -668,7 +761,7 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 		log.WithFields(log.Fields{
 			"path":     command.Path,
 			"argument": command.Args,
-			"error":    err.Error()}).Error("Command produced error.  Returning.")
+			"error":    err.Error()}).Error("Namehelp: Command produced error.  Returning.")
 		return oldDNSServers
 	}
 
@@ -706,7 +799,7 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 
 	networkInterfaces := strings.Split(strings.TrimSpace(string(output)), "\n")
 	log.WithFields(log.Fields{
-		"interface": networkInterfaces}).Info("Network interfaces found")
+		"interface": networkInterfaces}).Info("Namehelp: Network interfaces found")
 
 	// Only focus on wifi and ethernet
 	interfaceKeywords := []string{"", ""}
@@ -735,7 +828,7 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 	for _, networkInterface := range networkInterfaces {
 		log.WithFields(log.Fields{
 			"interface": networkInterface,
-		}).Debug("traversing interfaces")
+		}).Debug("Namehelp: traversing interfaces")
 
 		for _, keyword := range interfaceKeywords {
 			strippedString := strings.ToLower(strings.Replace(networkInterface, "-", "", -1))
@@ -748,7 +841,7 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 	}
 
 	log.WithFields(log.Fields{
-		"interface": interfacesToChange}).Debug("These network interfaces will have DNS settings changed")
+		"interface": interfacesToChange}).Debug("Namehelp: These network interfaces will have DNS settings changed")
 
 	for _, networkInterface := range interfacesToChange {
 		if networkInterface == "" {
@@ -776,7 +869,7 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 		if strings.Contains(strings.ToLower(string(output)), "there aren't any dns servers") {
 			log.WithFields(log.Fields{
 				"interface": networkInterface,
-			}).Debug("No DNS servers configured")
+			}).Debug("Namehelp: No DNS servers configured")
 			oldServers = []string{"empty"}
 		} else {
 			oldServers = strings.Split(string(output), "\n")
@@ -789,12 +882,12 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 			if oldServer == "127.0.0.1" || oldServer == "LOCALHOST" || oldServer == "" {
 				// don't add localhost to list of oldServers
 				log.WithFields(log.Fields{
-					"old server": oldServer}).Debug("Skipping oldServer")
+					"old server": oldServer}).Debug("Namehelp: Skipping oldServer")
 				continue
 			}
 			log.WithFields(log.Fields{
 				"old server": oldServer,
-				"interface":  networkInterface}).Debug("Saving DNS server for interface.")
+				"interface":  networkInterface}).Debug("Namehelp: Saving DNS server for interface.")
 			oldDNSServers[networkInterface][i] = oldServer
 			i++
 		}
@@ -805,13 +898,13 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 		// if all else fails, at least save "empty"
 		if len(oldDNSServers[networkInterface]) == 0 {
 			log.WithFields(log.Fields{
-				"interface": networkInterface}).Info("No DNS servers to save.  Saving {'empty'}")
+				"interface": networkInterface}).Info("Namehelp: No DNS servers to save.  Saving {'empty'}")
 			oldDNSServers[networkInterface] = []string{"empty"}
 		}
 	}
 
 	log.WithFields(log.Fields{
-		"old DNS server": oldDNSServers}).Info("old DNS server saved")
+		"old DNS server": oldDNSServers}).Info("Namehelp: old DNS server saved")
 	fmt.Printf("oldDNSServers: %v Length [%d]\n", oldDNSServers, len(oldDNSServers))
 
 	return oldDNSServers
@@ -825,7 +918,7 @@ func (program *Program) setDNSServer(primaryDNS string, backupDNSList []string, 
 			"primary DNS": primaryDNS,
 			"backup DNS":  backupDNSList,
 			"OS":          runtime.GOOS,
-		}).Info("changing DNS server for interface to primary and backup")
+		}).Info("Namehelp: changing DNS server for interface to primary and backup")
 
 		// "..." flattens the list to use each element as separate argument
 		if runtime.GOOS == "darwin" {
@@ -838,7 +931,7 @@ func (program *Program) setDNSServer(primaryDNS string, backupDNSList []string, 
 				log.Fatal(err)
 			}
 
-			log.Println(output)
+			log.Debug(output)
 
 		} else if runtime.GOOS == "linux" {
 			b, err := ioutil.ReadFile("/etc/resolv.conf") // just pass the file name
@@ -861,14 +954,14 @@ func (program *Program) setDNSServer(primaryDNS string, backupDNSList []string, 
 				log.Fatal(err)
 				return
 			}
-			log.WithFields(log.Fields{"output": output}).Info("Windows IPv4 DNS setting finished")
+			log.WithFields(log.Fields{"output": output}).Info("Namehelp: Windows IPv4 DNS setting finished")
 			command = exec.Command("cmd", "/C", fmt.Sprintf(" netsh interface ipv6 add dnsservers %q address=::1 index=1", networkInterface.String()))
 			output, err = command.Output()
 			if err != nil {
 				log.Fatal(err)
 				return
 			}
-			log.WithFields(log.Fields{"output": output}).Info("Windows IPv6 DNS setting finished")
+			log.WithFields(log.Fields{"output": output}).Info("Namehelp: Windows IPv6 DNS setting finished")
 		}
 	}
 }
@@ -925,7 +1018,7 @@ func (program *Program) restoreOldDNSServers(oldDNSServers map[string][]string) 
 		}
 	}
 
-	log.Info("DNS setting restored.")
+	log.Info("Namehelp: DNS setting restored.")
 	return err
 }
 
@@ -936,7 +1029,22 @@ func (program *Program) startDNSServer(dnsServer *dns.Server) {
 		log.WithFields(log.Fields{
 			"DNS server selected": dnsServer.Net,
 			"server address":      dnsServer.Addr,
-			"error":               err}).Fatal("Failed to start listener on server")
+			"error":               err}).Fatal("Namehelp: Failed to start listener on server")
+	}
+}
+
+// heatbeat keeps pinging a remote server every given period of interval
+func (program *Program) heatbeat(interval) {
+	ticker := time.NewTicker(interval * time.Second)
+	for {
+		select {
+		case <-program.stopHeartBeat:
+			log.Info("Namehelp: Stopping heartbeat")
+			break
+		case t := <-ticker.C:
+			log.Info("Namehelp: Sending heartbeat to server")
+			break
+		}
 	}
 }
 
@@ -973,29 +1081,29 @@ func main() {
 	cleanFlag := flag.Bool("cleanup", false, "Clean namehelp config files")
 	flag.Parse()
 
-	log.Info("Instantiating service")
+	log.Info("Namehelp: Instantiating service")
 	namehelpService, err := service.New(namehelpProgram, &config)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error": err}).Fatal("Failed to instantiate service")
+			"error": err.Error()}).Fatal("Namehelp: Failed to instantiate service")
 	}
-	log.Info("Namehelp service instantiated")
+	log.Info("Namehelp: Namehelp service instantiated")
 
 	// if service flag specified
 	// execute the specific operation
 	if len(*serviceFlag) != 0 {
 		log.WithFields(log.Fields{
-			"flag": *serviceFlag}).Info("Calling service.Control with flag")
+			"flag": *serviceFlag}).Info("Namehelp: Calling service.Control with flag")
 		err := service.Control(namehelpService, *serviceFlag)
-		log.Info("Returned from service.Control()")
+		log.Info("Namehelp: Returned from service.Control()")
 
 		if err != nil {
 			log.WithFields(log.Fields{
 				"action": service.ControlAction,
-				"error":  err.Error()}).Error("Valid actions with Error")
+				"error":  err.Error()}).Error("Namehelp: Valid actions with Error")
 			log.Fatal(err)
 		}
-		log.Debug("Calling return")
+		log.Debug("Namehelp: Calling return")
 		return
 	}
 	if *cleanFlag {
@@ -1009,14 +1117,14 @@ func main() {
 	err = service.Control(namehelpService, *serviceFlag)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error": err}).Error("Namehelp has already been installed")
+			"error": err.Error()}).Error("Namehelp: Namehelp has already been installed")
 	}
 
 	// directly executing the program
 	err = namehelpService.Run()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error": err}).Error("Problem running service")
+			"error": err.Error()}).Error("Namehelp: Problem running service")
 	}
 
 	// wait for signal from run until shut down completed
@@ -1026,5 +1134,12 @@ func main() {
 		log.Fatal(e)
 	}
 
-	log.Info("Main exiting...")
+	*serviceFlag = "uninstall"
+	err = service.Control(namehelpService, *serviceFlag)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err.Error()}).Error("Namehelp: Namehelp uninstall failed")
+	}
+
+	log.Info("Namehelp: Main exiting...")
 }

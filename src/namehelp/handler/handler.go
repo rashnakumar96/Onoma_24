@@ -52,13 +52,15 @@ type DNSQueryHandlerSettings struct {
 	isEnabledDirectResolution bool
 	isEnabledCache            bool
 	isEnabledHostsFile        bool
-	isEnabledCounter          bool
-	// whether to count the lookup for the purposes of tracking user's top sites
-	experimentMode   bool
-	isEnabledDoH     bool
-	isEnabledProxy   bool
-	isEnabledPrivacy bool
-	isEnabledRacing  bool
+	isEnabledCounter          bool // whether to count the lookup for the purposes of tracking user's top sites
+
+	// Measurement related settings
+	experimentMode            bool
+	isEnabledDoH              bool
+	isEnabledProxy            bool
+	isEnabledPrivacy          bool
+	isEnabledRacing           bool
+	isEnabledDecentralization bool
 }
 
 // PingResult stores the result for ping command
@@ -97,13 +99,12 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 		isEnabledCache:            true,
 		isEnabledHostsFile:        true,
 		isEnabledCounter:          true,
+		// TODO: add initialization for measurement parameters
 	}
 
 	resolvConfig := settings.NamehelpSettings.ResolvConfig
 
 	serversList := PublicDNSServers
-
-	// TODO add user's local DNS server (and their manually configured DNS too?)
 
 	serversList = addOriginalDNSServers(serversList, oldDNSServers)
 	localDNSServers := network.DhcpGetLocalDNSServers()
@@ -277,54 +278,64 @@ func (handler *DNSQueryHandler) SetIsEnabledCounter(isEnabled bool) {
 	handler.settings.isEnabledCounter = isEnabled
 }
 
-// EnableExperiment enables direct resolution
+// EnableExperiment enables experiment mode for individual resolvers
 func (handler *DNSQueryHandler) EnableExperiment() {
 	handler.settings.experimentMode = true
 }
 
-// DisableExperiment disables direct resolution
+// DisableExperiment disables experiment mode
 func (handler *DNSQueryHandler) DisableExperiment() {
 	handler.settings.experimentMode = false
 }
 
-// EnableDoH enables direct resolution
+// EnableDoH enables DNS over HTTPS
 func (handler *DNSQueryHandler) EnableDoH() {
 	handler.settings.isEnabledDoH = true
 }
 
-// DisableDoH disables direct resolution
+// DisableDoH disables DNS over HTTPS
 func (handler *DNSQueryHandler) DisableDoH() {
 	handler.settings.isEnabledDoH = false
 }
 
-// EnableProxy enables direct resolution
+// EnableProxy enables resolution using DoH proxy
 func (handler *DNSQueryHandler) EnableProxy() {
 	handler.settings.isEnabledProxy = true
 }
 
-// DisableProxy disables direct resolution
+// DisableProxy disables DoH proxy
 func (handler *DNSQueryHandler) DisableProxy() {
 	handler.settings.isEnabledProxy = false
 }
 
-// EnablePrivacy enables direct resolution
+// EnablePrivacy enables privacy by assigning same domains to same resolver
 func (handler *DNSQueryHandler) EnablePrivacy() {
 	handler.settings.isEnabledPrivacy = true
 }
 
-// DisablePrivacy disables direct resolution
+// DisablePrivacy disables privacy
 func (handler *DNSQueryHandler) DisablePrivacy() {
 	handler.settings.isEnabledPrivacy = false
 }
 
-// EnableRacing enables direct resolution
+// EnableRacing enables racing among resolvers
 func (handler *DNSQueryHandler) EnableRacing() {
 	handler.settings.isEnabledRacing = true
 }
 
-// DisableRacing disables direct resolution
+// DisableRacing disables racing
 func (handler *DNSQueryHandler) DisableRacing() {
 	handler.settings.isEnabledRacing = false
+}
+
+// EnableDecentralization enables decentralization with sharding
+func (handler *DNSQueryHandler) EnableDecentralization() {
+	handler.settings.isEnabledDecentralization = true
+}
+
+// DisableDecentralization disables decentralization
+func (handler *DNSQueryHandler) DisableDecentralization() {
+	handler.settings.isEnabledDecentralization = false
 }
 
 // PerformDNSQuery performs a DNS Query using the following method:
@@ -455,12 +466,9 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		dnsServersToQuery = DNSServersToTest
 	}
 	log.WithFields(log.Fields{
-		"question":                  question,
-		"DoHEnabled":                DoHEnabled,
-		"Experiment":                Experiment,
-		"dnsServersToQuery":         dnsServersToQuery,
-		"cacheEnabled":              isEnabledCache,
-		"isEnabledDirectResolution": isEnabledDirectResolution}).Info("Handler: Doing Lookup At NameServers")
+		"question": question,
+		"config":   handler.GetConfig(),
+	}).Info("Handler: Doing Lookup At NameServers")
 	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized)
 
 	if err != nil {
@@ -1198,18 +1206,10 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 		var dnsResolutionTimes []string
 
 		log.WithFields(log.Fields{
-			"smart selector id":      smartDnsSelectorId,
-			"website":                website,
-			"experiment":             experiment,
-			"dohEnabled":             dohEnabled,
-			"Proxy":                  Proxy,
-			"PrivacyEnabled":         PrivacyEnabled,
-			"Racing":                 Racing,
-			"EnableDirectResolution": handler.settings.isEnabledDirectResolution,
-			"EnableHostsFile":        handler.settings.isEnabledHostsFile,
-			"isEnabledCache":         handler.settings.isEnabledCache,
-			"isEnabledCounter":       handler.settings.isEnabledCounter,
-			"DNS server":             resolver}).Info("Handler: Measuring DNS Latency for website")
+			"smart selector id": smartDnsSelectorId,
+			"website":           website,
+			"config":            handler.GetConfig(),
+			"DNS server":        resolver}).Info("Handler: Measuring DNS Latency for website")
 
 		for x := 0; x < iterations; x++ {
 			utils.FlushLocalDnsCache()
@@ -1232,14 +1232,10 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 			}
 
 			log.WithFields(log.Fields{
-				"DNS Latency":    strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10),
-				"website":        website,
-				"experiment":     experiment,
-				"dohEnabled":     dohEnabled,
-				"Proxy":          Proxy,
-				"PrivacyEnabled": PrivacyEnabled,
-				"Racing":         Racing,
-				"DNS server":     resolver}).Info("Handler: DNS Latency for website")
+				"DNS Latency": strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10),
+				"website":     website,
+				"config":      handler.GetConfig(),
+				"DNS server":  resolver}).Info("Handler: DNS Latency for website")
 			dnsResolutionTimes = append(dnsResolutionTimes, strconv.FormatInt(elapsedTime.Nanoseconds()/1e6, 10)+" ms")
 
 		}
@@ -1254,14 +1250,10 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 		dict[resolver][website]["DNS Resolution Time"] = dnsResolutionTimes
 
 		log.WithFields(log.Fields{
-			"DNS Latency":    dnsResolutionTimes,
-			"website":        website,
-			"experiment":     experiment,
-			"dohEnabled":     dohEnabled,
-			"Proxy":          Proxy,
-			"PrivacyEnabled": PrivacyEnabled,
-			"Racing":         Racing,
-			"DNS server":     resolver}).Info("Handler: Minimum DNS Resolution time for website")
+			"DNS Latency": dnsResolutionTimes,
+			"website":     website,
+			"config":      handler.GetConfig(),
+			"DNS server":  resolver}).Info("Handler: Minimum DNS Resolution time for website")
 
 		ipAddress, err := utils.GetIpAddressFromAnswerMessage(answerMessage)
 		if err != nil {
@@ -1394,4 +1386,20 @@ func (handler *DNSQueryHandler) PingServers(dohEnabled bool, experiment bool, it
 	dictionary = dict
 	return dictionary
 
+}
+
+// GetConfig returns the map of handler configuration
+func (handler *DNSQueryHandler) GetConfig() map[string]bool {
+	configMap := make(map[string]bool)
+	configMap["DirectResolution"] = handler.settings.isEnabledDirectResolution
+	configMap["Cache"] = handler.settings.isEnabledCache
+	configMap["HostsFile"] = handler.settings.isEnabledHostsFile
+	configMap["Counter"] = handler.settings.isEnabledCounter
+	configMap["Experiment"] = handler.settings.experimentMode
+	configMap["DoH"] = handler.settings.isEnabledDoH
+	configMap["Proxy"] = handler.settings.isEnabledProxy
+	configMap["Privacy"] = handler.settings.isEnabledPrivacy
+	configMap["Racing"] = handler.settings.isEnabledRacing
+	configMap["Decentralization"] = handler.settings.isEnabledDecentralization
+	return configMap
 }

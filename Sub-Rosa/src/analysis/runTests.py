@@ -11,13 +11,16 @@ import urllib.request
 from pathlib import Path
 from os import listdir
 from os.path import isfile, join
+import resourceCollector
+import random
+import math
 
 project_path = utils.project_path
 
 class WebPerformanceTests:
-	def __init__(self, countryPath):
+	def __init__(self, countryPath,resources):
 		self.countryPath = countryPath
-		# resources=[]
+		self.resources=resources
 
 	def checkResolver(self,ip):
 		host_name="google.com"
@@ -105,16 +108,30 @@ class WebPerformanceTests:
 
 	def paralleliseLighthouse(self,approach):
 		resources=[]
-		with open(join(self.countryPath, "AlexaUniqueResources.txt"),"r") as f:
-			for resource in f:
-				resources.append(resource.split("\n")[0])
-		print (len(resources))
-		chunkSize=int (len(resources)/5)
+		if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueWResources.txt")):
+			# with open(self.countryPath+"/AlexaUniqueResources.txt","r") as f:
+			# 	for resource in f:
+			# 		resources.append(resource.split("\n")[0])
+			resources=self.resources
+		else:
+			with open(join(self.countryPath,"AlexaUniqueWResources.txt"),"r") as f:
+				for resource in f:
+					resources.append(resource.split("\n")[0])
+
+		
+		print ("# of resources",len(resources))
+
+		#for the client randomly shuffle 100 resources and carry measurements on that
+		chunkSize=math.ceil (len(resources)/5)
 		# TODO: this fails if len is less than 5 (chunkSize = 0 and while loop never ends)
 		start=0
 		end=start+chunkSize
 		lastIter=False
 		chunks=[]
+		if (end+chunkSize>len(resources)):
+			end=len(resources)		
+			lastIter=True	
+
 		while 1:
 			chunk=[]
 			for i in range(start,end):
@@ -128,8 +145,11 @@ class WebPerformanceTests:
 
 			if (end+chunkSize>len(resources)):
 				end=len(resources)		
-				lastIter=True		
-		print (len(chunks))
+				lastIter=True	
+		print ("# of chunks",len(chunks))
+		for chunk in chunks:
+			print ("chunksize: ",len(chunk))
+			
 
 		for x in range(0,len(chunks),5):
 			try:
@@ -180,15 +200,33 @@ class WebPerformanceTests:
 			minttbdict.append(dict)
 		utils.dump_json(minttbdict, join(self.countryPath, "lighthouseTTB" + approach + ".json"))
 
+	def collectWorkingResources(self,file):
+		workingResources=[]
+		ttbDict=utils.load_json(join(self.countryPath, "lighthouseTTB" + file+ ".json"))
+
+		count=0
+		for dict in ttbDict:
+			count+=1
+			if "ttfb" in dict.keys():
+				workingResources.append(dict["website"])
+		print (count,len(workingResources))
+		# join(self.countryPath,
+		# with open(self.countryPath,"AlexaUniqueWResources.txt","w") as f:
+		with open(join(self.countryPath,"AlexaUniqueWResources.txt"),"w") as f:
+			for resource in workingResources:
+				f.write(resource+"\n")
+			f.close()
+
 	def runWebPerformanceTests(self,approach):
 		self.paralleliseLighthouse(approach)
 		mergeddict={}
 		for x in range(5):
-			ttbDict=utils.load_json(join(self.countryPath, "lighthouseTTB" + approach + str(x) + ".json"))
-			for dict in ttbDict:
-				if "ttfb" in dict.keys():
-					mergeddict[dict['website']]=dict['ttfb']
-			call(["rm","-rf", join(self.countryPath, "lighthouseTTB" + approach + str(x) + ".json")])
+			if os.path.exists(join(self.countryPath, "lighthouseTTB" + approach + str(x) + ".json")):
+				ttbDict=utils.load_json(join(self.countryPath, "lighthouseTTB" + approach + str(x) + ".json"))
+				for dict in ttbDict:
+					if "ttfb" in dict.keys():
+						mergeddict[dict['website']]=dict['ttfb']
+				call(["rm","-rf", join(self.countryPath, "lighthouseTTB" + approach + str(x) + ".json")])
 
 		minttbdict=[]
 		for website in mergeddict:
@@ -200,6 +238,12 @@ class WebPerformanceTests:
 		
 	def runAllApproaches(self, country):
 		self.runWebPerformanceTests("Google0")
+		#if workingresources not present in directory collect that and rerun measurement with Google
+		# print (country+"/AlexaUniqueWResources.txt")
+		if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueWResources.txt")):
+			self.collectWorkingResources("Google0")
+			self.runWebPerformanceTests("Google0")
+
 		self.runWebPerformanceTests("Google1")
 		self.runWebPerformanceTests("Google2")
 		self.findminttb("Google_","Google0","Google1","Google2")
@@ -293,7 +337,20 @@ if __name__ == "__main__":
 	allpublicDNSServers = json.load(open(join(project_path, "data", "country_public_dns.json")))
 	mainpDNS=["8.8.8.8","9.9.9.9","1.1.1.1"]
 
-	tests = WebPerformanceTests(join(project_path, "analysis", "measurements", country))
+
+	if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt")):
+		resourceCollector.runResourceCollector()
+
+	resources=[]
+	with open(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt"),"r") as f:
+		for resource in f:
+			resources.append(resource.split("\n")[0])
+
+	#for the client randomly shuffle 100 resources and carry measurements on that	
+	random.shuffle(resources)
+	resources=resources[:100]
+	tests = WebPerformanceTests(join(project_path, "analysis", "measurements", country),resources)
+
 
 	for pDNS in allpublicDNSServers[country]:
 		if len(publicDNSServers)>8:
@@ -321,6 +378,6 @@ if __name__ == "__main__":
 			print ("starting measurements")
 			break
 		time.sleep(1)
-	
+
 	tests.runAllApproaches(join(project_path, "analysis", "measurements", country))
 	del tests

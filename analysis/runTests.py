@@ -108,13 +108,13 @@ class WebPerformanceTests:
 
 	def paralleliseLighthouse(self,approach):
 		resources=[]
-		if not os.path.exists(join(project_path,"analysis","measurements/"+country+"/AlexaUniqueWResources.txt")):
+		if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueWResources.txt")):
 			# with open(self.countryPath+"/AlexaUniqueResources.txt","r") as f:
 			# 	for resource in f:
 			# 		resources.append(resource.split("\n")[0])
 			resources=self.resources
 		else:
-			with open(self.countryPath+"/AlexaUniqueWResources.txt","r") as f:
+			with open(join(self.countryPath,"AlexaUniqueWResources.txt"),"r") as f:
 				for resource in f:
 					resources.append(resource.split("\n")[0])
 
@@ -240,7 +240,7 @@ class WebPerformanceTests:
 		self.runWebPerformanceTests("Google0")
 		#if workingresources not present in directory collect that and rerun measurement with Google
 		# print (country+"/AlexaUniqueWResources.txt")
-		if not os.path.exists(join(project_path,"analysis","measurements/"+country+"/AlexaUniqueWResources.txt")):
+		if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueWResources.txt")):
 			self.collectWorkingResources("Google0")
 			self.runWebPerformanceTests("Google0")
 
@@ -338,11 +338,11 @@ if __name__ == "__main__":
 	mainpDNS=["8.8.8.8","9.9.9.9","1.1.1.1"]
 
 
-	if not os.path.exists(join(project_path,"analysis","measurements/"+country+"/AlexaUniqueResources.txt")):
+	if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt")):
 		resourceCollector.runResourceCollector()
 
 	resources=[]
-	with open(join(project_path,"analysis","measurements/"+country+"/AlexaUniqueResources.txt"),"r") as f:
+	with open(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt"),"r") as f:
 		for resource in f:
 			resources.append(resource.split("\n")[0])
 
