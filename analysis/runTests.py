@@ -22,22 +22,7 @@ class WebPerformanceTests:
 		self.countryPath = countryPath
 		self.resources=resources
 
-	def checkResolver(self,ip):
-		host_name="google.com"
-		cmd='dig @'+ip+' '+host_name
-		print (cmd)
-
-		out = subprocess.Popen(["dig","@"+ip,host_name], 
-           stdout=subprocess.PIPE, 
-           stderr=subprocess.STDOUT)
-		stdout,stderr = out.communicate()
-
-		
-		list=str(stdout).split(';')
-		for ele in  list:
-			if " connection timed out" in ele:
-				return False
-		return True
+	
 
 	def resourcesttb(self, dir):
 		onlyfiles = [f for f in listdir(dir) if isfile(join(dir, f))]
@@ -312,9 +297,26 @@ class WebPerformanceTests:
 		self.resourcesttb(country) 
 		self.resourcesttbbyCDN(join(country, "lighthouseResourcesttb.json"), join(country, "PopularcdnMapping.json"), "lighthouse", country)
 
+def checkResolver(ip):
+	host_name="google.com"
+	cmd='dig @'+ip+' '+host_name
+	print (cmd)
+
+	out = subprocess.Popen(["dig","@"+ip,host_name], 
+       stdout=subprocess.PIPE, 
+       stderr=subprocess.STDOUT)
+	stdout,stderr = out.communicate()
+
+	
+	list=str(stdout).split(';')
+	for ele in  list:
+		if " connection timed out" in ele:
+			return False
+	return True
 
 if __name__ == "__main__":
 	# country = input("Enter alpha-2 country code: ")
+
 	if not os.path.exists(join(project_path, "analysis", "measurements")):
 		os.mkdir(join(project_path, "analysis", "measurements"))
 	
@@ -330,16 +332,52 @@ if __name__ == "__main__":
 		data = json.load(response)
 		country = data['countryCode']
 
+	impFiles=["alexaResourcesUS.json","AlexaUniqueResources.txt","PopularcdnMapping.json",'publicDNSServers.json']
+
 	if not os.path.exists(join(project_path, "analysis", "measurements", country)):
 		os.mkdir(join(project_path, "analysis", "measurements", country))
+	else:
 
-	publicDNSServers=[]
-	allpublicDNSServers = json.load(open(join(project_path, "data", "country_public_dns.json")))
-	mainpDNS=["8.8.8.8","9.9.9.9","1.1.1.1"]
+		files=os.listdir(join(project_path, "analysis", "measurements", country))
+		print (files)
+		for file in files:
+			if file not in impFiles:
+				try:
+					os.remove(join(project_path, "analysis", "measurements", country,file))
+				except:
+					print (file)
 
+	if not os.path.exists(join(project_path, "analysis", "measurements", country,"publicDNSServers.json")):
+		publicDNSServers=[]
+		allpublicDNSServers = json.load(open(join(project_path, "data", "country_public_dns.json")))
+		mainpDNS=["8.8.8.8","9.9.9.9","1.1.1.1","8.8.4.4","9.9.9.11","9.9.9.12"]
+
+		for pDNS in allpublicDNSServers[country]:
+			if len(publicDNSServers)>8:
+				break
+			if pDNS["reliability"]>=0.95 and pDNS["ip"] not in mainpDNS:
+				try:
+					ipaddress.IPv4Network(pDNS["ip"])
+					if checkResolver(pDNS["ip"])==False:
+						print("Failed: %s not valid" % pDNS["ip"])
+						continue
+					print("Succeeded: adding %s to test list" % pDNS["ip"])
+					publicDNSServers.append(pDNS["ip"])
+				except Exception as e:
+					print ("Invalid IP", pDNS["ip"], e)
+					continue
+
+		print("Done filtering")
+
+		if len(publicDNSServers)>8:
+			publicDNSServers=publicDNSServers[:8]
+		with open(join(project_path, "analysis", "measurements", country, "publicDNSServers.json"),'w') as fp:
+			json.dump(publicDNSServers, fp, indent=4)
 
 	if not os.path.exists(join(project_path,"analysis","measurements/"+country+"/AlexaUniqueResources.txt")):
 		resourceCollector.runResourceCollector()
+
+
 
 	resources=[]
 	with open(join(project_path,"analysis","measurements/"+country+"/AlexaUniqueResources.txt"),"r") as f:
@@ -349,36 +387,19 @@ if __name__ == "__main__":
 	#for the client randomly shuffle 100 resources and carry measurements on that	
 	random.shuffle(resources)
 	resources=resources[:100]
+	
+	
 	tests = WebPerformanceTests(join(project_path, "analysis", "measurements", country),resources)
-
-
-	for pDNS in allpublicDNSServers[country]:
-		if len(publicDNSServers)>8:
-			break
-		if pDNS["reliability"]>=0.95 and pDNS["ip"] not in mainpDNS:
-			try:
-				ipaddress.IPv4Network(pDNS["ip"])
-				if tests.checkResolver(pDNS["ip"])==False:
-					print("Failed: %s not valid" % pDNS["ip"])
-					continue
-				print("Succeeded: adding %s to test list" % pDNS["ip"])
-				publicDNSServers.append(pDNS["ip"])
-			except Exception as e:
-				print ("Invalid IP", pDNS["ip"], e)
-				continue
-	print("Done filtering")
-
-	if len(publicDNSServers)>8:
-		publicDNSServers=publicDNSServers[:8]
-	with open(join(project_path, "analysis", "measurements", country, "publicDNSServers.json"),'w') as fp:
-		json.dump(publicDNSServers, fp, indent=4)
+	x=b''
+	with open(join(project_path,"dat"),'wb') as f:
+		f.write(x)
+		time.sleep(1)
 
 	while 1:
-		if os.path.exists(join(project_path, "dat")):
+		if os.path.exists(join(project_path, "dat1")):
 			print ("starting measurements")
 			break
 		time.sleep(1)
 
-	
 	tests.runAllApproaches(join(project_path, "analysis", "measurements", country))
 	del tests

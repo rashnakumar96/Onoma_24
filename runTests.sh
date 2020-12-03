@@ -21,9 +21,6 @@ pip3 install -r analysis/requirements.txt
 
 cd analysis
 
-#collect resources
-python3 resourceCollector.py
-
 python3 runTests.py
 
 #start running SubRosa now
