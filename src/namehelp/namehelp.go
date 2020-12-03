@@ -9,13 +9,17 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -90,7 +94,7 @@ func NewProgram() *Program {
 	newProgram.stopHeartBeat = make(chan bool)
 	newProgram.shutdownChan = make(chan bool)
 
-	program.initializeReporter()
+	newProgram.initializeReporter()
 
 	// Load config file, read the configuration value and update accordingly
 	jsonFile, err := os.Open(filepath.Join(srcDir, "data", "config.json"))
@@ -309,6 +313,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 			log.Fatal("Failed to get country code")
 		}
 	}
+	client_ip := json_map["ip"].(string)
 
 	testingDir := filepath.Join("analysis", "measurements", country)
 	// TODO: this definitely will not work in an actual app
@@ -317,6 +322,22 @@ func (program *Program) launchNamehelpDNSServer() error {
 	// testingDir:="/analysis/measurements/IN"
 
 	//////////
+	as, err := program.getMacAddr()
+	if err != nil {
+		log.Fatal(err)
+	}
+	mac_addr := ""
+	for _, a := range as {
+		mac_addr = mac_addr + a
+	}
+	client_id := program.hash(client_ip + mac_addr)
+
+	log.WithFields(log.Fields{
+		"client_id": client_id,
+		"client_ip": client_ip,
+		"mac_addr":  mac_addr}).Info("client identifiers")
+
+	print(filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
 	for {
 		if _, err := os.Stat(filepath.Join(srcDir, testingDir, "publicDNSServers.json")); os.IsNotExist(err) {
 			// To ensure proper exit during testing
@@ -352,9 +373,22 @@ func (program *Program) launchNamehelpDNSServer() error {
 	go program.startDNSServer(program.udpServer)
 	go program.startDNSServer(program.tcpServer)
 	// this go func does the testing as soon as SubRosa is started
+	// TODO: change this to per-trigger base
 
-	// TODO: Currently if not run the doMeasurement the whole namehelp service fails with error mission port in address
-	go program.doMeasurement(testingDir)
+	//run SubRosa with No Privacy Enabled,but Racing enabled(SubRosaNP) until measurements start
+	handler.DoHEnabled = true
+	handler.Experiment = false
+	handler.Decentralized = true
+	utils.FlushLocalDnsCache()
+	handler.PrivacyEnabled = false
+	handler.Racing = true
+	program.dnsQueryHandler.EnableDirectResolution()
+	handler.Proxy = false
+	handler.DoHServersToTest = []string{"127.0.0.1"}
+
+	//convert client_id to string
+	var s = strconv.FormatUint(uint64(client_id), 10)
+	go program.doMeasurement(testingDir, s)
 	return nil
 }
 
@@ -394,7 +428,7 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 
 }
 
-func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir string, dict1 map[string]map[string]map[string]interface{}, dnsLatencyFile string, iterations int, testingDir string) {
+func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir string, dict1 map[string]map[string]map[string]interface{}, dnsLatencyFile []string, iterations int, testingDir string) {
 	utils.FlushLocalDnsCache()
 	log.WithFields(log.Fields{"resolver": resolverName}).Info("Namehelp: Measuring DNS latency")
 	var err error
@@ -417,11 +451,48 @@ func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir 
 		"dnsLatencyFile: ": filepath.Join(dir, "dnsLatencies.json")}).Info("Namehelp: Write DNS latency result to file")
 }
 
-func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string) {
+func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string, client_id string) {
 	log.WithFields(log.Fields{"dir": dir, "testing dir": testingDir}).Info("Namehelp: Setting up for DNS latency testing")
+
 	dict1 := make(map[string]map[string]map[string]interface{})
 	iterations := 3
-	dnsLatencyFile := filepath.Join(dir, testingDir, "AlexaUniqueWResources.txt")
+	dnsLatencyFile := filepath.Join(dir, testingDir, "AlexaUniqueResources.txt")
+	websiteFile := dnsLatencyFile
+	log.WithFields(log.Fields{"dir": websiteFile}).Info("Handler: Loading website file")
+	file, err := os.Open(websiteFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	scanner := bufio.NewScanner(file)
+
+	count := 0
+	var websites []string
+	for scanner.Scan() {
+		// measure latencies of 100 resources
+		if count == 100 {
+			break
+		}
+		count += 1
+		website := scanner.Text()
+		u, err := url.Parse(website)
+		if err != nil {
+			log.Fatal("Handler: Error Parsing website", err)
+		}
+		if err := scanner.Err(); err != nil {
+			log.Fatal("Handler: Error while scanning for website", err)
+		}
+		found := 0
+		for _, ele := range websites {
+			if ele == u.Hostname() {
+				found = 1
+			}
+		}
+		if found == 0 {
+			websites = append(websites, u.Hostname())
+		}
+	}
+	file.Close()
 
 	handler.Experiment = true
 	program.dnsQueryHandler.EnableExperiment()
@@ -437,17 +508,14 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	handler.Decentralized = false
 	program.dnsQueryHandler.DisableDecentralization()
 	handler.DoHEnabled = true
-	program.dnsQueryHandler.EnableDoH()
-
-	program.MeasureDnsLatencies("Google", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
-	program.MeasureDnsLatencies("Cloudflare", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
-	program.MeasureDnsLatencies("Quad9", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
-
+	program.MeasureDnsLatencies("Google", "", filepath.Join(srcDir, testingDir), dict1, websites, iterations, testingDir)
+	program.MeasureDnsLatencies("Cloudflare", "", filepath.Join(srcDir, testingDir), dict1, websites, iterations, testingDir)
+	program.MeasureDnsLatencies("Quad9", "", filepath.Join(srcDir, testingDir), dict1, websites, iterations, testingDir)
 	handler.DoHEnabled = false
 	program.dnsQueryHandler.DisableDoH()
 
 	for i := 0; i < len(publicDNSServers); i++ {
-		program.MeasureDnsLatencies(publicDNSServers[i], publicDNSServers[i], filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
+		program.MeasureDnsLatencies(publicDNSServers[i], publicDNSServers[i], filepath.Join(srcDir, testingDir), dict1, websites, iterations, testingDir)
 	}
 	handler.PDNSServers = publicDNSServers
 
@@ -469,7 +537,7 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 
 	utils.FlushLocalDnsCache()
 	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.MeasureDnsLatencies("DoHProxyNP", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
+	program.MeasureDnsLatencies("DoHProxyNP", "", filepath.Join(srcDir, testingDir), dict1, websites, iterations, testingDir)
 
 	utils.FlushLocalDnsCache()
 
@@ -484,7 +552,7 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	program.dnsQueryHandler.DisableProxy()
 
 	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.MeasureDnsLatencies("SubRosaNPR", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
+	program.MeasureDnsLatencies("SubRosaNPR", "", filepath.Join(srcDir, testingDir), dict1, websites, iterations, testingDir)
 
 	utils.FlushLocalDnsCache()
 
@@ -499,24 +567,60 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	program.dnsQueryHandler.DisableProxy()
 
 	handler.DoHServersToTest = []string{"127.0.0.1"}
-	program.MeasureDnsLatencies("SubRosaNP", "", filepath.Join(srcDir, testingDir), dict1, dnsLatencyFile, iterations, testingDir)
+	program.MeasureDnsLatencies("SubRosaNP", "", filepath.Join(srcDir, testingDir), dict1, websites, iterations, testingDir)
 
-	program.reporter.PushToMongoDB("SubRosa-Test", "dnsLatencies"+testingDir[len(testingDir)-2:], dict1)
+	program.reporter.PushToMongoDB(client_id+"SubRosa-Test", "dnsLatencies"+testingDir[len(testingDir)-2:], dict1)
 
 }
 
-func (program *Program) doMeasurement(testingDir string) error {
+func (program *Program) getMacAddr() ([]string, error) {
+	ifas, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	var as []string
+	for _, ifa := range ifas {
+		a := ifa.HardwareAddr.String()
+		if a != "" {
+			as = append(as, a)
+		}
+	}
+	return as, nil
+}
+
+func (program *Program) hash(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
+}
+
+func (program *Program) doMeasurement(testingDir string, client_id string) error {
+
+	for {
+		if _, err := os.Stat(filepath.Join(srcDir, "dat")); os.IsNotExist(err) {
+			time.Sleep(time.Second)
+			continue
+		} else {
+			log.Info("FileFound")
+			break
+		}
+	}
+
 	log.WithFields(log.Fields{"testing dir": testingDir}).Info("Namehelp: Namehelp start measurement")
 
-	d1 := []byte("start Measurements\n")
-	err := ioutil.WriteFile(filepath.Join(srcDir, "dat"), d1, 0644)
+	publicDNSServers := handler.PDNSServers
+
+	// Measuring DNSLatencies and Pings to Replicas
+	program.DnsLatenciesSettings(srcDir, testingDir, publicDNSServers, client_id)
+
+	d1 := []byte("start Lighthouse Measurements\n")
+	err := ioutil.WriteFile(filepath.Join(srcDir, "dat1"), d1, 0644)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err}).Info("Namehelp: couldn't start measurements")
 		panic(err)
 	}
 
-	publicDNSServers := handler.PDNSServers
 	//handler.Proxy is true when testing DoHProxy
 	//handler.Racing is true when testing racing in SubRosa
 	//handler.PrivacyEnabled is true when testing SubRosa and DoHProxy with privacy enabled, and all same 2lds go to the same resolver
@@ -714,10 +818,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	dict2 = program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2, resolverList)
 	file, _ := json.MarshalIndent(dict2, "", " ")
 	_ = ioutil.WriteFile(filepath.Join(srcDir, testingDir, "pingServers.json"), file, 0644)
-	program.reporter.PushToMongoDB("SubRosa-Test", "PingServers.json_"+testingDir[len(testingDir)-2:], dict2)
-
-	// Measuring DNSLatencies and Pings to Replicas
-	program.DnsLatenciesSettings(srcDir, testingDir, publicDNSServers)
+	program.reporter.PushToMongoDB(client_id+"SubRosa-Test", "PingServers.json_"+testingDir[len(testingDir)-2:], dict2)
 
 	// push resourcesttbbyCDNLighthouse.json to server
 	jsonFile, err := os.Open(filepath.Join(srcDir, testingDir, "resourcesttbbyCDNLighthouse.json"))
@@ -728,7 +829,7 @@ func (program *Program) doMeasurement(testingDir string) error {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	json_map := make(map[string]map[string]map[string]interface{})
 	json.Unmarshal([]byte(byteValue), &json_map)
-	program.reporter.PushToMongoDB("SubRosa-Test", "resourcesttbbyCDNLighthouse_"+testingDir[len(testingDir)-2:], json_map)
+	program.reporter.PushToMongoDB(client_id+"SubRosa-Test", "resourcesttbbyCDNLighthouse_"+testingDir[len(testingDir)-2:], json_map)
 
 	log.Info("Namehelp: Namehelp finish measurement")
 
@@ -1034,15 +1135,15 @@ func (program *Program) startDNSServer(dnsServer *dns.Server) {
 }
 
 // heatbeat keeps pinging a remote server every given period of interval
-func (program *Program) heatbeat(interval) {
-	ticker := time.NewTicker(interval * time.Second)
+func (program *Program) heartbeat(interval int) {
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
 		select {
 		case <-program.stopHeartBeat:
 			log.Info("Namehelp: Stopping heartbeat")
 			break
 		case t := <-ticker.C:
-			log.Info("Namehelp: Sending heartbeat to server")
+			log.WithFields(log.Fields{"time stamp": t}).Info("Namehelp: Sending heartbeat to server")
 			break
 		}
 	}
@@ -1131,7 +1232,12 @@ func main() {
 	<-namehelpProgram.shutdownChan
 	e := os.Remove(filepath.Join(srcDir, "dat"))
 	if e != nil {
-		log.Fatal(e)
+		log.Info("error removing dat file")
+	}
+	e = os.Remove(filepath.Join(srcDir, "dat1"))
+	if e != nil {
+		log.Info("error removing dat1 file")
+
 	}
 
 	*serviceFlag = "uninstall"

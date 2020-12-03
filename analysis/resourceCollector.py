@@ -20,7 +20,7 @@ class Har_generator:
 		options.add_argument("--proxy-server={}".format(self.proxy.proxy))	
 		options.add_argument("--ignore-ssl-errors=yes")
 		options.add_argument("--ignore-certificate-errors")
-		# options.add_argument("--headless")
+		options.add_argument("--headless")
 
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)
 
@@ -89,7 +89,7 @@ class Url_processor:
 		self.options = webdriver.ChromeOptions()
 		self.options.add_argument("--ignore-ssl-errors=yes")
 		self.options.add_argument("--ignore-certificate-errors")
-		# options.add_argument("--headless")
+		options.add_argument("--headless")
 
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=self.options)
 

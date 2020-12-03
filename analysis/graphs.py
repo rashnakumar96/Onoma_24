@@ -8,6 +8,7 @@ import random
 mpl.use('agg')
 import matplotlib.pyplot as plt
 import subprocess
+from threading import Timer
 
 def runtraceroutes(resultFile,dir):
 	resFile=json.load(open(dir+resultFile))
@@ -22,14 +23,22 @@ def runtraceroutes(resultFile,dir):
 				continue
 	print (len(replicaIPs))
 	dict={}
-	dict['replicaIPs']=replicaIPs
-	with open(dir+"replicaIPs.json",'w') as fp:
+	# dict['replicaIPs']=replicaIPs
+	timeout_sec=60
+	for hostname in replicaIPs:
+		print (hostname)
+		traceroute = subprocess.Popen(["traceroute", '-w', '100',hostname],stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		timer = Timer(timeout_sec, traceroute.kill)
+		try:
+			timer.start()
+			stdout, stderr = traceroute.communicate()
+		finally:
+			timer.cancel()
+		print (str(stdout))
+		dict[hostname]=str(stdout)
+		
+	with open(dir+"traceroutereplicaIPs.json",'w') as fp:
 		json.dump(dict,fp,indent=4)
-	# for hostname in replicaIPs:
-	# 	traceroute = subprocess.Popen(["traceroute", '-w', '100',hostname],stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-	# 	for line in iter(traceroute.stdout.readline,""):
-	# 		print(line)
-	# 	break
 
 
 def PingPlots(resultFile,dir):
@@ -100,6 +109,9 @@ def DNSLatencyPlots(resultFile,metric,feature,_type,dir):
 					values=[]
 					for value in resFile[resolver][site][metric]:
 						values.append(int(value.split(" ms")[0]))
+					if sum(values)/len(values)==0:
+						# print (values)
+						continue
 					if resolver not in dict[site]:
 						dict[site][resolver]={}
 					dict[site][resolver][metric]={}
@@ -176,19 +188,25 @@ def DNSLatencyPlots(resultFile,metric,feature,_type,dir):
 	plt.clf()
 	mainResolvers=["Google","Quad9","Cloudflare","DoHProxy","SubRosa"]
 	colorArray=[]
+	clrs=['brown','blue','orange','purple','lightcoral','tan','slategrey','aquamarine'] 
+
 	for key in mcolors.CSS4_COLORS:
 		colorArray.append(key)
 
+	i=0
 	for resolver in graphdict:
 		if resolver in mainResolvers or "sorted" not in graphdict[resolver]:
 			continue
 		else:
-			while 1:
-				rcolor=random.randint(0,len(colorArray)-1)
-				# print (colorArray[rcolor])
-				if "green" not in colorArray[rcolor] and "red" not in colorArray[rcolor] and "white" not in colorArray[rcolor] and "snow" not in colorArray[rcolor]:
-					break
-			plt.plot(graphdict[resolver]["sorted"],graphdict[resolver]["p"],color=colorArray[rcolor],marker='.',label=resolver)
+			# while 1:
+			# 	rcolor=random.randint(0,len(colorArray)-1)
+			# 	# print (colorArray[rcolor])
+			# 	if "green" not in colorArray[rcolor] and "red" not in colorArray[rcolor] and "white" not in colorArray[rcolor] and "snow" not in colorArray[rcolor]:
+			# 		break
+			rcolor=clrs[i]
+			plt.plot(graphdict[resolver]["sorted"],graphdict[resolver]["p"],color=rcolor,marker='.',label=resolver)
+			i=i+1
+			# plt.plot(graphdict[resolver]["sorted"],graphdict[resolver]["p"],color=colorArray[rcolor],marker='.',label=resolver)
 
 
 	plt.plot(graphdict["Google"]["sorted"],graphdict["Google"]["p"],color='c',marker='.',label="GoogleDoH")
@@ -197,7 +215,7 @@ def DNSLatencyPlots(resultFile,metric,feature,_type,dir):
 	plt.plot(graphdict["DoHProxy"]["sorted"],graphdict["DoHProxy"]["p"],color='r',marker='.',label="DoHProxy")
 	plt.plot(graphdict["SubRosa"]["sorted"],graphdict["SubRosa"]["p"],color='g',marker='.',label="SubRosa")
 
-	plt.legend(loc='lower right')
+	plt.legend()
 	if metric=="Replica Ping":
 		plt.title(metric+' of domains of Alexa Top sites')
 	else:
@@ -206,6 +224,10 @@ def DNSLatencyPlots(resultFile,metric,feature,_type,dir):
 	plt.xlabel('Time in ms')
 	plt.ylabel('CDF')
 	plt.margins(0.02)
+	plt.axis([0, None, None, None])
+
+	if not os.path.exists(dir+"graphs"):
+		os.mkdir(dir+"graphs")
 
 	if metric=="Replica Ping":
 		plt.savefig(dir+'graphs/'+_type+metric+feature)
@@ -298,8 +320,8 @@ def resourcesCDF(file,cdn,dir,feature):
 	Verizon=[]
 	LocalR=[]
 	ttbdict=json.load(open(file))
-	# publicDNSResolvers=json.load(open(dir+"publicDNSServers.json"))
-	publicDNSResolvers=[]
+	publicDNSResolvers=json.load(open(dir+"publicDNSServers.json"))
+	# publicDNSResolvers=[]
 
 	graphdict={}
 	myresolvers=["SubRosa","SubRosaNP","SubRosaNPR","DoHProxy","DoHProxyNP"]
@@ -435,16 +457,21 @@ def resourcesCDF(file,cdn,dir,feature):
 		colorArray.append(key)
 	selectedColors=[]
 	avoidColors=["green","red","white","snow","smoke"]
+	clrs=['brown','blue','orange','purple','lightcoral','tan','slategrey','aquamarine'] 
+	i=0
 	for resolver in graphdict:
 		if resolver in mainResolvers:
 			continue
 		else:
-			while 1:
-				rcolor=random.randint(0,len(colorArray)-1)
-				if colorArray[rcolor] not in avoidColors and colorArray[rcolor] not in selectedColors:					
-					selectedColors.append(colorArray[rcolor])
-					break
-			plt.plot(graphdict[resolver]["sorted"],graphdict[resolver]["p"],color=colorArray[rcolor],marker='.',label=resolver)
+			# while 1:
+			# 	rcolor=random.randint(0,len(colorArray)-1)
+			# 	if colorArray[rcolor] not in avoidColors and colorArray[rcolor] not in selectedColors:					
+			# 		selectedColors.append(colorArray[rcolor])
+			# 		break
+			rcolor=clrs[i]
+			plt.plot(graphdict[resolver]["sorted"],graphdict[resolver]["p"],color=rcolor,marker='.',label=resolver)
+			i=i+1
+			# plt.plot(graphdict[resolver]["sorted"],graphdict[resolver]["p"],color=colorArray[rcolor],marker='.',label=resolver)
 	# print (graphdict)
 
 	plt.plot(graphdict["Google"]["sorted"],graphdict["Google"]["p"],color='c',marker='.',label="GoogleDoH")
@@ -467,8 +494,8 @@ def resourcesCDF(file,cdn,dir,feature):
 
 def plotLighthouseGraphs(countrycode):
 
-	# resourcesttb(countrycode) 
-	# resourcesttbbyCDN(countrycode+"lighthouseResourcesttb.json",countrycode+"cdnMapping.json","lighthouse",countrycode)
+	resourcesttb(countrycode) 
+	resourcesttbbyCDN(countrycode+"lighthouseResourcesttb.json",countrycode+"PopularcdnMapping.json","lighthouse",countrycode)
 	
 	# resourcesCDF(countrycode+"resourcesttbbyCDNLighthouse.json","Google",countrycode,"")
 	# resourcesCDF(countrycode+"resourcesttbbyCDNLighthouse.json","Cloudflare",countrycode,"")
@@ -509,10 +536,11 @@ def plotDNSLatencyGraphs(countrycode):
 
 
 def main():
-	countryPath="IN"
+	countryPath="measurements/US"
 	plotLighthouseGraphs(countryPath+"/")
-	# PingPlots("pingServers.json",countryPath+"/")
-	# plotDNSLatencyGraphs(countryPath)
+	PingPlots("pingServers.json",countryPath+"/")
+	plotDNSLatencyGraphs(countryPath)
+	# runtraceroutes("dnsLatencies.json",countryPath+"/")
 
 main()
 

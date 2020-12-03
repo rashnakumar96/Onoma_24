@@ -15,7 +15,7 @@ import (
 	"namehelp/settings"
 	"namehelp/utils"
 	"net"
-	"net/url"
+	// "net/url"
 	"os"
 	"os/exec"
 	"strconv"
@@ -429,7 +429,6 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		message, whichCache, isHit := handler.checkCache(question, cacheKey, IPQuery, doID)
 
 		if isHit {
-
 			// handle different types of hit, then return
 			if whichCache == &handler.cache {
 				// positive cache
@@ -615,7 +614,7 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 			messageCopy := *message
 			messageCopy.Id = requestAuthoritativeServer.Id
 			cacheAnswer = &messageCopy
-			cacheAnswer = message
+			// cacheAnswer = message
 			cacheHit = true
 			log.WithFields(log.Fields{
 				"id":           doID,
@@ -1130,7 +1129,7 @@ func (handler *DNSQueryHandler) DoUDP(responseWriter dns.ResponseWriter, req *dn
 }
 
 // measure the DNS resolution time of each alexa site and measure min ping latency to the replica server
-func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile string, smartDnsSelectorId int, dohEnabled bool, experiment bool, iterations int, dict map[string]map[string]map[string]interface{}, resolver string) (dictionary map[string]map[string]map[string]interface{}, err error) {
+func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websites []string, smartDnsSelectorId int, dohEnabled bool, experiment bool, iterations int, dict map[string]map[string]map[string]interface{}, resolver string) (dictionary map[string]map[string]map[string]interface{}, err error) {
 	// dict:= make(map[string]map[string]map[string]interface{})
 	var serversToTest []string
 	if dohEnabled {
@@ -1138,45 +1137,10 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 	} else {
 		serversToTest = DNSServersToTest
 	}
-
-	log.WithFields(log.Fields{"dir": websiteFile}).Info("Handler: Loading website file")
-	file, err := os.Open(websiteFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	// TODO parallelize this for loop with goroutine (and channel?)
 	dict[resolver] = make(map[string]map[string]interface{})
 
-	// count:=0
-	var websites []string
-	for scanner.Scan() {
-		//measure latencies of 100 resources
-		// if count==100{
-		// 	break
-		// }
-		// count+=1
-		website := scanner.Text()
-		u, err := url.Parse(website)
-		if err != nil {
-			log.Fatal("Handler: Error Parsing website", err)
-		}
-		if err := scanner.Err(); err != nil {
-			log.Fatal("Handler: Error while scanning for website", err)
-		}
-		found := 0
-		for _, ele := range websites {
-			if ele == u.Hostname() {
-				found = 1
-			}
-		}
-		if found == 0 {
-			websites = append(websites, u.Hostname())
-		}
-	}
+
+	
 	log.WithFields(log.Fields{
 		"len of websites": len(websites),
 		"websites":        websites,
@@ -1197,6 +1161,8 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 	//        }
 	//    }
 
+	utils.FlushLocalDnsCache()
+
 	for _, website := range websites {
 		dnsQueryMessage := utils.BuildDnsQuery(website, dns.TypeA, 0, true)
 		// var dnsServersToQuery []string
@@ -1212,7 +1178,6 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 			"DNS server":        resolver}).Info("Handler: Measuring DNS Latency for website")
 
 		for x := 0; x < iterations; x++ {
-			utils.FlushLocalDnsCache()
 			Net := "udp"
 
 			var success bool
@@ -1243,7 +1208,7 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websiteFile stri
 			log.WithFields(log.Fields{
 				"DNS server": resolver,
 				"query":      dnsQueryMessage.Question[0].String()}).Info("Handler: DNS resolution times empty")
-			continue
+			// continue
 		}
 
 		dict[resolver][website] = make(map[string]interface{})
