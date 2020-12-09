@@ -15,6 +15,7 @@ import (
 	"namehelp/settings"
 	"namehelp/utils"
 	"net"
+
 	// "net/url"
 	"os"
 	"os/exec"
@@ -1129,7 +1130,8 @@ func (handler *DNSQueryHandler) DoUDP(responseWriter dns.ResponseWriter, req *dn
 }
 
 // measure the DNS resolution time of each alexa site and measure min ping latency to the replica server
-func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websites []string, smartDnsSelectorId int, dohEnabled bool, experiment bool, iterations int, dict map[string]map[string]map[string]interface{}, resolver string) (dictionary map[string]map[string]map[string]interface{}, err error) {
+// func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websites []string, smartDnsSelectorId int, dohEnabled bool, experiment bool, iterations int, dict map[string]map[string]map[string]interface{}, resolver string) (dictionary map[string]map[string]map[string]interface{}, err error) {
+func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websites []string, smartDnsSelectorId int, dohEnabled bool, experiment bool, iterations int, dict map[string]interface{}, resolver string) (dictionary map[string]interface{}, err error) {
 	// dict:= make(map[string]map[string]map[string]interface{})
 	var serversToTest []string
 	if dohEnabled {
@@ -1139,8 +1141,6 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websites []strin
 	}
 	dict[resolver] = make(map[string]map[string]interface{})
 
-
-	
 	log.WithFields(log.Fields{
 		"len of websites": len(websites),
 		"websites":        websites,
@@ -1211,8 +1211,8 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websites []strin
 			// continue
 		}
 
-		dict[resolver][website] = make(map[string]interface{})
-		dict[resolver][website]["DNS Resolution Time"] = dnsResolutionTimes
+		dict[resolver].(map[string]map[string]interface{})[website] = make(map[string]interface{})
+		dict[resolver].(map[string]map[string]interface{})[website]["DNS Resolution Time"] = dnsResolutionTimes
 
 		log.WithFields(log.Fields{
 			"DNS Latency": dnsResolutionTimes,
@@ -1233,7 +1233,7 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websites []strin
 				"website":   website,
 				"ipAddress": ipAddress}).Info("Handler: Answer does contain valid IP Address.")
 		}
-		dict[resolver][website]["ReplicaIP"] = ipAddress
+		dict[resolver].(map[string]map[string]interface{})[website]["ReplicaIP"] = ipAddress
 
 		var cmd string
 		var args []string
@@ -1266,7 +1266,7 @@ func (handler *DNSQueryHandler) MeasureDnsLatencies(indexW int, websites []strin
 			pingTimes := strings.Split(stdout.String(), "min/avg/max/stddev =")[1]
 			// minPingTime:=strings.Split(pingTimes,"/")[0]
 			// dict[resolver][website]["Replica Ping"]=minPingTime
-			dict[resolver][website]["Replica Ping"] = pingTimes
+			dict[resolver].(map[string]map[string]interface{})[website]["Replica Ping"] = pingTimes
 		}
 	}
 

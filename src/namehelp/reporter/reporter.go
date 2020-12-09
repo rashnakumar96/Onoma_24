@@ -6,6 +6,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -35,12 +36,9 @@ func NewReporter(version string) *Reporter {
 
 // Schema is the root class interface for data entry
 type Schema struct {
-	// Country holds the client's current location, using Alpha-2 country code
-	Country string
-
 	// Time holds the client's measurement time
-	// This value is the string returned by time.Now(), and parsed using .String() method
-	Time string
+	// This value is the string returned by time.Now(), and parsed using .Unix() method
+	Time int64
 
 	// Version stores the current version of the client side app
 	Version string
@@ -75,8 +73,7 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		insert := mongo.NewInsertOneModel()
 		var doc Schema
 
-		doc.Country = ""
-		doc.Time = time.Now().String()
+		doc.Time = time.Now().Unix()
 		doc.Version = r.Version
 		doc.Data = entry
 
@@ -98,6 +95,61 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		"db":         databaseName,
 		"collection": collectionName,
 	}).Info("Reporter: MongoDB data store finished.")
+
+	return nil
+}
+
+// UpdateToMongoDB updates data entry to the given database
+// Each object in filters is a map to specify the object in database to be updated
+// Each data object should be inheriting Schema
+func (r *Reporter) UpdateToMongoDB(databaseName string, collectionName string, filters []interface{}, data []interface{}) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
+		r.MongoStr,
+	))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"reporter": r,
+			"error":    err,
+		}).Error("Reporter: Creating Mongo Client failed.")
+		return err
+	}
+	// TODO: move client connection to initialization to avoid redundent reconnecting
+
+	collection := client.Database(databaseName).Collection(collectionName)
+
+	var operations []mongo.WriteModel
+
+	for i, entry := range data {
+		update := mongo.NewUpdateOneModel()
+		var doc Schema
+
+		doc.Time = time.Now().Unix()
+		doc.Version = r.Version
+		doc.Data = entry
+
+		update.SetFilter(filters[i])
+		update.SetUpdate(bson.M{"$set": doc})
+		update.SetUpsert(true)
+		log.Info(filters[i], entry)
+		operations = append(operations, update)
+	}
+
+	result, err := collection.BulkWrite(context.Background(), operations)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"result": result,
+			"error":  err,
+		}).Error("Reporter: MongoDB Bulkwrite failed.")
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"result":     result,
+		"db":         databaseName,
+		"collection": collectionName,
+	}).Info("Reporter: MongoDB data update finished.")
 
 	return nil
 }
@@ -132,8 +184,7 @@ func (r *Reporter) PushToMongoDBMulti(dataMap map[string]map[string][]interface{
 				insert := mongo.NewInsertOneModel()
 				var doc Schema
 
-				doc.Country = ""
-				doc.Time = time.Now().String()
+				doc.Time = time.Now().Unix()
 				doc.Version = r.Version
 				doc.Data = entry
 

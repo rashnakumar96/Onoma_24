@@ -13,7 +13,7 @@ project_path = utils.project_path
 class Har_generator:
 	def __init__(self):
 		self.hars = []
-		self.server = Server(os.getcwd()+"/browsermob-proxy-2.1.4/bin/browsermob-proxy")
+		self.server = Server(join(project_path, "analysis", "browsermob-proxy-2.1.4", "bin", "browsermob-proxy"))
 		self.server.start()
 		self.proxy = self.server.create_proxy(params={"trustAllServers": "true"})
 		options = webdriver.ChromeOptions()
@@ -89,7 +89,7 @@ class Url_processor:
 		self.options = webdriver.ChromeOptions()
 		self.options.add_argument("--ignore-ssl-errors=yes")
 		self.options.add_argument("--ignore-certificate-errors")
-		options.add_argument("--headless")
+		self.options.add_argument("--headless")
 
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=self.options)
 

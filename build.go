@@ -8,6 +8,7 @@ package main
 // github.com/konsorten/go-windows-terminal-sequences
 // github.com/alexthemonk/DoH_Proxy
 // go.mongodb.org/mongo-driver/mongo
+// go.mongodb.org/mongo-driver/bson
 // github.com/inconshreveable/go-update
 // github.com/blang/semver
 // github.com/rhysd/go-github-selfupdate/selfupdate

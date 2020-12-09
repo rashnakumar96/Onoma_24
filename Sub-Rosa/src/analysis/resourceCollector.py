@@ -13,14 +13,14 @@ project_path = utils.project_path
 class Har_generator:
 	def __init__(self):
 		self.hars = []
-		self.server = Server(join(project_path, "analysis", "measurement", "browsermob-proxy-2.1.4", "bin", "browsermob-proxy"))
+		self.server = Server(join(project_path, "analysis", "browsermob-proxy-2.1.4", "bin", "browsermob-proxy"))
 		self.server.start()
 		self.proxy = self.server.create_proxy(params={"trustAllServers": "true"})
 		options = webdriver.ChromeOptions()
 		options.add_argument("--proxy-server={}".format(self.proxy.proxy))	
 		options.add_argument("--ignore-ssl-errors=yes")
 		options.add_argument("--ignore-certificate-errors")
-		# options.add_argument("--headless")
+		options.add_argument("--headless")
 
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)
 
@@ -62,9 +62,9 @@ class Resource_collector:
 	def __init__(self):
 		self.resources = []
 
-	def dump(self, fn_prefix, country):
+	def dump(self, fn_prefix,country):
 		print (str(project_path)+"/"+fn_prefix + "/alexaResources"+country+".json")	
-		utils.dump_json(self.resources, join(fn_prefix, "alexaResources"+country+".json"))
+		utils.dump_json(self.resources, join(fn_prefix,"alexaResources"+country+".json"))
 
 		# utils.dump_json(self.resources, join(project_path,fn_prefix,"alexaResources"+country+".json"))
 
@@ -84,12 +84,12 @@ class Resource_collector:
 class Url_processor:
 	def __init__(self,country):
 		self.cdn_mapping = {}
-		self.resources_mapping = utils.load_json(join(project_path, "analysis", "measurements",country,"alexaResources"+country+".json"))
+		self.resources_mapping = utils.load_json("measurements/"+country+"/alexaResources"+country+".json")
 
 		self.options = webdriver.ChromeOptions()
 		self.options.add_argument("--ignore-ssl-errors=yes")
 		self.options.add_argument("--ignore-certificate-errors")
-		# options.add_argument("--headless")
+		self.options.add_argument("--headless")
 
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=self.options)
 
@@ -156,7 +156,7 @@ class Url_processor:
 
 	def collectPopularCDNResources(self,country):
 		unique=[]
-		with open(join(project_path, "analysis", "measurements", country, "AlexaUniqueResources.txt"),"w") as f:
+		with open("measurements/"+country+"/AlexaUniqueResources.txt","w") as f:
 			for cdn in self.cdn_mapping:
 				for domain in self.cdn_mapping[cdn]:
 					for resource in self.resources_mapping:
@@ -164,6 +164,8 @@ class Url_processor:
 							if resource not in unique:
 								f.write(resource+"\n")
 								unique.append(resource)
+							
+			f.close()
 		
 
 # if __name__ == "__main__":

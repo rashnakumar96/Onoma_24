@@ -65,6 +65,7 @@ type Config struct {
 // Program of Namehelp
 type Program struct {
 	clientID        string
+	country         string
 	oldDNSServers   map[string][]string
 	dnsQueryHandler *handler.DNSQueryHandler
 	tcpServer       *dns.Server
@@ -78,7 +79,7 @@ type Program struct {
 var appConfig = Config{
 	Name:        "namehelp",
 	DisplayName: "namehelp",
-	Version:     "2.0.2",
+	Version:     "0.0.2",
 	APIURL:      "https://aquarium.aqualab.cs.northwestern.edu/",
 	BinURL:      "https://aquarium.aqualab.cs.northwestern.edu/",
 	DiffURL:     "https://aquarium.aqualab.cs.northwestern.edu/",
@@ -90,44 +91,81 @@ var appConfig = Config{
 
 // NewProgram initialize a new namehelp program
 func NewProgram() *Program {
-	var newProgram *Program = &Program{}
-	newProgram.stopHeartBeat = make(chan bool)
-	newProgram.shutdownChan = make(chan bool)
+	var program *Program = &Program{}
+	program.stopHeartBeat = make(chan bool)
+	program.shutdownChan = make(chan bool)
 
-	newProgram.initializeReporter()
+	program.initializeReporter()
 
-	// Load config file, read the configuration value and update accordingly
-	jsonFile, err := os.Open(filepath.Join(srcDir, "data", "config.json"))
+	// Get client IP info
+	url := "http://ipinfo.io/json"
+	resp, err := http.Get(url)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("Namehelp: Failed to open config file")
+		log.Fatal(err)
 	}
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	jsonFile.Close()
+	defer resp.Body.Close()
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+	jsonMap := make(map[string]interface{})
 
-	var configJson map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &configJson)
+	jsonErr := json.Unmarshal(body, &jsonMap)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
 
-	// Get the client ID
-	newProgram.clientID = configJson["clientID"].(string)
-	// Indicate that the program is not first time open anymore
-	configJson["first"] = false
+	country, ok := jsonMap["country"].(string)
+	if ok {
+		log.WithFields(log.Fields{
+			"country": jsonMap["country"]}).Info("Namehelp: Country code")
+	} else {
+		url := "https://extreme-ip-lookup.com/json"
+		resp, err := http.Get(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer resp.Body.Close()
+		body, readErr := ioutil.ReadAll(resp.Body)
+		if readErr != nil {
+			log.Fatal(readErr)
+		}
+		jsonMap := make(map[string]interface{})
 
-	byteValue, _ = json.MarshalIndent(configJson, "", "    ")
-	err = ioutil.WriteFile(filepath.Join(srcDir, "data", "config.json"), byteValue, 0644)
+		jsonErr := json.Unmarshal(body, &jsonMap)
+		if jsonErr != nil {
+			log.Fatal(jsonErr)
+		}
+
+		country, ok = jsonMap["countryCode"].(string)
+		if ok {
+			log.WithFields(log.Fields{
+				"country": jsonMap["countryCode"]}).Info("Namehelp: Country code")
+		} else {
+			log.Fatal("Failed to get country code")
+		}
+	}
+	program.country = country
+
+	clientIP := jsonMap["ip"].(string)
+
+	as, err := program.getMacAddr()
 	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("Namehelp: Failed to update config file")
+		log.Fatal(err)
 	}
-
-	if newProgram.clientID == "" {
-		// TODO: fetch client ID from server
+	clientMAC := ""
+	for _, a := range as {
+		clientMAC = clientMAC + a
 	}
-	// Starting the heartbeat
-	go newProgram.heartbeat(10)
+	program.clientID = strconv.FormatUint(uint64(hash(clientIP+clientMAC)), 10)
 
-	return newProgram
+	log.WithFields(log.Fields{
+		"client_id": program.clientID}).Info("Client Initialized")
+
+	return program
 }
 
-var namehelpProgram = NewProgram()
+var namehelpProgram *Program
 var srcDir string
 
 // init is called before main when starting a program.
@@ -156,7 +194,9 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{ForceColors: true})
 	// Only log the Info level or above.
 	log.SetLevel(log.InfoLevel)
+
 	srcDir = path.Dir(path.Dir(exeDir))
+	namehelpProgram = NewProgram()
 }
 
 // Start is the Service.Interface method invoked when run with "--service start"
@@ -188,6 +228,9 @@ func (program *Program) Stop(s service.Service) error {
 
 // run is the main process running
 func (program *Program) run() {
+	// Starting the heartbeat
+	go program.heartbeat(3600)
+
 	log.Debug("Namehelp: program.run() invoked.")
 	rand.Seed(time.Now().UTC().UnixNano())
 	log.Info("Namehelp: Starting app.")
@@ -266,78 +309,8 @@ func (program *Program) initializeDNSServers() {
 }
 
 func (program *Program) launchNamehelpDNSServer() error {
-	url := "http://ipinfo.io/json"
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
-	json_map := make(map[string]interface{})
 
-	jsonErr := json.Unmarshal(body, &json_map)
-	if jsonErr != nil {
-		log.Fatal(jsonErr)
-	}
-
-	country, ok := json_map["country"].(string)
-	if ok {
-		log.WithFields(log.Fields{
-			"country": json_map["country"]}).Info("Namehelp: Country code")
-	} else {
-		url := "https://extreme-ip-lookup.com/json"
-		resp, err := http.Get(url)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer resp.Body.Close()
-		body, readErr := ioutil.ReadAll(resp.Body)
-		if readErr != nil {
-			log.Fatal(readErr)
-		}
-		json_map := make(map[string]interface{})
-
-		jsonErr := json.Unmarshal(body, &json_map)
-		if jsonErr != nil {
-			log.Fatal(jsonErr)
-		}
-
-		country, ok = json_map["countryCode"].(string)
-		if ok {
-			log.WithFields(log.Fields{
-				"country": json_map["countryCode"]}).Info("Namehelp: Country code")
-		} else {
-			log.Fatal("Failed to get country code")
-		}
-	}
-	client_ip := json_map["ip"].(string)
-
-	testingDir := filepath.Join("analysis", "measurements", country)
-	// TODO: this definitely will not work in an actual app
-
-	//testingDir has the countrycode we want to test with e.g.
-	// testingDir:="/analysis/measurements/IN"
-
-	//////////
-	as, err := program.getMacAddr()
-	if err != nil {
-		log.Fatal(err)
-	}
-	mac_addr := ""
-	for _, a := range as {
-		mac_addr = mac_addr + a
-	}
-	client_id := program.hash(client_ip + mac_addr)
-
-	log.WithFields(log.Fields{
-		"client_id": client_id,
-		"client_ip": client_ip,
-		"mac_addr":  mac_addr}).Info("client identifiers")
-
-	print(filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
+	testingDir := filepath.Join("analysis", "measurements", program.country)
 	for {
 		if _, err := os.Stat(filepath.Join(srcDir, testingDir, "publicDNSServers.json")); os.IsNotExist(err) {
 			// To ensure proper exit during testing
@@ -386,9 +359,8 @@ func (program *Program) launchNamehelpDNSServer() error {
 	handler.Proxy = false
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 
-	//convert client_id to string
-	var s = strconv.FormatUint(uint64(client_id), 10)
-	go program.doMeasurement(testingDir, s)
+	//convert client id to string
+	go program.doMeasurement(testingDir, program.clientID)
 	return nil
 }
 
@@ -428,7 +400,8 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 
 }
 
-func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir string, dict1 map[string]map[string]map[string]interface{}, dnsLatencyFile []string, iterations int, testingDir string) {
+// func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir string, dict1 map[string]map[string]map[string]interface{}, dnsLatencyFile []string, iterations int, testingDir string) {
+func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir string, dict1 map[string]interface{}, dnsLatencyFile []string, iterations int, testingDir string) {
 	utils.FlushLocalDnsCache()
 	log.WithFields(log.Fields{"resolver": resolverName}).Info("Namehelp: Measuring DNS latency")
 	var err error
@@ -454,7 +427,9 @@ func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir 
 func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string, client_id string) {
 	log.WithFields(log.Fields{"dir": dir, "testing dir": testingDir}).Info("Namehelp: Setting up for DNS latency testing")
 
-	dict1 := make(map[string]map[string]map[string]interface{})
+	// dict1 := make(map[string]map[string]map[string]interface{})
+	dict1 := make(map[string]interface{})
+
 	iterations := 3
 	dnsLatencyFile := filepath.Join(dir, testingDir, "AlexaUniqueResources.txt")
 	websiteFile := dnsLatencyFile
@@ -569,8 +544,9 @@ func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publ
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.MeasureDnsLatencies("SubRosaNP", "", filepath.Join(srcDir, testingDir), dict1, websites, iterations, testingDir)
 
-	program.reporter.PushToMongoDB(client_id+"SubRosa-Test", "dnsLatencies"+testingDir[len(testingDir)-2:], dict1)
-
+	dict1["country"] = program.country
+	dict1["clientID"] = program.clientID
+	program.reporter.PushToMongoDB("SubRosa-Test", "dnsLatencies_"+program.country, dict1)
 }
 
 func (program *Program) getMacAddr() ([]string, error) {
@@ -588,7 +564,7 @@ func (program *Program) getMacAddr() ([]string, error) {
 	return as, nil
 }
 
-func (program *Program) hash(s string) uint32 {
+func hash(s string) uint32 {
 	h := fnv.New32a()
 	h.Write([]byte(s))
 	return h.Sum32()
@@ -818,7 +794,10 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	dict2 = program.dnsQueryHandler.PingServers(handler.DoHEnabled, handler.Experiment, iterations, dict2, resolverList)
 	file, _ := json.MarshalIndent(dict2, "", " ")
 	_ = ioutil.WriteFile(filepath.Join(srcDir, testingDir, "pingServers.json"), file, 0644)
-	program.reporter.PushToMongoDB(client_id+"SubRosa-Test", "PingServers.json_"+testingDir[len(testingDir)-2:], dict2)
+
+	dict2["country"] = program.country
+	dict2["clientID"] = program.clientID
+	program.reporter.PushToMongoDB("SubRosa-Test", "PingServers_"+program.country, dict2)
 
 	// push resourcesttbbyCDNLighthouse.json to server
 	jsonFile, err := os.Open(filepath.Join(srcDir, testingDir, "resourcesttbbyCDNLighthouse.json"))
@@ -827,9 +806,13 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
-	json_map := make(map[string]map[string]map[string]interface{})
-	json.Unmarshal([]byte(byteValue), &json_map)
-	program.reporter.PushToMongoDB(client_id+"SubRosa-Test", "resourcesttbbyCDNLighthouse_"+testingDir[len(testingDir)-2:], json_map)
+	// jsonMap := make(map[string]map[string]map[string]interface{})
+	jsonMap := make(map[string]interface{})
+	json.Unmarshal([]byte(byteValue), &jsonMap)
+
+	jsonMap["country"] = program.country
+	jsonMap["clientID"] = program.clientID
+	program.reporter.PushToMongoDB("SubRosa-Test", "resourcesttbbyCDNLighthouse_"+program.country, jsonMap)
 
 	log.Info("Namehelp: Namehelp finish measurement")
 
@@ -1136,6 +1119,9 @@ func (program *Program) startDNSServer(dnsServer *dns.Server) {
 
 // heatbeat keeps pinging a remote server every given period of interval
 func (program *Program) heartbeat(interval int) {
+	filter := []interface{}{map[string]interface{}{
+		"clientID": program.clientID,
+	}}
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
 		select {
@@ -1143,6 +1129,11 @@ func (program *Program) heartbeat(interval int) {
 			log.Info("Namehelp: Stopping heartbeat")
 			break
 		case t := <-ticker.C:
+			doc := []interface{}{map[string]interface{}{
+				"timeStamp": time.Now().Unix(),
+				"country":   program.country,
+			}}
+			program.reporter.UpdateToMongoDB("SubRosa-Test", "Heartbeats", filter, doc)
 			log.WithFields(log.Fields{"time stamp": t}).Info("Namehelp: Sending heartbeat to server")
 			break
 		}
