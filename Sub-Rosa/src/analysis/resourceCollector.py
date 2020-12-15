@@ -63,7 +63,7 @@ class Resource_collector:
 		self.resources = []
 
 	def dump(self, fn_prefix,country):
-		print (str(project_path)+"/"+fn_prefix + "/alexaResources"+country+".json")	
+		print(join(fn_prefix,"alexaResources"+country+".json"))	
 		utils.dump_json(self.resources, join(fn_prefix,"alexaResources"+country+".json"))
 
 		# utils.dump_json(self.resources, join(project_path,fn_prefix,"alexaResources"+country+".json"))
@@ -84,7 +84,7 @@ class Resource_collector:
 class Url_processor:
 	def __init__(self,country):
 		self.cdn_mapping = {}
-		self.resources_mapping = utils.load_json("measurements/"+country+"/alexaResources"+country+".json")
+		self.resources_mapping = utils.load_json(join(project_path, "analysis", "measurements", country, "alexaResources"+country+".json"))
 
 		self.options = webdriver.ChromeOptions()
 		self.options.add_argument("--ignore-ssl-errors=yes")
@@ -102,7 +102,6 @@ class Url_processor:
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=self.options)
 
 	def dump(self, fn_prefix):
-		# utils.dump_json(self.cdn_mapping, project_path+"/"+fn_prefix + "/PopularcdnMapping.json")
 		utils.dump_json(self.cdn_mapping, join(fn_prefix,"PopularcdnMapping.json"))
 
 
@@ -156,7 +155,7 @@ class Url_processor:
 
 	def collectPopularCDNResources(self,country):
 		unique=[]
-		with open("measurements/"+country+"/AlexaUniqueResources.txt","w") as f:
+		with open(join(project_path, "analysis", "measurements", country, "AlexaUniqueResources.txt"),"w") as f:
 			for cdn in self.cdn_mapping:
 				for domain in self.cdn_mapping[cdn]:
 					for resource in self.resources_mapping:
@@ -191,31 +190,31 @@ def runResourceCollector():
 		data = json.load(response)
 		country = data['countryCode']
 
-	if not os.path.exists("measurements/"+country):
-		os.mkdir("measurements/"+country)
+	if not os.path.exists(join(project_path, "analysis", "measurements", country)):
+		os.mkdir(join(project_path, "analysis", "measurements", country))
 	# country = input("Enter alpha-2 country code: ")
 	# print (project_path,"/alexaTop50SitesCountries.json")
-	top_sites=json.load(open(join(project_path,"alexaTop50SitesCountries.json")))
+	top_sites=json.load(open(join(project_path, "data","alexaTop50SitesCountries.json")))
 
 	
 	if country not in top_sites:
 		print("ERROR: invalid country code or country provided does not have top site records")
 	else:
-		# if not os.path.exists(project_path+"/"+country):
-		# 	os.mkdir(country)
-		sites=[top_sites[country][x]["Site"] for x in range (len(top_sites[country]))]
+		# # if not os.path.exists(project_path+"/"+country):
+		# # 	os.mkdir(country)
+		# sites=[top_sites[country][x]["Site"] for x in range (len(top_sites[country]))]
 
-		# hars = hm.get_hars(sites[:2])
-		hars = hm.get_hars(sites)
-		rc.collect_resources(hars,country)
-		rc.dump(join(project_path, "analysis", "measurements",country),country)
-		# rc.dump("measurements/"+country,country)
-		del hm
+		# # hars = hm.get_hars(sites[:2])
+		# hars = hm.get_hars(sites)
+		# rc.collect_resources(hars,country)
+		# rc.dump(join(project_path, "analysis", "measurements", country), country)
+		# # rc.dump("measurements/"+country,country)
+		# del hm
 
 
 		up=Url_processor(country)
 		up.find_cdn()
 		up.collectPopularCDNResources(country)
-		up.dump(join(project_path, "analysis", "measurements",country))
+		up.dump(join(project_path, "analysis", "measurements", country))
 		# up.dump("measurements/"+country)
 		del up
