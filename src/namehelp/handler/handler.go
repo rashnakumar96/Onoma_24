@@ -45,6 +45,8 @@ var PrivacyEnabled bool
 var Racing bool
 var Decentralized bool
 var PDNSServers []string
+var BestResolvers []string
+
 
 // var TestingDir string
 
@@ -469,7 +471,7 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		"question": question,
 		"config":   handler.GetConfig(),
 	}).Info("Handler: Doing Lookup At NameServers")
-	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized)
+	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers)
 
 	if err != nil {
 		// handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
@@ -642,7 +644,7 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 	if cacheHit == false {
 
 		stime := time.Now()
-		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized)
+		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers)
 		responseAuthoritativeServer = _responseAuthoritativeServer
 		elapsed := time.Since(stime)
 		log.WithFields(log.Fields{
@@ -910,7 +912,7 @@ func (handler *DNSQueryHandler) doDirectResolutionOfCname(Net string, answerMess
 	}
 	requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
 
-	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized)
+	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id":    doID,

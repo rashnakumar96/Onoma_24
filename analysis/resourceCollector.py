@@ -89,7 +89,7 @@ class Url_processor:
 		self.options = webdriver.ChromeOptions()
 		self.options.add_argument("--ignore-ssl-errors=yes")
 		self.options.add_argument("--ignore-certificate-errors")
-		self.options.add_argument("--headless")
+		# self.options.add_argument("--headless")
 
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=self.options)
 
@@ -168,7 +168,7 @@ class Url_processor:
 		
 
 # if __name__ == "__main__":
-def runResourceCollector():
+def runResourceCollector(country):
 	hm = Har_generator()
 	rc = Resource_collector()
 
@@ -178,17 +178,17 @@ def runResourceCollector():
 	if not os.path.exists(join(project_path, "analysis", "measurements")):
 		os.mkdir(join(project_path, "analysis", "measurements"))
 	
-	country = ""
-	try:
-		url = 'http://ipinfo.io/json'
-		response = urllib.request.urlopen(url)
-		data = json.load(response)
-		country = data['country']
-	except:
-		url = "https://extreme-ip-lookup.com/json"
-		response = urllib.request.urlopen(url)
-		data = json.load(response)
-		country = data['countryCode']
+	# country = ""
+	# try:
+	# 	url = 'http://ipinfo.io/json'
+	# 	response = urllib.request.urlopen(url)
+	# 	data = json.load(response)
+	# 	country = data['country']
+	# except:
+	# 	url = "https://extreme-ip-lookup.com/json"
+	# 	response = urllib.request.urlopen(url)
+	# 	data = json.load(response)
+	# 	country = data['countryCode']
 
 	if not os.path.exists(join(project_path, "analysis", "measurements", country)):
 		os.mkdir(join(project_path, "analysis", "measurements", country))
@@ -200,16 +200,15 @@ def runResourceCollector():
 	if country not in top_sites:
 		print("ERROR: invalid country code or country provided does not have top site records")
 	else:
-		# # if not os.path.exists(project_path+"/"+country):
-		# # 	os.mkdir(country)
-		# sites=[top_sites[country][x]["Site"] for x in range (len(top_sites[country]))]
+		# if not os.path.exists(project_path+"/"+country):
+		# 	os.mkdir(country)
+		sites=[top_sites[country][x]["Site"] for x in range (len(top_sites[country]))]
 
-		# # hars = hm.get_hars(sites[:2])
-		# hars = hm.get_hars(sites)
-		# rc.collect_resources(hars,country)
-		# rc.dump(join(project_path, "analysis", "measurements", country), country)
-		# # rc.dump("measurements/"+country,country)
-		# del hm
+		# hars = hm.get_hars(sites[:2])
+		hars = hm.get_hars(sites)
+		rc.collect_resources(hars,country)
+		rc.dump(join(project_path, "analysis", "measurements", country), country)
+		del hm
 
 
 		up=Url_processor(country)
