@@ -10,11 +10,6 @@ project_path = utils.project_path
 #precompiles a list of resources and their cdnMapping
 def collectResources():
 	alexaCountries=json.load(open(join(project_path, "data","alexaTop50SitesCountries.json")))
-
-	# try:
-	# 	resourcesDict=json.load(open(join(project_path, "data","resourcesDict.json")))
-	# 	cdnMappingDict=json.load(open(join(project_path, "data","cdnMappingDict.json")))
-	# except:
 	resourcesDict={}
 	cdnMappingDict={}
 	from os import walk
@@ -71,5 +66,7 @@ def collectResources():
 		time.sleep(60)
 
 collectResources()
+
+	
 
 
