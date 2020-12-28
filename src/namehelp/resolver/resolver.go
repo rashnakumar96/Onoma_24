@@ -405,6 +405,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 				mutex.Unlock()
 			} else {
 				//if domain not found in the resolvermapping and if testing SubRosa, shard and select two random resolvers for racing
+				//and the remaining 4 from the bestresolvers stored
 
 				dohResolvers := resolver.Shard()
 				// dohResolvers = dohResolvers[:2]

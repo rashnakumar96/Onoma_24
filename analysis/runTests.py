@@ -420,8 +420,8 @@ if __name__ == "__main__":
 		with open(join(project_path, "analysis", "measurements", country, "publicDNSServers.json"),'w') as fp:
 			json.dump(publicDNSServers, fp, indent=4)
 
-	if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt")):
-		resourceCollector.runResourceCollector()
+	# if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt")):
+	# 	resourceCollector.runResourceCollector()
 
 
 
@@ -432,14 +432,14 @@ if __name__ == "__main__":
 	try:
 		alexaResourcesAll=json.load(open(join(project_path, "data","resourcesDict.json")))
 		resources=alexaResourcesAll[country]
-
-
-		#for the client randomly shuffle 100 resources and carry measurements on that	
-		random.shuffle(resources)
-		resources=resources[:100]
+		
 	except:
 		print ("Country not available in dictionary")
-	
+
+	#for the client randomly shuffle 100 resources and carry measurements on that	
+	random.shuffle(resources)
+	resources=resources[:100]
+
 	
 	tests = WebPerformanceTests(join(project_path, "analysis", "measurements", country),resources)
 	x=b''
