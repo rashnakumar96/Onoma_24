@@ -258,6 +258,9 @@ class WebPerformanceTests:
 			self.findminttb(pDNS+"_",pDNS+"0",pDNS+"1",pDNS+"2")
 			print("Done Testing "+pDNS)
 
+
+		self.selectBestResolvers()
+
 		# time.sleep(1*20)
 		# self.runWebPerformanceTests("DoHProxy0")
 		# self.runWebPerformanceTests("DoHProxy1")
@@ -272,20 +275,12 @@ class WebPerformanceTests:
 		self.findminttb("DoHProxyNP_","DoHProxyNP0","DoHProxyNP1","DoHProxyNP2")
 		print("Done Testing DoHProxyNP")
 
-		# time.sleep(1*20)
-		# self.runWebPerformanceTests("SubRosa0")
-		# self.runWebPerformanceTests("SubRosa1")
-		# self.runWebPerformanceTests("SubRosa2")
-		# self.findminttb("SubRosa_","SubRosa0","SubRosa1","SubRosa2")
-		# print("Done Testing SubRosa")
-
-
 		time.sleep(1*20)
-		self.runWebPerformanceTests("SubRosaNP0")
-		self.runWebPerformanceTests("SubRosaNP1")
-		self.runWebPerformanceTests("SubRosaNP2")
-		self.findminttb("SubRosaNP_","SubRosaNP0","SubRosaNP1","SubRosaNP2")
-		print("Done Testing SubRosaNP")
+		self.runWebPerformanceTests("SubRosa0")
+		self.runWebPerformanceTests("SubRosa1")
+		self.runWebPerformanceTests("SubRosa2")
+		self.findminttb("SubRosa_","SubRosa0","SubRosa1","SubRosa2")
+		print("Done Testing SubRosa")
 
 		time.sleep(1*20)
 		self.runWebPerformanceTests("SubRosaNPR0")
@@ -294,8 +289,59 @@ class WebPerformanceTests:
 		self.findminttb("SubRosaNPR_","SubRosaNPR0","SubRosaNPR1","SubRosaNPR2")
 		print("Done Testing SubRosaNPR")
 
+		time.sleep(1*20)
+		self.runWebPerformanceTests("SubRosaNP0")
+		self.runWebPerformanceTests("SubRosaNP1")
+		self.runWebPerformanceTests("SubRosaNP2")
+		self.findminttb("SubRosaNP_","SubRosaNP0","SubRosaNP1","SubRosaNP2")
+		print("Done Testing SubRosaNP")
+
+		
+
 		self.resourcesttb(country) 
 		self.resourcesttbbyCDN(join(country, "lighthouseResourcesttb.json"), join(country, "PopularcdnMapping.json"), "lighthouse", country)
+
+	#select best resolvers after each individual resolver is tested,by averaging performance
+	def selectBestResolvers(self):
+		dict={}
+		approachList=["Google","Quad9","Cloudflare"]
+		print (self.countryPath)
+		publicDNSServers=json.load(open(join(self.countryPath, "publicDNSServers.json")))
+		avgs=[]
+		sum=0
+		for pDNS in publicDNSServers:
+			approachList.append(pDNS)
+		for approach in approachList:
+			approachttfb = json.load(open(join(self.countryPath, "lighthouseTTB" + approach + "_.json")))
+			for _dict in approachttfb:
+				sum+=_dict["ttfb"]
+			avg=sum/len(approachttfb)
+			avgs.append(avg)
+		i=0
+		sum=0
+		_valS=0
+		wMeans=[]
+		for approach in approachList:
+			approachttfb = json.load(open(join(self.countryPath, "lighthouseTTB" + approach + "_.json")))
+			for _dict in approachttfb:
+				val=1/((avgs[i]-_dict["ttfb"])*(avgs[i]-_dict["ttfb"]))
+				_valS+=val
+				sum+=val*_dict["ttfb"]
+			weightedMean=sum/_valS
+			wMeans.append(weightedMean)
+			dict[approach]=weightedMean
+
+		bestResolvers=[]
+		for x in range(4):
+			_min=min(wMeans)
+			wMeans.remove(_min)
+			for key in dict:
+				if dict[key]==_min:
+					bestResolvers.append(key)
+		print (dict)
+		print (bestResolvers)
+		with open(join(project_path, "analysis", "measurements", country, "bestResolvers.json"),'w') as fp:
+			json.dump(bestResolvers, fp, indent=4)
 
 def checkResolver(ip):
 	host_name="google.com"
@@ -374,20 +420,26 @@ if __name__ == "__main__":
 		with open(join(project_path, "analysis", "measurements", country, "publicDNSServers.json"),'w') as fp:
 			json.dump(publicDNSServers, fp, indent=4)
 
-	if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt")):
-		resourceCollector.runResourceCollector()
+	# if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt")):
+	# 	resourceCollector.runResourceCollector()
 
 
 
 	resources=[]
-	with open(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt"),"r") as f:
-		for resource in f:
-			resources.append(resource.split("\n")[0])
+	# with open(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt"),"r") as f:
+	# 	for resource in f:
+	# 		resources.append(resource.split("\n")[0])
+	try:
+		alexaResourcesAll=json.load(open(join(project_path, "data","resourcesDict.json")))
+		resources=alexaResourcesAll[country]
+		
+	except:
+		print ("Country not available in dictionary")
 
 	#for the client randomly shuffle 100 resources and carry measurements on that	
 	random.shuffle(resources)
 	resources=resources[:100]
-	
+
 	
 	tests = WebPerformanceTests(join(project_path, "analysis", "measurements", country),resources)
 	x=b''
