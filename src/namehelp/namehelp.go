@@ -324,7 +324,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 				continue
 			}
 		} else {
-			log.Info("Namehelp: FileFound")
+			log.Info("Namehelp: publicDNSServers FileFound")
 			break
 		}
 	}
@@ -764,7 +764,7 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	handler.BestResolvers = bestResolvers
 
 
-	//testing SubRosa with Privacy Enabled and Racing
+	// //testing SubRosa with Privacy Enabled and Racing
 	handler.PrivacyEnabled=true
 	handler.Racing=true
 	utils.FlushLocalDnsCache()
@@ -777,10 +777,10 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	utils.FlushLocalDnsCache()
 
 
-	// //these for loops ensure that DoHServersToTest is SubRosa with Privacy enabled & Racing (but new resolver mapping dict btw each run)
-	// // till we collect all measurements with this resolver
-	// //and file filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa.json" is made in the directory
-	// utils.FlushLocalDnsCache()
+	// // //these for loops ensure that DoHServersToTest is SubRosa with Privacy enabled & Racing (but new resolver mapping dict btw each run)
+	// // // till we collect all measurements with this resolver
+	// // //and file filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa.json" is made in the directory
+	// // utils.FlushLocalDnsCache()
 	for{
 		if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa0.json"); os.IsNotExist(err) {
 			continue
@@ -798,7 +798,7 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	}
 	handler.ResolverMapping=make(map[string][]string)
 	for{
-		if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa.json"); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa_.json"); os.IsNotExist(err) {
 			continue
 		}else{
 			break

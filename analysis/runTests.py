@@ -282,7 +282,7 @@ class WebPerformanceTests:
 		self.findminttb("SubRosa_","SubRosa0","SubRosa1","SubRosa2")
 		print("Done Testing SubRosa")
 
-		time.sleep(1*20)
+		# time.sleep(1*20)
 		self.runWebPerformanceTests("SubRosaNPR0")
 		self.runWebPerformanceTests("SubRosaNPR1")
 		self.runWebPerformanceTests("SubRosaNPR2")
@@ -377,8 +377,9 @@ if __name__ == "__main__":
 		response = urllib.request.urlopen(url)
 		data = json.load(response)
 		country = data['countryCode']
-
-	impFiles=["alexaResourcesUS.json","AlexaUniqueResources.txt","PopularcdnMapping.json",'publicDNSServers.json']
+	print ("country: ",country)
+	# exit()
+	impFiles=["alexaResources"+country+".json","AlexaUniqueResources.txt","PopularcdnMapping.json",'publicDNSServers.json']
 
 	if not os.path.exists(join(project_path, "analysis", "measurements", country)):
 		os.mkdir(join(project_path, "analysis", "measurements", country))
@@ -399,7 +400,7 @@ if __name__ == "__main__":
 		mainpDNS=["8.8.8.8","9.9.9.9","1.1.1.1","8.8.4.4","9.9.9.11","9.9.9.12"]
 
 		for pDNS in allpublicDNSServers[country]:
-			if len(publicDNSServers)>8:
+			if len(publicDNSServers)>5:
 				break
 			if pDNS["reliability"]>=0.95 and pDNS["ip"] not in mainpDNS:
 				try:
@@ -415,8 +416,8 @@ if __name__ == "__main__":
 
 		print("Done filtering")
 
-		if len(publicDNSServers)>8:
-			publicDNSServers=publicDNSServers[:8]
+		if len(publicDNSServers)>5:
+			publicDNSServers=publicDNSServers[:5]
 		with open(join(project_path, "analysis", "measurements", country, "publicDNSServers.json"),'w') as fp:
 			json.dump(publicDNSServers, fp, indent=4)
 
@@ -439,7 +440,6 @@ if __name__ == "__main__":
 	#for the client randomly shuffle 100 resources and carry measurements on that	
 	random.shuffle(resources)
 	resources=resources[:100]
-
 	
 	tests = WebPerformanceTests(join(project_path, "analysis", "measurements", country),resources)
 	x=b''
