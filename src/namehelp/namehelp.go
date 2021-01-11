@@ -1211,7 +1211,7 @@ func (program *Program) heartbeat(interval int) {
 		"country":   program.country,
 	}}
 	program.reporter.UpdateToMongoDB("SubRosa-Test", "Heartbeats", filter, firstDoc)
-	log.WithFields(log.Fields{"time stamp": t}).Info("Namehelp: Sending initial heartbeat to server")
+	log.Info("Namehelp: Sending initial heartbeat to server")
 
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
