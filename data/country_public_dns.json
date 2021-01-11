@@ -24,7 +24,7 @@
             "version": "9.11.6-P1-RedHat-9.11.6-2.P1.fc29",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:24.819167Z",
             "created_at": "2020-09-02T19:53:22.919647Z"
         },
@@ -412,7 +412,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:00:53.708139Z",
             "created_at": "2020-09-02T19:24:43.894286Z"
         },
@@ -426,7 +426,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15D39)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:32.295414Z",
             "created_at": "2020-09-02T19:25:35.701303Z"
         },
@@ -468,7 +468,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:54.983679Z",
             "created_at": "2020-09-03T20:22:31.835031Z"
         },
@@ -596,7 +596,7 @@
             "version": "dnsmasq-2.68",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:00.685582Z",
             "created_at": "2020-08-19T09:07:10.212235Z"
         },
@@ -666,7 +666,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:24.90135Z",
             "created_at": "2020-09-05T14:05:36.069247Z"
         },
@@ -680,7 +680,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:56.74625Z",
             "created_at": "2020-09-05T14:05:36.288884Z"
         },
@@ -708,7 +708,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:06.781676Z",
             "created_at": "2020-10-01T06:29:22.137915Z"
         },
@@ -864,7 +864,7 @@
             "version": "PowerDNS Recursor 4.0.0-alpha2",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:16.938608Z",
             "created_at": "2020-09-13T18:03:26.119071Z"
         },
@@ -878,7 +878,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:34.164221Z",
             "created_at": "2020-09-18T18:56:51.106269Z"
         },
@@ -892,7 +892,7 @@
             "version": "Contact Hostmaster@savvis.net",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:28.200803Z",
             "created_at": "2020-09-18T18:58:05.22453Z"
         },
@@ -1166,7 +1166,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T05:55:28.327167Z",
             "created_at": "2020-09-18T18:56:01.558395Z"
         },
@@ -1196,7 +1196,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:15.392663Z",
             "created_at": "2020-09-02T07:36:45.725914Z"
         },
@@ -1224,7 +1224,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:01.702634Z",
             "created_at": "2020-09-02T07:36:51.028492Z"
         },
@@ -1252,7 +1252,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:21.089199Z",
             "created_at": "2020-09-02T07:37:30.839005Z"
         },
@@ -1266,7 +1266,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T17:50:07.475771Z",
             "created_at": "2020-09-02T07:37:42.029277Z"
         },
@@ -1294,7 +1294,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T08:50:02.324621Z",
             "created_at": "2020-09-02T07:37:52.349841Z"
         },
@@ -1308,7 +1308,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:13.953589Z",
             "created_at": "2020-09-02T07:37:52.936884Z"
         },
@@ -1322,7 +1322,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:27.276332Z",
             "created_at": "2020-09-02T07:37:53.122549Z"
         },
@@ -1336,7 +1336,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:30.015452Z",
             "created_at": "2020-09-02T07:37:53.841317Z"
         },
@@ -1350,7 +1350,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-11T02:01:36.399264Z",
             "created_at": "2020-09-02T07:37:54.655929Z"
         },
@@ -1364,7 +1364,7 @@
             "version": "ZyWALL DNS",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T13:01:02.153445Z",
             "created_at": "2020-09-02T07:37:55.318633Z"
         },
@@ -1710,7 +1710,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:07.971595Z",
             "created_at": "2020-08-07T18:05:56.343759Z"
         },
@@ -1766,7 +1766,7 @@
             "version": "dnsmasq-2.68",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:22:57.753626Z",
             "created_at": "2020-08-11T01:23:12.028992Z"
         },
@@ -1836,7 +1836,7 @@
             "version": "dnsmasq-2.62",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T12:50:11.261251Z",
             "created_at": "2020-09-02T08:53:33.300042Z"
         },
@@ -1920,7 +1920,7 @@
             "version": "9.10.3-P4-Debian",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:16.260442Z",
             "created_at": "2020-09-02T08:54:09.16048Z"
         },
@@ -2004,7 +2004,7 @@
             "version": "dnsmasq-2.47",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:30.714971Z",
             "created_at": "2020-09-02T08:54:37.825763Z"
         },
@@ -2032,7 +2032,7 @@
             "version": "9.8.1-P1",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:37.880465Z",
             "created_at": "2020-09-02T08:54:42.081747Z"
         },
@@ -2074,7 +2074,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:19.860237Z",
             "created_at": "2020-09-02T08:54:57.251269Z"
         },
@@ -2102,7 +2102,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:13.745077Z",
             "created_at": "2020-09-02T08:55:11.746929Z"
         },
@@ -2130,7 +2130,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15CD4)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:20.936594Z",
             "created_at": "2020-09-02T08:55:16.600158Z"
         },
@@ -2172,7 +2172,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:20.811752Z",
             "created_at": "2020-09-02T08:55:32.143897Z"
         },
@@ -2228,7 +2228,7 @@
             "version": "dnsmasq-2.41",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:16.757846Z",
             "created_at": "2020-09-02T08:55:49.811238Z"
         },
@@ -2354,7 +2354,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:43.766481Z",
             "created_at": "2020-09-02T08:56:24.575886Z"
         },
@@ -2382,7 +2382,7 @@
             "version": "Not disclosed",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:00:53.617849Z",
             "created_at": "2020-09-02T08:56:33.370417Z"
         },
@@ -2396,7 +2396,7 @@
             "version": "Not disclosed",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:28.79292Z",
             "created_at": "2020-09-02T08:56:36.401039Z"
         },
@@ -2424,7 +2424,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:24.526632Z",
             "created_at": "2020-09-02T08:56:40.368578Z"
         },
@@ -2466,7 +2466,7 @@
             "version": "dnsmasq-2.48",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:30.388567Z",
             "created_at": "2020-09-02T08:56:46.495707Z"
         },
@@ -2480,7 +2480,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:28.247937Z",
             "created_at": "2020-09-02T08:56:49.697049Z"
         },
@@ -2494,7 +2494,7 @@
             "version": "dnsmasq-2.55",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:27.066066Z",
             "created_at": "2020-09-02T08:56:53.506409Z"
         },
@@ -2508,7 +2508,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB14556)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-25T07:57:40.123599Z",
             "created_at": "2020-09-02T08:56:55.097153Z"
         },
@@ -2522,7 +2522,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:31.830892Z",
             "created_at": "2020-09-02T08:56:58.961777Z"
         },
@@ -2564,7 +2564,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:01:06.113872Z",
             "created_at": "2020-09-02T08:57:27.762281Z"
         },
@@ -2578,7 +2578,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T23:01:42.219093Z",
             "created_at": "2020-09-02T08:57:30.456493Z"
         },
@@ -2592,7 +2592,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:00:55.227902Z",
             "created_at": "2020-09-02T08:57:33.34604Z"
         },
@@ -2620,7 +2620,7 @@
             "version": "dnsmasq-2.47",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:00:53.04141Z",
             "created_at": "2020-09-02T08:57:38.244882Z"
         },
@@ -2634,7 +2634,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:21:27.564402Z",
             "created_at": "2020-09-02T08:57:42.885994Z"
         },
@@ -2662,7 +2662,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T12:55:42.163057Z",
             "created_at": "2020-09-02T08:58:52.3363Z"
         },
@@ -2690,7 +2690,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T04:55:54.50946Z",
             "created_at": "2020-09-28T21:09:19.215697Z"
         },
@@ -2704,7 +2704,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T04:55:59.497564Z",
             "created_at": "2020-09-28T21:09:24.720281Z"
         },
@@ -2718,7 +2718,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T04:55:44.660313Z",
             "created_at": "2020-09-28T21:25:27.174659Z"
         },
@@ -2732,7 +2732,7 @@
             "version": "1.0.112",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:10.681232Z",
             "created_at": "2020-09-28T21:25:31.04047Z"
         },
@@ -2760,7 +2760,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:22:10.119561Z",
             "created_at": "2020-10-01T02:58:42.319579Z"
         },
@@ -3324,7 +3324,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-07-15T19:01:47.644805Z",
             "created_at": "2020-07-15T19:01:47.644805Z"
         },
@@ -3338,7 +3338,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-07-16T12:41:01.960923Z",
             "created_at": "2020-07-15T20:48:36.263742Z"
         },
@@ -3580,7 +3580,7 @@
             "version": "9.9.5-3ubuntu0.19-Ubuntu",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:33.989776Z",
             "created_at": "2020-08-08T20:49:32.060489Z"
         },
@@ -3594,7 +3594,7 @@
             "version": "cryptostorm",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:42.461333Z",
             "created_at": "2020-08-08T20:49:37.124909Z"
         },
@@ -3636,7 +3636,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:35.494517Z",
             "created_at": "2020-08-08T20:52:39.325888Z"
         },
@@ -3678,7 +3678,7 @@
             "version": "dnsmasq-2.55",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:22:54.489897Z",
             "created_at": "2020-08-08T20:56:33.302759Z"
         },
@@ -3720,7 +3720,7 @@
             "version": "[hidden]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:28.034312Z",
             "created_at": "2020-08-13T22:16:57.543451Z"
         },
@@ -3762,7 +3762,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:05.623112Z",
             "created_at": "2020-09-18T18:58:13.828651Z"
         },
@@ -4214,7 +4214,7 @@
             "version": "Microsoft DNS 6.1.7600 (1DB04001)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:34.6283Z",
             "created_at": "2020-09-03T20:52:23.255859Z"
         },
@@ -4286,7 +4286,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T05:55:11.323734Z",
             "created_at": "2020-09-18T18:57:25.108337Z"
         },
@@ -4300,7 +4300,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T05:55:15.050912Z",
             "created_at": "2020-09-18T18:57:31.434538Z"
         },
@@ -4428,7 +4428,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:38.283694Z",
             "created_at": "2020-07-20T03:31:44.65412Z"
         },
@@ -4512,7 +4512,7 @@
             "version": "Who knows?",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:37.590245Z",
             "created_at": "2020-09-03T03:17:37.168673Z"
         },
@@ -4526,7 +4526,7 @@
             "version": "Who knows?",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:42.172432Z",
             "created_at": "2020-09-03T03:17:38.715365Z"
         },
@@ -4540,7 +4540,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T04:55:50.741489Z",
             "created_at": "2020-09-20T02:03:15.548817Z"
         },
@@ -4554,7 +4554,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T04:55:51.018599Z",
             "created_at": "2020-09-20T02:03:19.569744Z"
         },
@@ -4584,7 +4584,7 @@
             "version": "Nominum Vantio CacheServe 7.3.0.2",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:16.457395Z",
             "created_at": "2020-08-11T14:03:34.997626Z"
         },
@@ -4642,7 +4642,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T08:49:33.722396Z",
             "created_at": "2020-08-11T15:44:23.094337Z"
         }
@@ -4702,7 +4702,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:40.248889Z",
             "created_at": "2020-09-17T07:30:54.487287Z"
         },
@@ -4730,7 +4730,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:34.270712Z",
             "created_at": "2020-09-17T07:31:51.698009Z"
         },
@@ -4758,7 +4758,7 @@
             "version": "unbound 1.10.1",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:37.431837Z",
             "created_at": "2020-09-18T18:57:20.106668Z"
         },
@@ -5160,7 +5160,7 @@
             "version": "9.7.3",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:54:09.210376Z",
             "created_at": "2020-08-11T14:20:02.194707Z"
         },
@@ -5216,7 +5216,7 @@
             "version": "unbound 1.6.0",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-27T04:59:41.228232Z",
             "created_at": "2020-09-09T21:24:37.194074Z"
         },
@@ -5230,7 +5230,7 @@
             "version": "unbound 1.9.0",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:15.640266Z",
             "created_at": "2020-09-13T18:05:15.835528Z"
         },
@@ -5244,7 +5244,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15EC5)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:51.203942Z",
             "created_at": "2020-09-20T02:02:25.703904Z"
         },
@@ -5770,7 +5770,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:37.285628Z",
             "created_at": "2020-09-03T19:50:38.036726Z"
         },
@@ -5784,7 +5784,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:45.977265Z",
             "created_at": "2020-09-03T19:50:46.563425Z"
         },
@@ -5812,7 +5812,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB14556)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T23:02:35.467471Z",
             "created_at": "2020-09-03T19:52:00.189099Z"
         },
@@ -5840,7 +5840,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:47.787282Z",
             "created_at": "2020-09-03T19:52:09.441914Z"
         },
@@ -5854,7 +5854,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:42.869207Z",
             "created_at": "2020-09-03T19:53:35.607786Z"
         },
@@ -6010,7 +6010,7 @@
             "version": "PowerDNS Recursor 4.4.0-rc1 (built Sep 18 2020 14:14:52 by root@881ef984bd26)",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:21:21.895705Z",
             "created_at": "2020-07-17T22:21:13.536929Z"
         },
@@ -6024,7 +6024,7 @@
             "version": "PowerDNS Recursor 4.4.0-alpha2 (built Jul 17 2020 10:42:13 by root@813aa0b409af)",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-02T19:51:34.756974Z",
             "created_at": "2020-07-17T22:21:13.690057Z"
         },
@@ -6066,7 +6066,7 @@
             "version": "Make my day",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T06:54:47.69894Z",
             "created_at": "2020-08-08T20:03:57.489824Z"
         },
@@ -6080,7 +6080,7 @@
             "version": "CocaCola23",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T06:54:44.687357Z",
             "created_at": "2020-08-08T20:06:24.523042Z"
         },
@@ -6108,7 +6108,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:40.844211Z",
             "created_at": "2020-08-09T09:03:43.825924Z"
         },
@@ -6164,7 +6164,7 @@
             "version": "9.11.3-1ubuntu1.13-Ubuntu",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:55.92625Z",
             "created_at": "2020-09-02T07:36:49.926229Z"
         },
@@ -6178,7 +6178,7 @@
             "version": "PowerDNS Recursor 4.1.4 (built Oct 24 2018 15:00:58 by portage@frankfurt-ns02)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T07:55:46.191814Z",
             "created_at": "2020-09-02T07:36:54.756234Z"
         },
@@ -6192,7 +6192,7 @@
             "version": "cryptostorm",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:55.474189Z",
             "created_at": "2020-09-02T07:36:55.286084Z"
         },
@@ -6206,7 +6206,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:02.102625Z",
             "created_at": "2020-09-02T07:36:56.787911Z"
         },
@@ -6220,7 +6220,7 @@
             "version": "9.10.3-P4-Debian",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:03.248836Z",
             "created_at": "2020-09-02T07:36:59.423055Z"
         },
@@ -6234,7 +6234,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:03.217857Z",
             "created_at": "2020-09-02T07:37:00.177014Z"
         },
@@ -6276,7 +6276,7 @@
             "version": "BIND",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:19.522051Z",
             "created_at": "2020-09-02T07:37:20.95536Z"
         },
@@ -6290,7 +6290,7 @@
             "version": "9.9.5-9+deb8u4-Debian",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:39.659877Z",
             "created_at": "2020-09-02T07:37:25.838542Z"
         },
@@ -6318,7 +6318,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:46.191211Z",
             "created_at": "2020-09-02T07:37:27.91685Z"
         },
@@ -6332,7 +6332,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T12:55:43.544488Z",
             "created_at": "2020-09-02T07:37:28.762811Z"
         },
@@ -6346,7 +6346,7 @@
             "version": "9.9.4-P1",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:33.398222Z",
             "created_at": "2020-09-02T07:37:29.241151Z"
         },
@@ -6360,7 +6360,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:17.877674Z",
             "created_at": "2020-09-02T07:37:31.106227Z"
         },
@@ -6374,7 +6374,7 @@
             "version": "BIND",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:52.846421Z",
             "created_at": "2020-09-02T07:37:59.788052Z"
         },
@@ -6388,7 +6388,7 @@
             "version": "ZyWALL DNS",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:37.122968Z",
             "created_at": "2020-09-02T19:41:53.391591Z"
         },
@@ -6402,7 +6402,7 @@
             "version": "ZyWALL DNS",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:56.777847Z",
             "created_at": "2020-09-02T19:42:45.42872Z"
         },
@@ -6416,7 +6416,7 @@
             "version": "9.9.9-P1",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:20.149731Z",
             "created_at": "2020-09-18T18:55:57.619218Z"
         },
@@ -6430,7 +6430,7 @@
             "version": "9.9.4-RedHat-9.9.4-61.el7",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:01:46.023352Z",
             "created_at": "2020-09-18T18:56:03.097889Z"
         },
@@ -6444,7 +6444,7 @@
             "version": "PowerDNS Recursor 4.1.1",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:28.582958Z",
             "created_at": "2020-09-18T18:56:39.71619Z"
         },
@@ -6472,7 +6472,7 @@
             "version": "Lightning Wire Labs DNS Service https://dns.lightningwirelabs.com/",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:45.684268Z",
             "created_at": "2020-09-20T02:03:04.392727Z"
         },
@@ -6486,7 +6486,7 @@
             "version": "PowerDNS Recursor 4.0.9 (built Nov  6 2018 16:30:52 by root@505b66e59573)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:19.795176Z",
             "created_at": "2020-09-20T02:03:48.781421Z"
         },
@@ -7034,7 +7034,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:49.788573Z",
             "created_at": "2020-09-03T20:06:02.989824Z"
         },
@@ -7048,7 +7048,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:56.318554Z",
             "created_at": "2020-09-03T20:06:04.774543Z"
         },
@@ -7062,7 +7062,7 @@
             "version": "9.8.2rc1-RedHat-9.8.2-0.68.rc1.el6_10.7",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:38.960471Z",
             "created_at": "2020-09-03T20:08:26.155069Z"
         }
@@ -7266,7 +7266,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:26.336751Z",
             "created_at": "2020-09-03T03:09:36.537143Z"
         },
@@ -7280,7 +7280,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:00:55.765135Z",
             "created_at": "2020-09-03T03:09:42.185217Z"
         },
@@ -7308,7 +7308,7 @@
             "version": "9.3.6-P1-RedHat-9.3.6-20.P1.el5_8.6",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:42.033085Z",
             "created_at": "2020-09-03T03:09:48.814596Z"
         },
@@ -7336,7 +7336,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:27.42974Z",
             "created_at": "2020-09-03T03:09:53.800945Z"
         },
@@ -7350,7 +7350,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:28.615696Z",
             "created_at": "2020-09-03T03:09:55.994534Z"
         },
@@ -7364,7 +7364,7 @@
             "version": "Microsoft DNS 6.0.6002 (17724655)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:35.398856Z",
             "created_at": "2020-09-03T03:10:01.688336Z"
         },
@@ -7378,7 +7378,7 @@
             "version": "dnsmasq-2.66",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:26.244955Z",
             "created_at": "2020-09-03T03:10:03.559355Z"
         },
@@ -7392,7 +7392,7 @@
             "version": "dnsmasq-2.78",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:30.938196Z",
             "created_at": "2020-09-03T03:10:05.789401Z"
         },
@@ -7406,7 +7406,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:41.829437Z",
             "created_at": "2020-09-03T03:10:10.537432Z"
         },
@@ -7434,7 +7434,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB14556)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:41.479091Z",
             "created_at": "2020-09-03T03:10:36.027815Z"
         },
@@ -7448,7 +7448,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15EC5)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:36.349159Z",
             "created_at": "2020-09-03T03:10:37.95757Z"
         },
@@ -7462,7 +7462,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:46.206555Z",
             "created_at": "2020-09-03T03:10:41.099413Z"
         },
@@ -7476,7 +7476,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:51.675934Z",
             "created_at": "2020-09-03T03:10:45.757442Z"
         },
@@ -7504,7 +7504,7 @@
             "version": "[secured]",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:58.902031Z",
             "created_at": "2020-09-03T03:13:16.662982Z"
         },
@@ -7518,7 +7518,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15D39)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:57.81376Z",
             "created_at": "2020-09-03T03:13:20.862944Z"
         },
@@ -7532,7 +7532,7 @@
             "version": "Microsoft DNS 6.0.6002 (1772487D)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:43.244644Z",
             "created_at": "2020-09-03T03:13:34.544072Z"
         },
@@ -7560,7 +7560,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:57:00.612188Z",
             "created_at": "2020-09-03T03:14:24.316397Z"
         },
@@ -7616,7 +7616,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15D39)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:46.24875Z",
             "created_at": "2020-09-03T03:14:57.93833Z"
         },
@@ -7644,7 +7644,7 @@
             "version": "[SECURED]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T12:55:43.916682Z",
             "created_at": "2020-09-03T03:15:05.523669Z"
         },
@@ -7658,7 +7658,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:40.998419Z",
             "created_at": "2020-09-03T03:15:07.966626Z"
         },
@@ -7728,7 +7728,7 @@
             "version": "9.2.1",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:58.330457Z",
             "created_at": "2020-09-03T03:15:23.419248Z"
         },
@@ -7742,7 +7742,7 @@
             "version": "9.9.4-RedHat-9.9.4-29.el7_2.3",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:21:58.248516Z",
             "created_at": "2020-09-03T03:15:51.0526Z"
         },
@@ -7784,7 +7784,7 @@
             "version": "named 4.9.6a-Rel-Friday-4-July-97\\010\\009GregSchueman-LarryKahn-VirajBais-LeonMcCalla",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:42.912223Z",
             "created_at": "2020-09-03T03:16:19.224376Z"
         },
@@ -7798,7 +7798,7 @@
             "version": "named 4.9.6a-Rel-Friday-4-July-97\\010\\009GregSchueman-LarryKahn-VirajBais-LeonMcCalla",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:44.869133Z",
             "created_at": "2020-09-03T03:16:21.169213Z"
         },
@@ -7812,7 +7812,7 @@
             "version": "named 4.9.6a-Rel-Friday-4-July-97\\010\\009GregSchueman-LarryKahn-VirajBais-LeonMcCalla",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:44.830905Z",
             "created_at": "2020-09-03T03:16:23.134754Z"
         },
@@ -7840,7 +7840,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15B4F)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:44.006932Z",
             "created_at": "2020-09-03T03:16:31.140946Z"
         },
@@ -7854,7 +7854,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:55.037023Z",
             "created_at": "2020-09-03T03:16:36.197143Z"
         },
@@ -7868,7 +7868,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:44.624028Z",
             "created_at": "2020-09-03T03:16:39.996343Z"
         },
@@ -7910,7 +7910,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:01:47.976916Z",
             "created_at": "2020-09-03T03:17:14.028706Z"
         },
@@ -7924,7 +7924,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:01:46.456915Z",
             "created_at": "2020-09-03T03:17:19.976248Z"
         },
@@ -7938,7 +7938,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:01:48.276931Z",
             "created_at": "2020-09-03T03:17:22.448818Z"
         },
@@ -7952,7 +7952,7 @@
             "version": "[Secured]",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:45.248463Z",
             "created_at": "2020-09-03T03:17:52.081095Z"
         },
@@ -7966,7 +7966,7 @@
             "version": "9.16.3",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:01:46.592806Z",
             "created_at": "2020-09-03T03:17:55.295662Z"
         },
@@ -7980,7 +7980,7 @@
             "version": "DNSServer",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:37.642495Z",
             "created_at": "2020-09-03T03:19:29.866356Z"
         },
@@ -7994,7 +7994,7 @@
             "version": "DNSServer",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:37.418657Z",
             "created_at": "2020-09-03T03:19:31.997202Z"
         },
@@ -8008,7 +8008,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:40.406848Z",
             "created_at": "2020-09-03T03:19:44.91852Z"
         },
@@ -8022,7 +8022,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:47.78042Z",
             "created_at": "2020-09-03T03:19:49.731066Z"
         },
@@ -8036,7 +8036,7 @@
             "version": "Microsoft DNS 6.0.6002 (17724655)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:47.861649Z",
             "created_at": "2020-09-03T03:19:52.046709Z"
         },
@@ -8050,7 +8050,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:52.016578Z",
             "created_at": "2020-09-03T03:19:54.836262Z"
         },
@@ -8064,7 +8064,7 @@
             "version": "Microsoft DNS 6.1.7600 (1DB04001)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:51.506468Z",
             "created_at": "2020-09-03T03:20:04.90426Z"
         },
@@ -8078,7 +8078,7 @@
             "version": "Microsoft DNS 6.0.6003 (1773501D)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:59.287193Z",
             "created_at": "2020-09-03T03:20:07.740257Z"
         },
@@ -8092,7 +8092,7 @@
             "version": "Microsoft DNS 6.0.6003 (1773501D)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:55.911429Z",
             "created_at": "2020-09-03T03:20:10.786266Z"
         },
@@ -8106,7 +8106,7 @@
             "version": "Microsoft DNS 6.0.6003 (1773501D)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:01:47.804669Z",
             "created_at": "2020-09-03T03:20:13.109766Z"
         },
@@ -8120,7 +8120,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15EC5)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:49.870957Z",
             "created_at": "2020-09-03T03:20:22.417913Z"
         },
@@ -8148,7 +8148,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB14556)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:54.677191Z",
             "created_at": "2020-09-03T03:20:38.157098Z"
         },
@@ -8176,7 +8176,7 @@
             "version": "[Secured]",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:00:29.369473Z",
             "created_at": "2020-09-03T03:30:02.09002Z"
         },
@@ -8190,7 +8190,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:06:59.914833Z",
             "created_at": "2020-09-03T03:32:56.420614Z"
         },
@@ -8204,7 +8204,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:06:50.15859Z",
             "created_at": "2020-09-03T03:32:59.226433Z"
         },
@@ -8218,7 +8218,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:06:50.447731Z",
             "created_at": "2020-09-03T03:33:01.374345Z"
         },
@@ -8232,7 +8232,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:06:58.567193Z",
             "created_at": "2020-09-03T03:33:04.210148Z"
         },
@@ -8246,7 +8246,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:06:55.889948Z",
             "created_at": "2020-09-03T03:34:12.361976Z"
         },
@@ -8500,7 +8500,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-07-16T12:41:01.591265Z",
             "created_at": "2020-07-15T20:48:53.211238Z"
         },
@@ -8742,7 +8742,7 @@
             "version": "9.16.1-Ubuntu",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:54.040816Z",
             "created_at": "2020-09-18T18:56:10.171479Z"
         },
@@ -9852,7 +9852,7 @@
             "version": "PowerDNS Recursor 4.1.4 (built Aug 31 2018 11:35:40 by buildbot@5c2a07a68304)",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T13:54:31.148483Z",
             "created_at": "2020-08-21T06:20:03.619914Z"
         },
@@ -9908,7 +9908,7 @@
             "version": "PowerDNS Recursor 4.1.4 (built Aug 31 2018 11:35:40 by buildbot@5c2a07a68304)",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:07.286809Z",
             "created_at": "2020-10-02T09:23:57.894458Z"
         },
@@ -9922,7 +9922,7 @@
             "version": "SecureNSSDNS",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:22:59.376819Z",
             "created_at": "2020-10-03T07:03:12.116063Z"
         },
@@ -10206,7 +10206,7 @@
             "version": "Not disclosed",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T12:51:35.628126Z",
             "created_at": "2020-08-17T00:18:31.957287Z"
         },
@@ -10220,7 +10220,7 @@
             "version": "Not disclosed",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:32.605271Z",
             "created_at": "2020-08-17T00:27:33.377213Z"
         },
@@ -10234,7 +10234,7 @@
             "version": "Not disclosed",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:12.344065Z",
             "created_at": "2020-08-17T00:27:33.965181Z"
         },
@@ -10248,7 +10248,7 @@
             "version": "CleanBrowsing v1.6a - dns-edge-europe-frankfurt-v",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:04.119759Z",
             "created_at": "2020-08-17T00:27:35.095458Z"
         },
@@ -10262,7 +10262,7 @@
             "version": "CleanBrowsing v1.6a - dns-edge-europe-amsterdam-p",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:47.874091Z",
             "created_at": "2020-09-03T03:13:47.453868Z"
         },
@@ -10476,7 +10476,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:07.965447Z",
             "created_at": "2020-08-14T19:26:26.699802Z"
         },
@@ -10504,7 +10504,7 @@
             "version": "[hidden]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-19T16:50:15.304254Z",
             "created_at": "2020-08-14T19:26:30.931008Z"
         },
@@ -10518,7 +10518,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-19T16:51:04.447081Z",
             "created_at": "2020-08-14T19:26:38.933437Z"
         },
@@ -10546,7 +10546,7 @@
             "version": "9.11.3",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:15.633365Z",
             "created_at": "2020-08-14T19:26:42.592243Z"
         },
@@ -10616,7 +10616,7 @@
             "version": "PowerDNS Recursor 4.1.16 (built May 19 2020 09:36:25 by buildbot@cb7364ce7d2b)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T06:57:34.990798Z",
             "created_at": "2020-08-14T19:27:07.801771Z"
         },
@@ -10630,7 +10630,7 @@
             "version": "PowerDNS Recursor 4.1.16 (built May 19 2020 09:36:25 by buildbot@cb7364ce7d2b)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:22.541824Z",
             "created_at": "2020-08-14T19:27:08.733144Z"
         },
@@ -10686,7 +10686,7 @@
             "version": "dnsmasq-2.45",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:14.985473Z",
             "created_at": "2020-08-14T19:27:27.264594Z"
         },
@@ -10742,7 +10742,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:35.537612Z",
             "created_at": "2020-08-14T19:27:43.625512Z"
         },
@@ -11054,7 +11054,7 @@
             "version": "9.14.8",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:55.866512Z",
             "created_at": "2020-07-30T07:17:50.96559Z"
         },
@@ -11082,7 +11082,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T15:58:19.702359Z",
             "created_at": "2020-08-22T15:35:43.615143Z"
         },
@@ -11110,7 +11110,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:36.195526Z",
             "created_at": "2020-09-02T20:14:38.297093Z"
         },
@@ -11138,7 +11138,7 @@
             "version": " ",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:35.313168Z",
             "created_at": "2020-09-18T18:57:37.825534Z"
         },
@@ -11166,7 +11166,7 @@
             "version": "dnsmasq-2.79",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T14:04:23.232412Z",
             "created_at": "2020-09-18T18:57:43.230007Z"
         },
@@ -12168,7 +12168,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB1446A)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T14:04:21.939784Z",
             "created_at": "2020-09-18T18:58:00.55499Z"
         },
@@ -12182,7 +12182,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T04:56:10.869598Z",
             "created_at": "2020-09-20T02:04:02.738576Z"
         },
@@ -13284,7 +13284,7 @@
             "version": "ZyWALL DNS",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:33.045307Z",
             "created_at": "2020-09-02T20:01:44.53977Z"
         }
@@ -13360,7 +13360,7 @@
             "version": "dnsmasq-2.45",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T12:55:42.324737Z",
             "created_at": "2020-09-01T21:19:10.532174Z"
         },
@@ -13374,7 +13374,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:09.18771Z",
             "created_at": "2020-09-01T22:13:56.356671Z"
         },
@@ -13402,7 +13402,7 @@
             "version": "9.8.2rc1-RedHat-9.8.2-0.10.rc1.el6",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:47.556997Z",
             "created_at": "2020-09-03T03:17:55.996105Z"
         },
@@ -13416,7 +13416,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:46.801826Z",
             "created_at": "2020-09-03T03:18:11.132488Z"
         },
@@ -13430,7 +13430,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:47.583336Z",
             "created_at": "2020-09-03T03:18:14.458079Z"
         },
@@ -13458,7 +13458,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:44.417711Z",
             "created_at": "2020-09-03T03:19:03.949839Z"
         },
@@ -13472,7 +13472,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:47.283075Z",
             "created_at": "2020-09-03T03:19:17.144087Z"
         },
@@ -13500,7 +13500,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:07:00.990148Z",
             "created_at": "2020-09-03T05:43:28.148807Z"
         },
@@ -13514,7 +13514,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:09.16181Z",
             "created_at": "2020-09-03T05:43:31.568732Z"
         },
@@ -13528,7 +13528,7 @@
             "version": "9.9.4-RedHat-9.9.4-37.el7",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:55.517565Z",
             "created_at": "2020-09-03T05:44:29.246048Z"
         },
@@ -13584,7 +13584,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15D39)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:47.431721Z",
             "created_at": "2020-09-03T05:45:57.525115Z"
         },
@@ -13640,7 +13640,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:39.562581Z",
             "created_at": "2020-09-03T06:01:38.859268Z"
         },
@@ -13682,7 +13682,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:33.168643Z",
             "created_at": "2020-09-18T18:57:35.184242Z"
         }
@@ -14300,7 +14300,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T23:01:31.29848Z",
             "created_at": "2020-09-03T19:58:14.83757Z"
         },
@@ -14328,7 +14328,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:57.9721Z",
             "created_at": "2020-09-03T19:58:53.004662Z"
         },
@@ -14506,7 +14506,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T04:51:55.390319Z",
             "created_at": "2020-08-08T20:16:27.512008Z"
         },
@@ -14548,7 +14548,7 @@
             "version": "cryptostorm",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T22:51:08.301934Z",
             "created_at": "2020-08-17T19:34:58.017586Z"
         },
@@ -14562,7 +14562,7 @@
             "version": "dnsmasq-2.79",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:32.511818Z",
             "created_at": "2020-08-17T19:34:58.590839Z"
         },
@@ -14618,7 +14618,7 @@
             "version": "Served by POWERDNS 2.9.21 $Id: packethandler.cc 1036 2007-04-19 20:43:14Z ahu $",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-19T16:49:50.526718Z",
             "created_at": "2020-08-17T19:35:01.583003Z"
         },
@@ -14632,7 +14632,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T12:50:22.124964Z",
             "created_at": "2020-08-17T19:35:02.813014Z"
         },
@@ -14646,7 +14646,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T10:55:03.371706Z",
             "created_at": "2020-08-17T19:35:03.392728Z"
         },
@@ -14688,7 +14688,7 @@
             "version": "SmartyDNS 1.0.1",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-02T09:51:06.727789Z",
             "created_at": "2020-08-17T19:35:09.27953Z"
         },
@@ -14730,7 +14730,7 @@
             "version": "SmartDNS 1.0.1",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:40.28161Z",
             "created_at": "2020-08-17T19:35:12.311849Z"
         },
@@ -14744,7 +14744,7 @@
             "version": "dnsmasq-2.55",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T22:51:07.89726Z",
             "created_at": "2020-08-17T19:35:12.804919Z"
         },
@@ -14786,7 +14786,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:26.495606Z",
             "created_at": "2020-08-17T19:35:16.511064Z"
         },
@@ -15096,7 +15096,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T17:50:09.928407Z",
             "created_at": "2020-08-18T18:01:26.896874Z"
         },
@@ -15166,7 +15166,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:31.696082Z",
             "created_at": "2020-08-18T18:02:08.452608Z"
         },
@@ -15250,7 +15250,7 @@
             "version": "9.11.3-1ubuntu1.12-Ubuntu",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-07-30T16:35:59.815652Z",
             "created_at": "2017-04-26T19:23:28Z"
         }
@@ -15382,7 +15382,7 @@
             "version": "PowerDNS Recursor 3.5.3 $Id$",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:33.869101Z",
             "created_at": "2020-08-19T16:44:57.611818Z"
         },
@@ -16262,7 +16262,7 @@
             "version": "dnsmasq-2.52",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-07-30T16:32:52.708281Z",
             "created_at": "2017-04-04T03:34:04Z"
         }
@@ -16278,7 +16278,7 @@
             "version": "home.pl",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T12:55:40.259506Z",
             "created_at": "2020-09-05T14:06:35.548252Z"
         },
@@ -16292,7 +16292,7 @@
             "version": "home.pl",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:41.727489Z",
             "created_at": "2020-09-05T14:06:38.86735Z"
         },
@@ -16588,7 +16588,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T15:58:19.7257Z",
             "created_at": "2020-08-29T18:04:50.979068Z"
         },
@@ -16616,7 +16616,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:03.723405Z",
             "created_at": "2020-08-29T18:04:58.218865Z"
         },
@@ -16644,7 +16644,7 @@
             "version": "Microsoft DNS 6.0.6003 (1773501D)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-03T03:49:13.065368Z",
             "created_at": "2020-08-29T18:05:19.335052Z"
         },
@@ -16686,7 +16686,7 @@
             "version": "cryptostorm",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-19T16:51:05.55354Z",
             "created_at": "2020-08-29T18:05:33.811542Z"
         },
@@ -16728,7 +16728,7 @@
             "version": "9.8.4-rpz2+rl005.12-P1",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T13:55:28.394459Z",
             "created_at": "2020-08-29T18:05:39.234471Z"
         },
@@ -16798,7 +16798,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T07:55:45.042807Z",
             "created_at": "2020-08-29T18:11:37.318553Z"
         },
@@ -16840,7 +16840,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:39.541857Z",
             "created_at": "2020-09-01T20:37:48.167108Z"
         },
@@ -17096,7 +17096,7 @@
             "version": "PowerDNS Authoritative Server 3.3 (jenkins@autotest.powerdns.com built 20130817005442 root@plymouth)",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T14:55:03.876755Z",
             "created_at": "2020-08-18T17:16:44.207329Z"
         },
@@ -17110,7 +17110,7 @@
             "version": "Microsoft DNS 6.0.6001 (17714650)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T22:51:05.298535Z",
             "created_at": "2020-08-18T17:21:42.183411Z"
         },
@@ -17168,7 +17168,7 @@
             "version": "Domain Name Server",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T12:50:57.206954Z",
             "created_at": "2020-08-14T00:36:42.014593Z"
         },
@@ -17182,7 +17182,7 @@
             "version": "Domain Name Server",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:13.010723Z",
             "created_at": "2020-08-14T00:36:44.940752Z"
         },
@@ -17296,7 +17296,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T12:51:14.4636Z",
             "created_at": "2020-08-15T23:11:39.628031Z"
         },
@@ -17310,7 +17310,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:56.811263Z",
             "created_at": "2020-09-03T03:13:35.547657Z"
         },
@@ -17338,7 +17338,7 @@
             "version": "PowerDNS Recursor 4.0.8 (built Dec 11 2017 10:39:35 by root@4351f9921268)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T23:02:55.395684Z",
             "created_at": "2020-09-05T14:06:41.11416Z"
         },
@@ -17352,7 +17352,7 @@
             "version": "PowerDNS Recursor 4.0.8 (built Dec 11 2017 10:39:35 by root@4351f9921268)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:19.385708Z",
             "created_at": "2020-09-05T14:06:42.227298Z"
         },
@@ -17366,7 +17366,7 @@
             "version": "PowerDNS Recursor 4.0.8 (built Dec 11 2017 10:39:35 by root@4351f9921268)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:57.023757Z",
             "created_at": "2020-09-05T14:06:45.740302Z"
         },
@@ -17394,7 +17394,7 @@
             "version": "PowerDNS Recursor 4.0.8 (built Dec 11 2017 10:39:35 by root@4351f9921268)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T19:58:35.749576Z",
             "created_at": "2020-09-05T14:06:47.853019Z"
         },
@@ -17408,7 +17408,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:37.165683Z",
             "created_at": "2020-09-05T14:07:00.09419Z"
         },
@@ -17422,7 +17422,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T19:58:35.632634Z",
             "created_at": "2020-09-05T14:07:00.643703Z"
         },
@@ -17450,7 +17450,7 @@
             "version": "PowerDNS Recursor 4.0.8 (built Dec 11 2017 10:39:35 by root@4351f9921268)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:17.072073Z",
             "created_at": "2020-09-13T18:04:29.889984Z"
         },
@@ -17464,7 +17464,7 @@
             "version": "PowerDNS Recursor 4.0.8 (built Dec 11 2017 10:39:35 by root@4351f9921268)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:25.462362Z",
             "created_at": "2020-09-13T18:04:30.691673Z"
         },
@@ -17492,7 +17492,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15EC5)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:44.100908Z",
             "created_at": "2020-09-18T18:56:14.978981Z"
         },
@@ -17506,7 +17506,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T05:55:09.202734Z",
             "created_at": "2020-09-18T18:57:12.649255Z"
         },
@@ -17534,7 +17534,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:00:54.381803Z",
             "created_at": "2020-09-20T02:02:28.380028Z"
         },
@@ -18800,7 +18800,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:41.427082Z",
             "created_at": "2020-09-20T22:34:33.001727Z"
         },
@@ -18872,7 +18872,7 @@
             "version": "9.10.0-P2",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:37.47989Z",
             "created_at": "2020-09-18T18:58:07.179678Z"
         },
@@ -18960,7 +18960,7 @@
             "version": "PowerDNS Recursor 4.1.1",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:21:23.667349Z",
             "created_at": "2020-09-18T18:56:39.000652Z"
         },
@@ -18988,7 +18988,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:22:14.79035Z",
             "created_at": "2020-10-03T11:59:06.048509Z"
         },
@@ -19144,7 +19144,7 @@
             "version": "BNTS DNS",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T07:55:46.694609Z",
             "created_at": "2020-09-02T19:17:47.761095Z"
         },
@@ -19388,7 +19388,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:22:33.609342Z",
             "created_at": "2020-08-10T18:34:52.110965Z"
         },
@@ -19402,7 +19402,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:19.186282Z",
             "created_at": "2020-08-10T18:41:57.411863Z"
         },
@@ -19416,7 +19416,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:22:32.451218Z",
             "created_at": "2020-08-10T18:47:18.116516Z"
         },
@@ -19430,7 +19430,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T12:51:06.75664Z",
             "created_at": "2020-08-13T17:31:14.522166Z"
         },
@@ -19444,7 +19444,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:10.294123Z",
             "created_at": "2020-08-13T17:31:17.662658Z"
         },
@@ -19486,7 +19486,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:06.188433Z",
             "created_at": "2020-09-02T07:36:31.698716Z"
         },
@@ -19514,7 +19514,7 @@
             "version": "FRANCE TELECOM-UNI2",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T14:01:12.028096Z",
             "created_at": "2020-09-02T07:36:35.159351Z"
         },
@@ -19528,7 +19528,7 @@
             "version": "FRANCE TELECOM-UNI2",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-11T02:02:07.187473Z",
             "created_at": "2020-09-02T07:36:36.590996Z"
         },
@@ -19542,7 +19542,7 @@
             "version": "Microsoft DNS 6.0.6002 (17724D35)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-11T02:01:02.785531Z",
             "created_at": "2020-09-02T07:36:37.479342Z"
         },
@@ -19584,7 +19584,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:27.766837Z",
             "created_at": "2020-09-02T07:36:40.068314Z"
         },
@@ -19612,7 +19612,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T14:01:12.278783Z",
             "created_at": "2020-09-02T07:36:46.997408Z"
         },
@@ -19682,7 +19682,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:05.708457Z",
             "created_at": "2020-09-02T07:36:56.057641Z"
         },
@@ -19696,7 +19696,7 @@
             "version": "\\\\[SECURED\\\\]",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:03.900968Z",
             "created_at": "2020-09-02T07:36:57.846498Z"
         },
@@ -19710,7 +19710,7 @@
             "version": "not currently available",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T17:50:15.7721Z",
             "created_at": "2020-09-02T07:37:15.782844Z"
         },
@@ -19724,7 +19724,7 @@
             "version": "not currently available",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:08.380609Z",
             "created_at": "2020-09-02T07:37:16.876956Z"
         },
@@ -19752,7 +19752,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T17:50:06.663553Z",
             "created_at": "2020-09-02T07:37:21.889808Z"
         },
@@ -19780,7 +19780,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:38.656948Z",
             "created_at": "2020-09-02T07:37:30.218522Z"
         },
@@ -19794,7 +19794,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T22:51:58.416722Z",
             "created_at": "2020-09-02T07:37:32.043775Z"
         },
@@ -19808,7 +19808,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:16.818459Z",
             "created_at": "2020-09-02T07:37:36.651337Z"
         },
@@ -19878,7 +19878,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:34.862373Z",
             "created_at": "2020-09-02T07:38:04.724949Z"
         },
@@ -19906,7 +19906,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:20.052618Z",
             "created_at": "2020-09-02T07:38:12.19041Z"
         },
@@ -19934,7 +19934,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:27.880554Z",
             "created_at": "2020-09-02T07:38:19.742368Z"
         },
@@ -19948,7 +19948,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:27.608428Z",
             "created_at": "2020-09-02T07:38:24.281814Z"
         },
@@ -19976,7 +19976,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:21.541044Z",
             "created_at": "2020-09-02T07:38:28.523266Z"
         },
@@ -19990,7 +19990,7 @@
             "version": "dnsmasq-2.79",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-25T07:57:34.304176Z",
             "created_at": "2020-09-02T07:38:29.111066Z"
         },
@@ -20004,7 +20004,7 @@
             "version": "dnsmasq-2.79",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:00:50.832074Z",
             "created_at": "2020-09-02T07:38:29.491194Z"
         },
@@ -20018,7 +20018,7 @@
             "version": "dnsmasq-2.79",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T12:50:07.764299Z",
             "created_at": "2020-09-02T07:38:29.872736Z"
         },
@@ -20032,7 +20032,7 @@
             "version": "FRANCE TELECOM-UNI2",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:14.198076Z",
             "created_at": "2020-09-02T07:38:49.541071Z"
         },
@@ -20046,7 +20046,7 @@
             "version": "FRANCE TELECOM-UNI2",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:23.180287Z",
             "created_at": "2020-09-02T07:38:51.042456Z"
         },
@@ -20060,7 +20060,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T07:55:45.632411Z",
             "created_at": "2020-09-02T07:39:02.41232Z"
         },
@@ -20102,7 +20102,7 @@
             "version": "9.9.4-RedHat-9.9.4-38.el7_3.3",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-08T13:00:27.367536Z",
             "created_at": "2020-09-02T07:39:05.079113Z"
         },
@@ -20130,7 +20130,7 @@
             "version": "8.2.4-REL",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:14.629744Z",
             "created_at": "2020-09-02T07:39:35.825183Z"
         },
@@ -20158,7 +20158,7 @@
             "version": "9.10.2-P4",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-06T15:00:21.479611Z",
             "created_at": "2020-09-02T08:25:19.421488Z"
         },
@@ -20172,7 +20172,7 @@
             "version": "9.9.3-rpz2+rl.13208.13-P2",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:34.582104Z",
             "created_at": "2020-09-02T08:25:49.848347Z"
         },
@@ -20186,7 +20186,7 @@
             "version": "9.9.4-RedHat-9.9.4-51.el7",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-25T07:57:39.210422Z",
             "created_at": "2020-09-02T08:25:50.542849Z"
         },
@@ -20200,7 +20200,7 @@
             "version": "9.9.4-RedHat-9.9.4-51.el7",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:00:53.550492Z",
             "created_at": "2020-09-02T08:25:51.281769Z"
         },
@@ -20214,7 +20214,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T19:58:37.111778Z",
             "created_at": "2020-09-13T18:04:29.200512Z"
         },
@@ -20228,7 +20228,7 @@
             "version": "9.9.5-3ubuntu0.19-Ubuntu",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:32.884685Z",
             "created_at": "2020-09-20T02:02:41.314407Z"
         },
@@ -20488,7 +20488,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:56.512455Z",
             "created_at": "2020-09-18T18:57:15.769396Z"
         },
@@ -20502,7 +20502,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:43.616441Z",
             "created_at": "2020-09-18T18:57:17.941265Z"
         },
@@ -20966,7 +20966,7 @@
             "version": "cryptostorm",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T05:55:26.613702Z",
             "created_at": "2020-09-18T18:56:00.144279Z"
         },
@@ -21040,7 +21040,7 @@
             "version": "101",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:31.610862Z",
             "created_at": "2020-09-03T03:10:14.03179Z"
         },
@@ -21054,7 +21054,7 @@
             "version": "101",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:31.410785Z",
             "created_at": "2020-09-03T03:10:17.107834Z"
         },
@@ -21068,7 +21068,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:56.469667Z",
             "created_at": "2020-09-03T03:28:52.659319Z"
         },
@@ -21082,7 +21082,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:59.920744Z",
             "created_at": "2020-09-03T03:28:55.014986Z"
         },
@@ -22008,7 +22008,7 @@
             "version": "ZyWALL DNS",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:32.885697Z",
             "created_at": "2020-09-02T19:50:11.123321Z"
         },
@@ -22022,7 +22022,7 @@
             "version": "ZyWALL DNS",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:47.438586Z",
             "created_at": "2020-09-02T19:50:24.570296Z"
         },
@@ -22036,7 +22036,7 @@
             "version": "ZyWALL DNS",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:32.863056Z",
             "created_at": "2020-09-02T19:50:30.965152Z"
         }
@@ -22094,7 +22094,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:53.784539Z",
             "created_at": "2020-09-05T14:07:11.878256Z"
         },
@@ -22504,7 +22504,7 @@
             "version": "CNR cdns 1.4.22",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:42.323721Z",
             "created_at": "2020-09-18T18:56:55.227625Z"
         },
@@ -22778,7 +22778,7 @@
             "version": "9.11.22+dampening",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T16:52:32.89097Z",
             "created_at": "2020-07-17T22:21:07.393161Z"
         },
@@ -23030,7 +23030,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-07-30T19:29:57.579838Z",
             "created_at": "2015-01-11T07:07:23Z"
         },
@@ -23132,7 +23132,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T12:55:42.764073Z",
             "created_at": "2020-08-22T14:51:48.394153Z"
         },
@@ -23146,7 +23146,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:36.062031Z",
             "created_at": "2020-08-22T14:51:49.298319Z"
         },
@@ -23174,7 +23174,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15EC5)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T12:51:28.486602Z",
             "created_at": "2020-08-22T15:35:28.826201Z"
         },
@@ -23188,7 +23188,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T12:55:42.594372Z",
             "created_at": "2020-08-22T15:35:29.891768Z"
         },
@@ -23202,7 +23202,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T22:51:01.943823Z",
             "created_at": "2020-08-22T15:35:31.31969Z"
         },
@@ -23216,7 +23216,7 @@
             "version": "PowerDNS Recursor 4.0.8 (built Feb 27 2018 17:19:58 by portage@frankfurt-ns02)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-05T06:49:23.625008Z",
             "created_at": "2020-08-22T15:35:32.016286Z"
         },
@@ -23230,7 +23230,7 @@
             "version": "dnsmasq-2.55",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T12:50:38.783547Z",
             "created_at": "2020-08-22T15:35:34.241345Z"
         },
@@ -23258,7 +23258,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-05T06:49:29.990487Z",
             "created_at": "2020-08-22T15:35:36.367774Z"
         },
@@ -23286,7 +23286,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:00:47.901774Z",
             "created_at": "2020-09-02T07:39:01.478543Z"
         },
@@ -23300,7 +23300,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:04.253917Z",
             "created_at": "2020-09-18T18:55:56.047291Z"
         },
@@ -23314,7 +23314,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:46.073094Z",
             "created_at": "2020-09-18T18:56:03.535618Z"
         },
@@ -23328,7 +23328,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T05:55:15.165758Z",
             "created_at": "2020-09-18T18:56:04.076998Z"
         },
@@ -23342,7 +23342,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T05:55:03.840669Z",
             "created_at": "2020-09-18T18:56:15.785844Z"
         },
@@ -23356,7 +23356,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15EC5)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:01:42.33361Z",
             "created_at": "2020-09-18T18:56:17.063468Z"
         },
@@ -23370,7 +23370,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T05:55:26.615905Z",
             "created_at": "2020-09-18T18:56:32.448314Z"
         },
@@ -23384,7 +23384,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:59:07.116398Z",
             "created_at": "2020-09-20T02:03:07.703071Z"
         },
@@ -23398,7 +23398,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:21:12.722145Z",
             "created_at": "2020-09-20T02:03:08.501952Z"
         },
@@ -23412,7 +23412,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T04:56:03.759524Z",
             "created_at": "2020-09-20T02:03:51.030564Z"
         },
@@ -24044,7 +24044,7 @@
             "version": "dnsmasq-pi-hole-2.81",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-07-15T09:33:33.92154Z",
             "created_at": "2020-07-15T09:33:33.92154Z"
         },
@@ -24058,7 +24058,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-07-15T21:29:38.448104Z",
             "created_at": "2020-07-15T21:29:38.448104Z"
         },
@@ -24072,7 +24072,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T17:50:05.804555Z",
             "created_at": "2020-07-16T14:19:04.514857Z"
         },
@@ -24086,7 +24086,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:38.359343Z",
             "created_at": "2020-07-16T14:19:14.539361Z"
         },
@@ -24100,7 +24100,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:32.617389Z",
             "created_at": "2020-07-20T07:20:12.409051Z"
         },
@@ -24114,7 +24114,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:48.574579Z",
             "created_at": "2020-07-20T07:20:13.289842Z"
         },
@@ -24142,7 +24142,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:38.529904Z",
             "created_at": "2020-07-24T11:28:06.002641Z"
         },
@@ -24226,7 +24226,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-21T22:51:41.803569Z",
             "created_at": "2020-08-09T19:00:20.288188Z"
         },
@@ -24352,7 +24352,7 @@
             "version": "[SECURED]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:54:12.369298Z",
             "created_at": "2020-08-13T17:39:28.261429Z"
         },
@@ -24478,7 +24478,7 @@
             "version": "[SECURED]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:41.953532Z",
             "created_at": "2020-08-13T17:40:20.000817Z"
         },
@@ -24492,7 +24492,7 @@
             "version": "[SECURED]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:39.615556Z",
             "created_at": "2020-08-13T17:40:23.135935Z"
         },
@@ -24506,7 +24506,7 @@
             "version": "[SECURED]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:22:45.76067Z",
             "created_at": "2020-08-13T17:40:26.115219Z"
         },
@@ -24520,7 +24520,7 @@
             "version": "[SECURED]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:35.498845Z",
             "created_at": "2020-08-13T17:40:27.385599Z"
         },
@@ -24576,7 +24576,7 @@
             "version": "ATLAS",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T06:57:34.463368Z",
             "created_at": "2020-08-13T22:15:59.345333Z"
         },
@@ -24590,7 +24590,7 @@
             "version": "ATLAS",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:37.378168Z",
             "created_at": "2020-08-13T22:16:00.064729Z"
         },
@@ -24618,7 +24618,7 @@
             "version": "9.11.5-P4-5.1+deb10u2-Debian",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:39.947882Z",
             "created_at": "2020-08-13T22:16:46.249365Z"
         },
@@ -24632,7 +24632,7 @@
             "version": "[hidden]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-03T03:49:13.05833Z",
             "created_at": "2020-08-13T22:17:23.255747Z"
         },
@@ -24646,7 +24646,7 @@
             "version": "[hidden]",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:40.39842Z",
             "created_at": "2020-08-13T22:17:24.119274Z"
         },
@@ -24660,7 +24660,7 @@
             "version": "FreeDNS.zone Recursor",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-19T16:51:01.145627Z",
             "created_at": "2020-08-18T19:51:03.024217Z"
         },
@@ -24674,7 +24674,7 @@
             "version": "PowerDNS Recursor 4.3.1 (built May  8 2020 12:08:26 by root@6cfe072e249b)",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:40.907437Z",
             "created_at": "2020-08-29T18:11:55.120668Z"
         },
@@ -24688,7 +24688,7 @@
             "version": "9.8.2rc1-RedHat-9.8.2-0.68.rc1.el6_10.7",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T12:58:11.863244Z",
             "created_at": "2020-09-02T07:37:26.267733Z"
         },
@@ -24702,7 +24702,7 @@
             "version": "9.8.2rc1-RedHat-9.8.2-0.68.rc1.el6_10.7",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-16T13:01:02.022311Z",
             "created_at": "2020-09-02T07:37:26.736831Z"
         },
@@ -24716,7 +24716,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-11T02:01:56.020186Z",
             "created_at": "2020-09-02T07:37:29.493569Z"
         },
@@ -24744,7 +24744,7 @@
             "version": "Microsoft DNS 6.1.7601 (1DB15F75)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:47.419088Z",
             "created_at": "2020-09-02T19:19:09.543141Z"
         },
@@ -24786,7 +24786,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:51.079763Z",
             "created_at": "2020-09-03T03:13:54.333804Z"
         },
@@ -24800,7 +24800,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:03:46.895088Z",
             "created_at": "2020-09-03T03:16:54.462254Z"
         },
@@ -24814,7 +24814,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T02:58:40.750708Z",
             "created_at": "2020-09-03T03:16:58.498075Z"
         },
@@ -24828,7 +24828,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:43.969704Z",
             "created_at": "2020-09-03T03:16:59.871984Z"
         },
@@ -24842,7 +24842,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:43.057391Z",
             "created_at": "2020-09-03T03:17:02.329858Z"
         },
@@ -24856,7 +24856,7 @@
             "version": "9.10.0-RedHat-9.10.0-0.el6",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-30T03:00:27.786728Z",
             "created_at": "2020-09-03T03:17:05.348716Z"
         },
@@ -24870,7 +24870,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:39.733197Z",
             "created_at": "2020-09-03T03:17:07.861673Z"
         },
@@ -24884,7 +24884,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:06:56.990994Z",
             "created_at": "2020-09-03T03:40:17.268161Z"
         },
@@ -24898,7 +24898,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-29T17:06:57.131417Z",
             "created_at": "2020-09-03T03:40:18.614831Z"
         },
@@ -24912,7 +24912,7 @@
             "version": "Version: recursive-main/20717463",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:42.295535Z",
             "created_at": "2020-09-05T14:06:08.526606Z"
         },
@@ -24926,7 +24926,7 @@
             "version": "Version: recursive-main/20717463",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:14.9291Z",
             "created_at": "2020-09-05T14:06:09.319932Z"
         },
@@ -24940,7 +24940,7 @@
             "version": "Version: recursive-main/20717463",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:43.147297Z",
             "created_at": "2020-09-05T14:06:23.949051Z"
         },
@@ -24954,7 +24954,7 @@
             "version": "Version: recursive-main/18640994",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:38.572801Z",
             "created_at": "2020-09-05T14:06:25.603425Z"
         },
@@ -24968,7 +24968,7 @@
             "version": "Version: recursive-main/20717463",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:57:02.969939Z",
             "created_at": "2020-09-05T14:06:26.777498Z"
         },
@@ -25052,7 +25052,7 @@
             "version": "Version: recursive-main/20717463",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:47.046026Z",
             "created_at": "2020-09-05T14:07:26.664747Z"
         },
@@ -25066,7 +25066,7 @@
             "version": "Version: recursive-main/20717463",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:41.053052Z",
             "created_at": "2020-09-05T14:07:27.63627Z"
         },
@@ -25080,7 +25080,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:23.920896Z",
             "created_at": "2020-09-05T14:07:48.04721Z"
         },
@@ -25108,7 +25108,7 @@
             "version": "unbound 1.10.1",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:44.205951Z",
             "created_at": "2020-09-05T14:07:51.609286Z"
         },
@@ -25136,7 +25136,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:24:18.532041Z",
             "created_at": "2020-09-13T18:04:24.96655Z"
         },
@@ -25150,7 +25150,7 @@
             "version": "ATLAS",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:34.849799Z",
             "created_at": "2020-09-13T18:04:50.718457Z"
         },
@@ -25164,7 +25164,7 @@
             "version": "ATLAS",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:21.45713Z",
             "created_at": "2020-09-13T18:04:51.498326Z"
         },
@@ -25178,7 +25178,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:05.448277Z",
             "created_at": "2020-09-13T18:05:11.40577Z"
         },
@@ -25192,7 +25192,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:23.240875Z",
             "created_at": "2020-09-13T18:05:12.100962Z"
         },
@@ -25206,7 +25206,7 @@
             "version": "PowerDNS Recursor 4.3.1 (built May  8 2020 12:08:26 by root@6cfe072e249b)",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-15T20:01:11.247917Z",
             "created_at": "2020-09-13T18:05:13.092484Z"
         },
@@ -25220,7 +25220,7 @@
             "version": "PowerDNS Recursor 4.0.8 (built Feb 27 2018 17:19:58 by portage@frankfurt-ns02)",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T12:55:40.302579Z",
             "created_at": "2020-09-18T18:55:27.473131Z"
         },
@@ -25234,7 +25234,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-05T15:23:50.081688Z",
             "created_at": "2020-09-18T18:55:44.496034Z"
         },
@@ -25248,7 +25248,7 @@
             "version": "blue",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-28T16:58:05.308277Z",
             "created_at": "2020-09-18T18:55:48.652186Z"
         },
@@ -25304,7 +25304,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T01:55:38.456738Z",
             "created_at": "2020-09-18T18:56:34.748046Z"
         },
@@ -25318,7 +25318,7 @@
             "version": "fancy new chroot version",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T19:58:37.205598Z",
             "created_at": "2020-09-18T18:57:21.618823Z"
         },
@@ -25374,7 +25374,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:35.990498Z",
             "created_at": "2020-09-18T18:57:56.806417Z"
         },
@@ -25388,7 +25388,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T14:04:17.438113Z",
             "created_at": "2020-09-18T18:57:58.103082Z"
         },
@@ -25402,7 +25402,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-04T02:55:35.849968Z",
             "created_at": "2020-09-18T18:58:11.123198Z"
         },
@@ -25416,7 +25416,7 @@
             "version": "",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-10-03T14:04:14.647207Z",
             "created_at": "2020-09-18T18:58:12.57436Z"
         },
@@ -27702,7 +27702,7 @@
             "version": "ZyWALL DNS",
             "error": "",
             "dnssec": false,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-25T07:57:39.804691Z",
             "created_at": "2020-09-02T19:31:30.958352Z"
         },
@@ -27716,7 +27716,7 @@
             "version": "",
             "error": "",
             "dnssec": true,
-            "reliability": 1,
+            "reliability": 1.0,
             "checked_at": "2020-09-18T00:56:35.314942Z",
             "created_at": "2020-09-02T19:31:51.801186Z"
         },
