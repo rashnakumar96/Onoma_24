@@ -106,7 +106,7 @@ class Url_processor:
 
 
 
-	# Find cdn given a file of the domains
+	# Find cdn given a file of the resources
 	# Takes a list of unique domains
 	# Returns a dictionary containing the found CDNs for each domain
 	def find_cdn(self):

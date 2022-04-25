@@ -26,6 +26,7 @@ import (
 
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
+	bloom "github.com/bits-and-blooms/bloom"
 )
 
 // PublicDNSServers for DNS over UDP
@@ -38,6 +39,9 @@ var PublicDNSServers = []string{
 var DNSServersToTest []string
 var DoHServersToTest []string
 var ResolverMapping map[string][]string
+var DNSDistribution map[string] []int64
+var DNSDistributionPerformance map[string] []string
+var DNSTime int
 var Experiment bool
 var DoHEnabled bool
 var Proxy bool
@@ -46,6 +50,10 @@ var Racing bool
 var Decentralized bool
 var PDNSServers []string
 var BestResolvers []string
+var _mutex = &sync.Mutex{}
+var Top50Websites []string
+var Filter bloom.BloomFilter
+
 
 
 // var TestingDir string
@@ -471,8 +479,19 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		"question": question,
 		"config":   handler.GetConfig(),
 	}).Info("Handler: Doing Lookup At NameServers")
-	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers)
+	_mutex.Lock()
+	DNSTime+=1
+	_mutex.Unlock()
 
+	_startTime := time.Now()
+	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers,DNSDistribution,DNSTime,Top50Websites,Filter)
+	_elapsedTime:= time.Since(_startTime)
+	performanceTime:=strconv.FormatInt(_elapsedTime.Nanoseconds()/1e6, 10)+" ms"
+	_dnsquestion := dnsQueryMessage.Question[0]
+	dnsquestion := strings.Split(_dnsquestion.String()[1:], ".\tIN\t")[0]
+	_mutex.Lock()
+	DNSDistributionPerformance[dnsquestion]=append(DNSDistributionPerformance[dnsquestion],performanceTime)
+	_mutex.Unlock()
 	if err != nil {
 		// handler.handleResolutionError(err, responseWriter, dnsQueryMessage, cacheKey, doID)
 
@@ -644,7 +663,20 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 	if cacheHit == false {
 
 		stime := time.Now()
-		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers)
+		_mutex.Lock()
+		DNSTime+=1
+		_mutex.Unlock()
+
+		_startTime := time.Now()
+		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers,DNSDistribution,DNSTime,Top50Websites,Filter)
+		_elapsedTime:= time.Since(_startTime)
+		performanceTime:=strconv.FormatInt(_elapsedTime.Nanoseconds()/1e6, 10)+" ms"
+		_dnsquestion := requestAuthoritativeServer.Question[0]
+		dnsquestion := strings.Split(_dnsquestion.String()[1:], ".\tIN\t")[0]
+		_mutex.Lock()
+		DNSDistributionPerformance[dnsquestion]=append(DNSDistributionPerformance[dnsquestion],performanceTime)
+		_mutex.Unlock()
+
 		responseAuthoritativeServer = _responseAuthoritativeServer
 		elapsed := time.Since(stime)
 		log.WithFields(log.Fields{
@@ -806,6 +838,8 @@ func (handler *DNSQueryHandler) do(Net string, responseWriter dns.ResponseWriter
 	answerMessage, success := handler.PerformDNSQuery(Net, dnsQueryMessage, net.ParseIP(utils.LOCALHOST),
 		handler.settings.isEnabledDirectResolution, handler.settings.isEnabledHostsFile, handler.settings.isEnabledCache,
 		handler.settings.isEnabledCounter)
+	
+
 
 	ipVersion := handler.whichIPVersion(question)
 
@@ -911,8 +945,20 @@ func (handler *DNSQueryHandler) doDirectResolutionOfCname(Net string, answerMess
 		Qclass: dns.ClassINET,
 	}
 	requestAuthoritativeServer.Question = []dns.Question{authoritativeQuestion}
+	_mutex.Lock()
+	DNSTime+=1
+	_mutex.Unlock()
 
-	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers)
+	_startTime := time.Now()
+	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers,DNSDistribution,DNSTime,Top50Websites,Filter)
+	_elapsedTime:= time.Since(_startTime)
+	performanceTime:=strconv.FormatInt(_elapsedTime.Nanoseconds()/1e6, 10)+" ms"
+	_dnsquestion := requestAuthoritativeServer.Question[0]
+	dnsquestion := strings.Split(_dnsquestion.String()[1:], ".\tIN\t")[0]
+	_mutex.Lock()
+	DNSDistributionPerformance[dnsquestion]=append(DNSDistributionPerformance[dnsquestion],performanceTime)
+	_mutex.Unlock()
+
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id":    doID,

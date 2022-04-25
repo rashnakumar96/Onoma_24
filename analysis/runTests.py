@@ -223,8 +223,8 @@ class WebPerformanceTests:
 		
 	def runAllApproaches(self, country):
 		self.runWebPerformanceTests("Google0")
-		#if workingresources not present in directory collect that and rerun measurement with Google
-		# print (country+"/AlexaUniqueWResources.txt")
+		# if workingresources not present in directory collect that and rerun measurement with Google
+		print (country+"/AlexaUniqueWResources.txt")
 		if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueWResources.txt")):
 			self.collectWorkingResources("Google0")
 			self.runWebPerformanceTests("Google0")
@@ -282,7 +282,7 @@ class WebPerformanceTests:
 		self.findminttb("SubRosa_","SubRosa0","SubRosa1","SubRosa2")
 		print("Done Testing SubRosa")
 
-		# time.sleep(1*20)
+		time.sleep(1*20)
 		self.runWebPerformanceTests("SubRosaNPR0")
 		self.runWebPerformanceTests("SubRosaNPR1")
 		self.runWebPerformanceTests("SubRosaNPR2")
@@ -361,7 +361,6 @@ def checkResolver(ip):
 	return True
 
 if __name__ == "__main__":
-	# country = input("Enter alpha-2 country code: ")
 
 	if not os.path.exists(join(project_path, "analysis", "measurements")):
 		os.mkdir(join(project_path, "analysis", "measurements"))
@@ -383,16 +382,16 @@ if __name__ == "__main__":
 
 	if not os.path.exists(join(project_path, "analysis", "measurements", country)):
 		os.mkdir(join(project_path, "analysis", "measurements", country))
-	else:
+	# else:
 
-		files=os.listdir(join(project_path, "analysis", "measurements", country))
-		print (files)
-		for file in files:
-			if file not in impFiles:
-				try:
-					os.remove(join(project_path, "analysis", "measurements", country,file))
-				except:
-					print (file)
+	# 	files=os.listdir(join(project_path, "analysis", "measurements", country))
+	# 	print (files)
+	# 	for file in files:
+	# 		if file not in impFiles:
+	# 			try:
+	# 				os.remove(join(project_path, "analysis", "measurements", country,file))
+	# 			except:
+	# 				print (file)
 
 	if not os.path.exists(join(project_path, "analysis", "measurements", country,"publicDNSServers.json")):
 		publicDNSServers=[]
@@ -421,15 +420,8 @@ if __name__ == "__main__":
 		with open(join(project_path, "analysis", "measurements", country, "publicDNSServers.json"),'w') as fp:
 			json.dump(publicDNSServers, fp, indent=4)
 
-	# if not os.path.exists(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt")):
-	# 	resourceCollector.runResourceCollector()
-
-
-
 	resources=[]
-	# with open(join(project_path,"analysis","measurements",country,"AlexaUniqueResources.txt"),"r") as f:
-	# 	for resource in f:
-	# 		resources.append(resource.split("\n")[0])
+	
 	try:
 		alexaResourcesAll=json.load(open(join(project_path, "data","resourcesDict.json")))
 		resources=alexaResourcesAll[country]
@@ -438,8 +430,8 @@ if __name__ == "__main__":
 		print ("Country not available in dictionary")
 
 	#for the client randomly shuffle 100 resources and carry measurements on that	
-	random.shuffle(resources)
-	resources=resources[:100]
+	# random.shuffle(resources)
+	# resources=resources[:100]
 	
 	tests = WebPerformanceTests(join(project_path, "analysis", "measurements", country),resources)
 	x=b''
@@ -453,5 +445,5 @@ if __name__ == "__main__":
 			break
 		time.sleep(1)
 
-	tests.runAllApproaches(join(project_path, "analysis", "measurements", country))
+	# tests.runAllApproaches(join(project_path, "analysis", "measurements", country))
 	del tests
