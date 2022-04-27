@@ -244,25 +244,25 @@ if __name__ == "__main__":
 	# filename="week1_7_25"
 
 
-	# runs=2 #use 5 runs
-	# K=3#(k is the insertion factor)
-	# for x in range(runs):
-	# 	print ("running run: ",x)
-	# 	userLogInjected=injectRequests(userLog,K,x,filename)
-	# 	preprocessBrowsingLog(userLogInjected,True,x,K,filename)
+	runs=2 #use 5 runs
+	K=3#(k is the insertion factor)
+	for x in range(runs):
+		print ("running run: ",x)
+		userLogInjected=injectRequests(userLog,K,x,filename)
+		preprocessBrowsingLog(userLogInjected,True,x,K,filename)
 
-	dirs=["week1","week2"]
-	users=set()
-	for _dir in dirs:
-		arr = os.listdir(_dir)
-		for ele in arr:
-			try:
-				userLog=json.load(open(_dir+"/"+ele))
-				for key in userLog:
-					users.add(key)
-				print (ele,len(users))
-			except Exception as e:
-				print (str(e))
+	# dirs=["week1","week2"]
+	# users=set()
+	# for _dir in dirs:
+	# 	arr = os.listdir(_dir)
+	# 	for ele in arr:
+	# 		try:
+	# 			userLog=json.load(open(_dir+"/"+ele))
+	# 			for key in userLog:
+	# 				users.add(key)
+	# 			print (ele,len(users))
+	# 		except Exception as e:
+	# 			print (str(e))
 
 
 
