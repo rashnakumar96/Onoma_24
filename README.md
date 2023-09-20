@@ -13,34 +13,17 @@ After this step you will have a binary named ```namehelp``` in ```/bin``` direct
 ### To run the service directly:
 From the project home directory
 ```
-sudo ./bin/namehelp --service install
-sudo ./bin/namehelp --sertice start
+sudo ./bin/test/namehelp --service install
+sudo ./bin/test/namehelp --sertice start
 ```
 
 ### To stop the service:
 ```
-sudo ./bin/namehelp --service stop
+sudo ./bin/test/namehelp --service stop
 ```
 
 ### To uninstall:
 ```
-./bin/namehelp --service uninstall
+./bin/test/namehelp --service uninstall
 ```
-
-## Build app for MacOS
-The app is based on Electron framework
-From the project home directory
-```
-cd Sub-Rosa/
-npm make-mac
-```
-In the current directory a new folder ```out``` will be created
-The app will be in ```out/Sub-Rosa-darwin-x64/``` directory
-The package of the app will be in ```out/make/``` directory
-
-### To run app without building 
-From the project home directory
-```
-cd Sub-Rosa/
-npm start
-```
+Output/debug statements generated in log files in the bin folder where the executable is -> either in bin or bin/test. Change service command accordingly.
