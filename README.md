@@ -8,7 +8,7 @@ More software engineering version of Name-Secure
 export GOPATH=`pwd`
 go generate
 ```
-After this step you will have a binary named ```namehelp``` in ```/bin``` directory
+After this step you will have a binary named ```namehelp``` in ```/bin/test``` directory
 
 ### To run the service directly:
 From the project home directory
