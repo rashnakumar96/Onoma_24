@@ -24,8 +24,10 @@ def jaccard_binary(x,y):
     similarity = intersection.sum() / float(union.sum())
     return similarity
 
-def calcKanon(Injected,k,filename,runs):
+def calcKanon(Injected,k,filename,runs,jaccard_value,users):
+	# Injectedsharding_valueweek1_7_25_1_0_users_2000.3Result
 	shardingParameters=[1,2,4,8]
+	# shardingParameters=[1]
 	for z in shardingParameters:
 		dict={}
 		jaccard_dict={}
@@ -33,7 +35,7 @@ def calcKanon(Injected,k,filename,runs):
 			dict[run]={}
 			jaccard_dict[run]={}
 			if Injected:
-				resFile=json.load(open("InjectedReqsLatest/Injectedsharding_value"+filename+'_'+str(z)+"run_"+str(run)+'_'+str(k)+".json"))
+				resFile=json.load(open("InjectedReqsTemp/Injectedsharding_value"+filename+'_'+str(z)+"run_"+str(run)+'_'+str(k)+"_users_"+str(users)+".json"))
 			else:
 				# resFile=json.load(open("sharding_value"+str(z)+".json"))
 				resFile={}
@@ -78,7 +80,7 @@ def calcKanon(Injected,k,filename,runs):
 							arr1=resFile[resolver][uniqueUsers[x]]
 							arr2=resFile[resolver][uniqueUsers[y]]
 						except:
-							print (" bit op: ",x,y,len(uniqueUsers))
+							# print (" bit op: ",x,y,len(uniqueUsers))
 							continue
 						matched=True
 						for n in range(len(arr1)):
@@ -135,7 +137,7 @@ def calcKanon(Injected,k,filename,runs):
 							# 	matched_non_anonUsers.append(_maxSimilarUser)
 							# 	break
 					# print (max(jaccard_dict[run][resolver][n_user]),_maxSimilarDist)
-					if _maxSimilarDist>0.3:
+					if _maxSimilarDist>jaccard_value:
 						for clusterGroupKey in clusterDict:
 							if _maxSimilarUser in clusterDict[clusterGroupKey]:
 								clusterDict[clusterGroupKey].append(n_user)
@@ -151,18 +153,19 @@ def calcKanon(Injected,k,filename,runs):
 
 		# print (resolver," number of clusters: ",len(clusterDict)," total resolutions: ",totalResolutions," k1: ",k1)
 		if Injected:
-			with open("InjectedReqsLatest/Injectedsharding_value"+filename+'_'+str(z)+'_'+str(k)+"Result.json", 'w') as fp:
+			with open("InjectedReqsTemp/Injectedsharding_value"+filename+'_'+str(z)+'_'+str(k)+"_users_"+str(users)+str(jaccard_value)+"Result.json", 'w') as fp:
 				json.dump(dict, fp)
-			with open("InjectedReqsLatest/Jaccardsharding_value"+filename+'_'+str(z)+'_'+str(k)+"Result.json", 'w') as fp:
+			with open("InjectedReqsTemp/Jaccardsharding_value"+filename+'_'+str(z)+'_'+str(k)+"_users_"+str(users)+str(jaccard_value)+"Result.json", 'w') as fp:
 				json.dump(jaccard_dict, fp)
 		else:
-			with open("sharding_value"+filename+str(z)+"Result.json", 'w') as fp:
+			with open("sharding_value"+filename+str(z)+'_'+str(jaccard_value)+"Result.json", 'w') as fp:
 				json.dump(dict, fp)
 
-def plotK_ValuesPerInsertion(Injected,k,filename):
+def plotK_ValuesPerInsertion(Injected,k,filename,jaccard_value,jaccard_thresholdDict,user):
 	shardingParameters=[8,4,2,1]
+	# shardingParameters=[1]
 	alphas=[1,0.75,0.5,0.25]
-	# shardingParameters=[2,4]
+	# shardingParameters=[1]
 	# colors=['c','y','g','m','b','r','orange','purple']
 	colors=['m','g','y','c']
 	ind=0
@@ -172,14 +175,14 @@ def plotK_ValuesPerInsertion(Injected,k,filename):
 	styles=['solid', 'dashed', 'dashdot', 'dotted']
 
 
-	# dataFile=json.load(open("InjectedReqsLatest/Injectedsharding_value"+str(z)+".json"))
+	# dataFile=json.load(open("InjectedReqsTemp/Injectedsharding_value"+str(z)+".json"))
 
 	for z in shardingParameters:
 		avgKdict["sharding_value"+str(z)]={}
 		if Injected:
-			resFile=json.load(open("InjectedReqsLatest/Injectedsharding_value"+filename+'_'+str(z)+'_'+str(k)+"Result.json"))
+			resFile=json.load(open("InjectedReqsTemp/Injectedsharding_value"+filename+'_'+str(z)+'_'+str(k)+"_users_"+str(user)+str(jaccard_value)+"Result.json"))
 		else:
-			resFile=json.load(open("sharding_value"+filename+str(z)+"Result.json"))
+			resFile=json.load(open("sharding_value"+filename+str(z)+"_users_"+str(user)+str(jaccard_value)+"Result.json"))
 		r=0
 		c=0
 		avgDict={}
@@ -216,14 +219,22 @@ def plotK_ValuesPerInsertion(Injected,k,filename):
 		# print (sortedData)
 		count=0
 		for value in sortedData:
-			if value>=2:
+			if value<=1:
 				count+=1
-		print ("insertion_value: ",k," and sharding_value: ",z," % 2-anonymised: ",100*count/len(sortedData))
-		count=0
-		for value in sortedData:
-			if value>=4:
-				count+=1
-		print ("insertion_value: ",k," and sharding_value: ",z," % 4-anonymised: ",100*count/len(sortedData))
+		print ("insertion_value: ",k," and sharding_value: ",z," and jaccard_value: ",jaccard_value," users: ",user," % 1-anonymised: ",100*count/len(sortedData))
+		jaccard_thresholdDict[jaccard_value]=100*count/len(sortedData)
+
+		# count=0
+		# for value in sortedData:
+		# 	if value>=2:
+		# 		count+=1
+		# print ("insertion_value: ",k," and sharding_value: ",z," % 2-anonymised: ",100*count/len(sortedData))
+
+		# count=0
+		# for value in sortedData:
+		# 	if value>=4:
+		# 		count+=1
+		# print ("insertion_value: ",k," and sharding_value: ",z," % 4-anonymised: ",100*count/len(sortedData))
 
 			# sortedData=np.sort(list(resFile[resolver].values()))
 		
@@ -239,7 +250,7 @@ def plotK_ValuesPerInsertion(Injected,k,filename):
 			c+=1
 		ind+=1
 		# break
-	# overheadPerUser=json.load(open("InjectedReqsLatest/overhead.json"))
+	# overheadPerUser=json.load(open("InjectedReqsTemp/overhead.json"))
 	# avgOverhead=sum(overheadPerUser.values())/len(overheadPerUser.values())
 
 	plt.xlabel("K-Value")
@@ -256,18 +267,20 @@ def plotK_ValuesPerInsertion(Injected,k,filename):
 	# 	plt.title("Insertion Factor = "+str(k))
 	plt.grid()
 	plt.legend(loc="lower right")
-	if not os.path.exists("InjectedReqsLatest/graphs"):
-		os.mkdir("InjectedReqsLatest/graphs")
+	if not os.path.exists("InjectedReqsTemp/graphs"):
+		os.mkdir("InjectedReqsTemp/graphs")
 	if Injected:
-		plt.savefig("InjectedReqsLatest/graphs/InjectedK_valuesCDF_"+filename+"_insertion_"+str(k))
+		plt.savefig("InjectedReqsTemp/graphs/InjectedK_valuesCDF_"+filename+"_insertion_"+str(k)+"_users_"+str(user))
 	else:
-		plt.savefig("graphs/K_valuesCDF"+filename)
+		plt.savefig("graphs/K_valuesCDF"+filename+"_users_"+str(600))
 	plt.clf()
 	print (avgKdict)
+	return jaccard_thresholdDict
 
-def plotK_ValuesPerSharding(Injected,z,filename):
+def plotK_ValuesPerSharding(Injected,z,filename,user):
 	alphas=[1,0.75,0.5,0.25]
 	insertion_values=[3,2,1,0]
+
 	# shardingParameters=[2,4]
 	# colors=['c','y','g','m','b','r','orange','purple']
 	colors=['m','g','y','c']
@@ -279,14 +292,14 @@ def plotK_ValuesPerSharding(Injected,z,filename):
 	ind=0
 	_max=0
 	avgKdict={}
-	# dataFile=json.load(open("InjectedReqsLatest/Injectedsharding_value"+str(z)+".json"))
+	# dataFile=json.load(open("InjectedReqsTemp/Injectedsharding_value"+str(z)+".json"))
 
 	for i in insertion_values:
 		avgKdict["insertion_value"+str(z)]={}
 		if Injected:
-			resFile=json.load(open("InjectedReqsLatest/Injectedsharding_value"+filename+'_'+str(z)+'_'+str(i)+"Result.json"))
+			resFile=json.load(open("InjectedReqsTemp/Injectedsharding_value"+filename+'_'+str(z)+'_'+str(i)+"_users_"+str(user)+"Result.json"))
 		else:
-			resFile=json.load(open("sharding_value"+filename+str(z)+"Result.json"))
+			resFile=json.load(open("sharding_value"+filename+str(z)+"_users_"+str(600)+"Result.json"))
 		r=0
 		c=0
 		avgDict={}
@@ -334,7 +347,7 @@ def plotK_ValuesPerSharding(Injected,z,filename):
 			c+=1
 		ind+=1
 		# break
-	# overheadPerUser=json.load(open("InjectedReqsLatest/overhead.json"))
+	# overheadPerUser=json.load(open("InjectedReqsTemp/overhead.json"))
 	# avgOverhead=sum(overheadPerUser.values())/len(overheadPerUser.values())
 
 	plt.xlabel("K-Value")
@@ -350,12 +363,12 @@ def plotK_ValuesPerSharding(Injected,z,filename):
 	# 	plt.title("Sharding value = "+str(z))
 	plt.grid()
 	plt.legend(loc="lower right")
-	if not os.path.exists("InjectedReqsLatest/graphs"):
-		os.mkdir("InjectedReqsLatest/graphs")
+	if not os.path.exists("InjectedReqsTemp/graphs"):
+		os.mkdir("InjectedReqsTemp/graphs")
 	if Injected:
-		plt.savefig("InjectedReqsLatest/graphs/InjectedK_valuesCDF_"+filename+"_sharding_"+str(z))
+		plt.savefig("InjectedReqsTemp/graphs/InjectedK_valuesCDF_"+filename+"_sharding_"+str(z)+"_users_"+str(600))
 	else:
-		plt.savefig("graphs/K_valuesCDF"+filename)
+		plt.savefig("graphs/K_valuesCDF"+filename+"_users_"+str(600))
 	plt.clf()
 	print (avgKdict)
 
@@ -375,7 +388,7 @@ def JaccardDist(Injected,k):
 	avgKdict={}
 
 	for z in shardingParameters:
-		resFile=json.load(open("InjectedReqsLatest/Jaccardsharding_value"+'_'+str(z)+'_'+str(k)+"Result.json"))
+		resFile=json.load(open("InjectedReqsTemp/Jaccardsharding_value"+'_'+str(z)+'_'+str(k)+"Result.json"))
 		avgDict={}
 		for run in resFile:
 			for resolver in resFile[run]:
@@ -397,12 +410,44 @@ def JaccardDist(Injected,k):
 	plt.ylabel("CDF")
 	plt.margins(0.02)
 	plt.title("With Insertion Factor"+str(k))
-	if not os.path.exists("InjectedReqsLatest/graphs"):
-		os.mkdir("InjectedReqsLatest/graphs")
+	if not os.path.exists("InjectedReqsTemp/graphs"):
+		os.mkdir("InjectedReqsTemp/graphs")
 	if Injected:
-		plt.savefig("InjectedReqsLatest/graphs/JaccardDist_"+str(k))
+		plt.savefig("InjectedReqsTemp/graphs/JaccardDist_"+str(k))
 	else:
 		plt.savefig("graphs/JaccardDist_")
+	plt.clf()
+
+def JaccardThreshold(users):
+	resFile=json.load(open("InjectedReqsTemp/jaccard_thresholdDict_"+str(users)+".json"))
+	X=[]
+	for key in resFile:
+		ans=format(float(key), ".2f")
+		X.append(float(ans))
+	X=np.array(X)
+	Y=np.array(list(resFile.values()))
+
+	# fig, ax = plt.subplots()
+	plt.plot(X,Y,color='c',marker='o',linewidth=3)
+	plt.xticks(np.arange(min(X), max(X)+1, 0.1))
+	# x_ticks = [x for x in range(0,len(X))]
+
+#add x-axis values to plot
+	# plt.xticks(ticks=x_ticks)
+	# ax.xaxis.set_ticks(np.arange(start, end, 0.5))
+	# ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
+	# plt.show()
+	
+	# plt.plot(X,Y,color='c',marker='o',linewidth=3)
+		
+	plt.xlabel("JaccardThreshold")
+	plt.ylabel("Percentage of users in clusters of 1")
+	plt.margins(0.02)
+	plt.title("Users: "+str(users))
+	if not os.path.exists("InjectedReqsTemp/graphs"):
+		os.mkdir("InjectedReqsTemp/graphs")
+	
+	plt.savefig("InjectedReqsTemp/graphs/JaccardThreshold_"+str(users))
 	plt.clf()
 
 def processNUITDATA():
@@ -494,7 +539,7 @@ def processNUITDATA():
 	# # 			bitC+=1
 	# # 	_dict[user]=bitC
 	# with open("200UsersDistr.json", 'w') as fp:
-	# 		# with open("InjectedReqsLatest/Injectedsharding_value"+str(value)+".json", 'w') as fp:
+	# 		# with open("InjectedReqsTemp/Injectedsharding_value"+str(value)+".json", 'w') as fp:
 	# 	json.dump(usersLog, fp)
 		
 if __name__ == "__main__":
@@ -502,33 +547,58 @@ if __name__ == "__main__":
 	# calcKanon(False,0)
 	# plotK_Values(False,0)
 	filename="week1_7_25"
-	k=3 #Insertion Factor
-	avgs=[]
+	# filename="allFiles"
+
+	K=[0,1,2,3] #Insertion Factor
+	# avgs=[]
 	runs=2
 	# for x in range(runs):
 	# 	try:
-	# 		overheadDict=json.load(open("InjectedReqsLatest/overhead_"+filename+str(k)+"_"+str(x)+".json"))
+	# 		overheadDict=json.load(open("InjectedReqsTemp/overhead_"+filename+str(k)+"_"+str(x)+".json"))
 	# 		avg=sum(overheadDict.values())/len(overheadDict)
 	# 		print ("Avg overhead with insertion factor of k: ",k,avg," min: ",min(overheadDict.values())," max: ",max(overheadDict.values()),np.median(np.array(list(overheadDict.values()))))
 	# 		avgs.append(avg)
 	# 	except:
 	# 		continue
 	# print (sum(avgs)/len(avgs))
-	# calcKanon(True,k,filename,runs)
-	insertion_values=[3,2,1,0]
-	for i in insertion_values:
-		plotK_ValuesPerInsertion(True,i,filename)
-		calcAverageOverhead(filename,i)
+	users=[800]
+	for k in K:
+		for user in users:
+			jaccard_thresholdDict={}
+			# jaccard_values=[x * 0.05 for x in range(0, 20)]
+			jaccard_values=[0.3]
+			for j in jaccard_values:
+				print ("jaccard_value: ",j, " users: ",user,"k: ",k)
+				calcKanon(True,k,filename,runs,j,user)
+				# plotK_ValuesPerSharding(True,k,filename,j,user)
+				# jaccard_thresholdDict=plotK_ValuesPerInsertion(True,k,filename,j,jaccard_thresholdDict,user)
+			# with open("InjectedReqsTemp/jaccard_thresholdDict_"+str(user)+".json", 'w') as fp:
+			# 	json.dump(jaccard_thresholdDict, fp)
 
-	# sharding_values=[8,4,2,1]
-	# for z in sharding_values:
-		# plotK_ValuesPerSharding(True,z,filename)
+			# JaccardThreshold(user)
+		# break
+		# break
+	insertion_values=[0,1,2,3]
+	# insertion_values=[0]
+	for i in insertion_values:
+		# calcKanon(True,i,filename,runs,0.4)
+		plotK_ValuesPerInsertion(True,i,filename,0.3,{})
+		# calcAverageOverhead(filename,i)
+	# users=[400,600,800]
+	# for user in users:
+	# for i in insertion_values:
+		# calcKanon(True,i,filename,runs,0.4)
+	# 	plotK_ValuesPerInsertion(True,0,filename,0.4,jaccard_thresholdDict,user)
+
+	sharding_values=[8,4,2,1]
+	for z in sharding_values:
+		plotK_ValuesPerSharding(True,z,filename,user)
 
 	# JaccardDist(True,k)
 	# import os
 
-	# arr = os.listdir("/Users/rashnakumar/Documents/Github/Sub-Rosa6-NSDI_22/analysis/k-anonResults/InjectedReqsLatest")
+	# arr = os.listdir("/Users/rashnakumar/Documents/Github/Onoma_NSDI_Code/analysis/k-anonResults/NUIT_Latest/InjectedReqsNSDI")
 	# for ele in arr:
-	# 	if "Injectedsharding_" in ele:
-	# 		print (ele+'\n')
+	# 	if "Injectedsharding_" in ele and "run" not in ele:
+			# print (ele+'\n')
 # processNUITDATA()

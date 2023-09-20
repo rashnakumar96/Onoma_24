@@ -2,7 +2,11 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/analysis/dns-tor-proxy" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/analysis/dns-tor-proxy/src/github.com/BurntSushi/toml" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/alexthemonk/DoH_Proxy" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/github.com/bits-and-blooms/bitset" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/github.com/bits-and-blooms/bloom" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/bobesa/go-domain-util" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/kardianos/osext" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/kardianos/service" vcs="Git" />

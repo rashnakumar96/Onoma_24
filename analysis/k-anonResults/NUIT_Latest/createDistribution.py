@@ -53,7 +53,7 @@ def createUserProfiles():
 	with open("distributionUserLog.json", 'w') as fp:
 		json.dump(userLog, fp)
 
-def injectRequests(userLog,k,x,filename):
+def injectRequests(userLog,k,x,filename,users):
 	overheadPerUser={}
 	siteCount=500
 	topSites=parseTopAlexaSites(siteCount)
@@ -61,7 +61,6 @@ def injectRequests(userLog,k,x,filename):
 	for topSite in topSites:
 		domain=tldextract.extract(topSite).domain #uncomment for NUIT
 		# print ("alexa: ",domain)
-
 		bloom_filter.add(domain.encode()) #uncomment for NUIT
 		# bloom_filter.add(topSite.encode())
 	
@@ -110,20 +109,20 @@ def injectRequests(userLog,k,x,filename):
 		totalBytes=sys.getsizeof(userLog[user])
 		overheadPerUser[user]=100*(injectedReqsBytes/(injectedReqsBytes+initialBytes))
 		# print ("overhead: ",sampling_size,len(userLog[user]),100*(sampling_size/len(userLog[user])))
-	if not os.path.exists("InjectedReqs"):
-		os.mkdir("InjectedReqs")
+	if not os.path.exists("InjectedReqsTemp"):
+		os.mkdir("InjectedReqsTemp")
 
-	with open("InjectedReqs/overhead_"+filename+str(k)+"_"+str(x)+".json", 'w') as fp:
-		json.dump(overheadPerUser, fp)
+	# with open("InjectedReqsTemp/overhead_"+filename+str(k)+"_"+str(x)+"_users_"+str(users)+".json", 'w') as fp:
+	# 	json.dump(overheadPerUser, fp)
 	# print (overheadPerUser)
 	return userLog
 
-def preprocessBrowsingLog(userLog,injected,run,K,filename):
+def preprocessBrowsingLog(userLog,injected,run,K,filename,users):
 	browsingHists={} #stores the freq of occurrence urls per user
 	urlFreq={} #stores the freq of occurrence urls across all users (will help in creating bit vector ranking)
 	userCount=0 #no of users we want to process
 	for userId in userLog:
-		if userCount>200:
+		if userCount>users:
 			break
 		if len(set(userLog[userId]))<50:
 			continue
@@ -138,7 +137,7 @@ def preprocessBrowsingLog(userLog,injected,run,K,filename):
 	urlUnion=[] #stores the union of top50 sites of each user
 	popularSitesPerUserDict={} #stores top50 sites of each user
 	for userId in browsingHists:
-		popularSitesPerUser=dict(Counter(browsingHists[userId]).most_common(50)).keys()
+		popularSitesPerUser=dict(Counter(browsingHists[userId]).most_common(100)).keys()
 		popularSitesPerUserDict[userId]=popularSitesPerUser
 		for site in popularSitesPerUser:
 			if site not in urlUnion:
@@ -159,13 +158,13 @@ def preprocessBrowsingLog(userLog,injected,run,K,filename):
 
 	bitVectorLength=len(urlUnion)
 	# print (urlUnion)
-	shardingAlgo(bitVectorLength,popularSitesPerUserDict,urlIndexPerUser,injected,run,K,filename)
+	shardingAlgo(bitVectorLength,popularSitesPerUserDict,urlIndexPerUser,injected,run,K,filename,users)
 
 
-def shardingAlgo(bitVectorLength,browsingHist,urlIndexPerUser,injected,run,K,filename):
+def shardingAlgo(bitVectorLength,browsingHist,urlIndexPerUser,injected,run,K,filename,users):
 
 	shardingParameters=[1,2,4,8] #should be 1,2,4,8
-	# shardingParameters=[1,8] #should be 1,2,4,8
+	# shardingParameters=[1] #should be 1,2,4,8
 	_resolvers=[x for x in range(8)]
 	for value in shardingParameters:
 		print ("running for sharding value: ",str(value))
@@ -201,14 +200,14 @@ def shardingAlgo(bitVectorLength,browsingHist,urlIndexPerUser,injected,run,K,fil
 				del bitVector
 		print ("Done for sharding value: ",str(value))
 
-		if not os.path.exists("InjectedReqsLatest"):
-			os.mkdir("InjectedReqsLatest")
+		if not os.path.exists("InjectedReqsTemp"):
+			os.mkdir("InjectedReqsTemp")
 		if injected:
-			with open("InjectedReqsLatest/Injectedsharding_value"+filename+'_'+str(value)+"run_"+str(run)+'_'+str(K)+".json", 'w') as fp:
+			with open("InjectedReqsTemp/Injectedsharding_value"+filename+'_'+str(value)+"run_"+str(run)+'_'+str(K)+"_users_"+str(users)+".json", 'w') as fp:
 			# with open("k-anonResults/InjectedReqs/Injectedsharding_value"+str(value)+".json", 'w') as fp:
 				json.dump(userResolverMap, fp)
 		else:
-			with open("InjectedReqsLatest/sharding_value"+filename+str(value)+".json", 'w') as fp:
+			with open("InjectedReqsTemp/sharding_value"+filename+str(value)+"_users_"+str(users)+".json", 'w') as fp:
 				json.dump(userResolverMap, fp)
 
 def plotFreqDistr(sample,K):
@@ -231,39 +230,54 @@ def plotFreqDistr(sample,K):
 	plt.plot(indexes,overhead,color='b',linewidth=2)
 	plt.xlabel("Users")
 	plt.ylabel("Percentage overhead from Privacy")
-	if not os.path.exists("InjectedReqs/graphs"):
-		os.mkdir("InjectedReqs/graphs")
-	plt.savefig("InjectedReqs/graphs/Privacy_Overhead"+str(K))
+	if not os.path.exists("InjectedReqsTemp/graphs"):
+		os.mkdir("InjectedReqsTemp/graphs")
+	plt.savefig("InjectedReqsTemp/graphs/Privacy_Overhead"+str(K))
 	plt.clf()
 		
 if __name__ == "__main__":
 	# sample=createUserProfiles() #creates userProfile of 200 users
 	# userLog=json.load(open("distributionUserLog.json")) #createdDistribution
-	# filename="week1/7_25"
-	# userLog=json.load(open(filename+".json"))
-	# filename="week1_7_25"
+	filename="week1/7_25"
+	# filename="week1/allFiles"
 
+	userLog=json.load(open(filename+".json"))
+	# filename="allFiles"
+	filename="week1_7_25"
+	
+	if not os.path.exists("InjectedReqsTemp"):
+		os.mkdir("InjectedReqsTemp")
 
-	runs=2 #use 5 runs
-	K=3#(k is the insertion factor)
-	for x in range(runs):
-		print ("running run: ",x)
-		userLogInjected=injectRequests(userLog,K,x,filename)
-		preprocessBrowsingLog(userLogInjected,True,x,K,filename)
+	runs=2 #use 2 runs
+	K_values=[0,1,2,3]#(k is the insertion factor)
+	# K_values=[0]#(k is the insertion factor)
+	users=[20]
+	print (users,K_values)
+	for user in users:
+		for K in K_values:
+			for x in range(runs):
+				print ("running run: ",x,K)
+				userLogInjected=injectRequests(userLog,K,x,filename,user)
+				preprocessBrowsingLog(userLogInjected,True,x,K,filename,user)
 
-	# dirs=["week1","week2"]
-	# users=set()
+	# dirs=["week1"]
+	# users={}
 	# for _dir in dirs:
 	# 	arr = os.listdir(_dir)
 	# 	for ele in arr:
+	# 		print (ele)
 	# 		try:
 	# 			userLog=json.load(open(_dir+"/"+ele))
 	# 			for key in userLog:
-	# 				users.add(key)
-	# 			print (ele,len(users))
+	# 				if key not in users:
+	# 					users[key]=[]
+	# 				users[key]+=userLog[key]
+	# 			# print (ele,len(users))
 	# 		except Exception as e:
 	# 			print (str(e))
+	# 	with open(_dir+"/allFiles.json", 'w') as fp:
+	# 		json.dump(users, fp)
 
 
-
+# Injectedsharding_valueweek1_7_25_1run_0_0_users_[200]
 
