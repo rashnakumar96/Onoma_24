@@ -9,12 +9,20 @@ export GOPATH=`pwd`
 export GO111MODULE=auto
 go generate
 ```
-After this step you will have a binary named ```namehelp``` in ```/bin``` directory
+After this step you will have a binary named ```namehelp``` in ```/bin/test/``` directory
 
 ### To run the service directly:
 From the project home directory
 ```
 sudo ./bin/test/namehelp --service install
+```
+
+In case log file is read-only status, run
+```
+sudo chmod -R 777 bin/test/namehelp.log
+```
+Run Onoma
+```
 sudo ./bin/test/namehelp --service start
 ```
 
@@ -39,7 +47,7 @@ In the current directory a new folder ```out``` will be created
 The app will be in ```out/Sub-Rosa-darwin-x64/``` directory
 The package of the app will be in ```out/make/``` directory
 
-### To run app without building 
+### To run app without building
 From the project home directory
 ```
 cd Sub-Rosa/

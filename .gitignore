@@ -18,6 +18,8 @@ vendor/
 
 output/
 
+Sub-Rosa/src/bin/
+
 *.log
 
 WebPerformanceRes
