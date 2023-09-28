@@ -6,15 +6,16 @@ More software engineering version of Name-Secure
 ## Build
 ```
 export GOPATH=`pwd`
+export GO111MODULE=auto
 go generate
 ```
-After this step you will have a binary named ```namehelp``` in ```/bin/test``` directory
+After this step you will have a binary named ```namehelp``` in ```/bin``` directory
 
 ### To run the service directly:
 From the project home directory
 ```
 sudo ./bin/test/namehelp --service install
-sudo ./bin/test/namehelp --sertice start
+sudo ./bin/test/namehelp --service start
 ```
 
 ### To stop the service:
@@ -24,6 +25,23 @@ sudo ./bin/test/namehelp --service stop
 
 ### To uninstall:
 ```
-./bin/test/namehelp --service uninstall
+sudo ./bin/test/namehelp --service uninstall
 ```
-Output/debug statements generated in log files in the bin folder where the executable is -> either in bin or bin/test. Change service command accordingly.
+
+## Build app for MacOS
+The app is based on Electron framework
+From the project home directory
+```
+cd Sub-Rosa/
+npm make-mac
+```
+In the current directory a new folder ```out``` will be created
+The app will be in ```out/Sub-Rosa-darwin-x64/``` directory
+The package of the app will be in ```out/make/``` directory
+
+### To run app without building 
+From the project home directory
+```
+cd Sub-Rosa/
+npm start
+```

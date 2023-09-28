@@ -1,17 +1,14 @@
 package main
 
-// Dependencies
-// github.com/alexthemonk/aquarium
-// gopkg.in/natefinch/lumberjack.v2
-// github.com/kardianos/service
-// github.com/miekg/dns
-// github.com/konsorten/go-windows-terminal-sequences
-// github.com/alexthemonk/DoH_Proxy
-// go.mongodb.org/mongo-driver/mongo
-// go.mongodb.org/mongo-driver/bson
-// github.com/inconshreveable/go-update
-// github.com/blang/semver
-// github.com/rhysd/go-github-selfupdate/selfupdate
+//go:generate go get -u github.com/alexthemonk/DoH_Proxy/
+//go:generate go get -u github.com/kardianos/osext/
+//go:generate go get -u github.com/kardianos/service/
+//go:generate go get -u github.com/miekg/dns/
+//go:generate go get -u github.com/sirupsen/logrus/
+//go:generate go get -u go.mongodb.org/mongo-driver/mongo
+//go:generate go get -u gopkg.in/natefinch/lumberjack.v2
+//go:generate go get github.com/bobesa/go-domain-util/domainutil
+//go:generate go get -u github.com/bits-and-blooms/bloom
 
 //go:generate go build -o bin/test/namehelp namehelp
 
