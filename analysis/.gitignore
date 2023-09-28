@@ -1,5 +1,8 @@
 *.json
+!publicDNSServers.json
+
 *.txt
+*.png
 har
 nohup.out
 node_modules
