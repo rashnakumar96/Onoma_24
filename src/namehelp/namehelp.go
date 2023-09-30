@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net"
-// 	"net/http"
+	// 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -41,13 +41,13 @@ import (
 	"namehelp/handler"
 	"namehelp/utils"
 
+	bloom "github.com/bits-and-blooms/bloom"
+	domainutil "github.com/bobesa/go-domain-util/domainutil"
 	"github.com/kardianos/osext"
 	"github.com/kardianos/service"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
-	bloom "github.com/bits-and-blooms/bloom"
-	domainutil "github.com/bobesa/go-domain-util/domainutil"
 )
 
 var backupHosts = []string{}
@@ -198,7 +198,7 @@ func init() {
 	log.SetOutput(mw)
 	log.SetFormatter(&log.TextFormatter{ForceColors: true})
 	// Only log the Info level or above.
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 
 	srcDir = path.Dir(path.Dir(exeDir))
 	namehelpProgram = NewProgram()
