@@ -122,7 +122,7 @@ func NewProgram() *Program {
 // 	country, ok := jsonMap["country"].(string)
 // 	if ok {
 // 		log.WithFields(log.Fields{
-// 			"country": jsonMap["country"]}).Info("Namehelp: Country code")
+// 			"country": jsonMap["country"]}).Debug("Namehelp: Country code")
 // 	} else {
 // 		url := "https://extreme-ip-lookup.com/json"
 // 		resp, err := http.Get(url)
@@ -144,7 +144,7 @@ func NewProgram() *Program {
 // 		country, ok = jsonMap["countryCode"].(string)
 // 		if ok {
 // 			log.WithFields(log.Fields{
-// 				"country": jsonMap["countryCode"]}).Info("Namehelp: Country code")
+// 				"country": jsonMap["countryCode"]}).Debug("Namehelp: Country code")
 // 		} else {
 // 			log.Fatal("Failed to get country code")
 // 		}
@@ -165,7 +165,7 @@ func NewProgram() *Program {
 	program.clientID = strconv.FormatUint(uint64(hash(clientIP+clientMAC)), 10)
 
 	log.WithFields(log.Fields{
-		"client_id": program.clientID}).Info("Client Initialized")
+		"client_id": program.clientID}).Debug("Client Initialized")
 
 	return program
 }
@@ -198,7 +198,7 @@ func init() {
 	log.SetOutput(mw)
 	log.SetFormatter(&log.TextFormatter{ForceColors: true})
 	// Only log the Info level or above.
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 
 	srcDir = path.Dir(path.Dir(exeDir))
 	namehelpProgram = NewProgram()
@@ -245,6 +245,8 @@ func (program *Program) run() {
 	signalChannel = make(chan os.Signal)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
+	go program.runConfigTest()
+
 	err := program.launchNamehelpDNSServer()
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error()}).Error("Namehelp: Failed to launch namehelp.  Error: [%s]\nShutting down.")
@@ -269,7 +271,7 @@ func (program *Program) run() {
 	thisSignal := <-signalChannel
 
 	log.WithFields(log.Fields{
-		"signal": thisSignal.String()}).Info("Namehelp: Signal received")
+		"signal": thisSignal.String()}).Debug("Namehelp: Signal received")
 
 	// restore original DNS settings
 	program.restoreOldDNSServers(program.oldDNSServers)
@@ -278,6 +280,65 @@ func (program *Program) run() {
 
 	log.Info("Namehelp: Shutdown complete. Exiting.")
 	program.shutdownChan <- true
+}
+
+func (program *Program) runConfigTest() {
+	log.Info("Namehelp: run runConfigTest.")
+	dir := filepath.Join(srcDir, "analysis", "parsepublicdns.py")
+	cmd := exec.Command("python", dir)
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"configTest": stdout}).Error("Failed to create stdout pipe")
+		return
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"configTest": stderr}).Error("Failed to create stderr pipe")
+		return
+	}
+
+	if err := cmd.Start(); err != nil {
+		log.WithFields(log.Fields{
+			"configTest": err}).Error("Failed to start the RunConfigTest")
+		return
+	}
+
+	// Create channels to capture and log output
+	stdoutScanner := bufio.NewScanner(stdout)
+	stderrScanner := bufio.NewScanner(stderr)
+
+	// Start goroutines to capture and log output
+	go func() {
+		for stdoutScanner.Scan() {
+			log.Info("Python stdout: " + stdoutScanner.Text())
+		}
+	}()
+
+	go func() {
+		for stderrScanner.Scan() {
+			log.Error("Python stderr: " + stderrScanner.Text())
+		}
+	}()
+
+	// Wait for the command to finish
+	if err := cmd.Wait(); err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			exitStatus := exitError.ExitCode()
+			log.WithFields(log.Fields{
+				"configTest": exitStatus}).Error("RunConfigTest execution failed with exit code")
+		} else {
+			log.WithFields(log.Fields{
+				"configTest": err}).Error("RunConfigTest execution failed")
+		}
+	} else {
+		log.Info("Python script executed successfully.")
+	}
+
+	log.Info("Namehelp: complete runConfigTest.")
 }
 
 func (program *Program) initializeReporter() {
@@ -338,7 +399,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	if err != nil {
 	    log.WithFields(log.Fields{
 	    "error": err,
-        "filename": filepath.Join(srcDir, testingDir, "publicDNSServers.json")}).Info("Namehelp: error opening file")
+        "filename": filepath.Join(srcDir, testingDir, "publicDNSServers.json")}).Debug("Namehelp: error opening file")
 // 		log.Info("Namehelp: error opening file: " + filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
 	}
 	defer jsonFile.Close()
@@ -346,7 +407,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	var publicDNSServers []string
 	json.Unmarshal([]byte(byteValue), &publicDNSServers)
 	log.WithFields(log.Fields{
-		"publicDNSServers": publicDNSServers}).Info("Namehelp: These are the public DNS servers")
+		"publicDNSServers": publicDNSServers}).Debug("Namehelp: These are the public DNS servers")
 	handler.PDNSServers = publicDNSServers
 
 	program.initializeDNSServers()
@@ -399,7 +460,7 @@ func (program *Program) launchNamehelpDNSServer() error {
     handler.Filter=*filter
     log.WithFields(log.Fields{
             "bloomfilter": *filter,
-            "top50Sites": websites}).Info("Namehelp: These are the top 50 sites")
+            "top50Sites": websites}).Debug("Namehelp: These are the top 50 sites")
 
 	// start DNS servers for UDP and TCP requests
 	go program.startDNSServer(program.udpServer)
@@ -435,7 +496,7 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 		"resolver name": resolverName,
 		"ip":            ip,
 		"dir":           dir,
-		"testing dir":   testingDir}).Info("Namehelp: Namehelp run tests")
+		"testing dir":   testingDir}).Debug("Namehelp: Namehelp run tests")
 	if !handler.Experiment {
 		handler.DoHServersToTest = []string{"127.0.0.1"}
 	}
@@ -449,7 +510,7 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 	//and file filepath.Join(srcDir, testingDir)+"/lighthouseTTBresolverName.json" is made in the directory
 	utils.FlushLocalDnsCache()
 	log.WithFields(log.Fields{
-		"dir": filepath.Join(dir, "lighthouseTTB"+resolverName+"_.json")}).Info("Namehelp: Confirming Directory")
+		"dir": filepath.Join(dir, "lighthouseTTB"+resolverName+"_.json")}).Debug("Namehelp: Confirming Directory")
 
 	for {
 		if _, err := os.Stat(filepath.Join(dir, "lighthouseTTB"+resolverName+"_.json")); os.IsNotExist(err) {
@@ -467,7 +528,7 @@ func (program *Program) runTests(resolverName string, ip string, dir string, tes
 // func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir string, dict1 map[string]map[string]map[string]interface{}, dnsLatencyFile []string, iterations int, testingDir string) {
 func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir string, dict1 map[string]interface{}, dnsLatencyFile []string, iterations int, testingDir string) {
 	utils.FlushLocalDnsCache()
-	log.WithFields(log.Fields{"resolver": resolverName}).Info("Namehelp: Measuring DNS latency")
+	log.WithFields(log.Fields{"resolver": resolverName}).Debug("Namehelp: Measuring DNS latency")
 	var err error
 	if !handler.Experiment {
 		handler.DoHServersToTest = []string{"127.0.0.1"}
@@ -490,14 +551,14 @@ func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir 
 
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error": err}).Info("Namehelp: DNS Latency Command produced error")
+			"error": err}).Debug("Namehelp: DNS Latency Command produced error")
 	}
 	log.WithFields(log.Fields{
-		"dnsLatencyFile: ": filepath.Join(dir, "dnsLatencies.json")}).Info("Namehelp: Write DNS latency result to file")
+		"dnsLatencyFile: ": filepath.Join(dir, "dnsLatencies.json")}).Debug("Namehelp: Write DNS latency result to file")
 }
 
 func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string, client_id string,dict1 map[string]interface{},websites []string,feature string) {
-	log.WithFields(log.Fields{"dir": dir, "testing dir": testingDir}).Info("Namehelp: Setting up for DNS latency testing")
+	log.WithFields(log.Fields{"dir": dir, "testing dir": testingDir}).Debug("Namehelp: Setting up for DNS latency testing")
 
 	// dict1 := make(map[string]map[string]map[string]interface{})
 	// dict1 := make(map[string]interface{})
@@ -643,7 +704,7 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 		}
 	}
 
-	log.WithFields(log.Fields{"testing dir": testingDir}).Info("Namehelp: Namehelp start measurement")
+	log.WithFields(log.Fields{"testing dir": testingDir}).Debug("Namehelp: Namehelp start measurement")
 
 	publicDNSServers := handler.PDNSServers
 
@@ -659,7 +720,7 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	// Measuring DNSLatencies and Pings to Replicas
 	dnsLatencyFile := filepath.Join(srcDir, testingDir, "AlexaUniqueResources.txt")
 	websiteFile:=dnsLatencyFile
-	log.WithFields(log.Fields{"dir": websiteFile}).Info("Handler: Loading website file")
+	log.WithFields(log.Fields{"dir": websiteFile}).Debug("Handler: Loading website file")
 	_file, err := os.Open(websiteFile)
 	if err != nil {
 		log.Fatal(err)
@@ -706,7 +767,7 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	err = ioutil.WriteFile(filepath.Join(srcDir, "dat1"), d1, 0644)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error": err}).Info("Namehelp: couldn't start measurements")
+			"error": err}).Debug("Namehelp: couldn't start measurements")
 		panic(err)
 	}
 
@@ -837,7 +898,7 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	var bestResolvers []string
 	json.Unmarshal([]byte(byteValue), &bestResolvers)
 	log.WithFields(log.Fields{
-		"bestResolvers": bestResolvers}).Info("These are the best public DNS resolvers")
+		"bestResolvers": bestResolvers}).Debug("These are the best public DNS resolvers")
 	handler.BestResolvers = bestResolvers
 
 
@@ -1005,7 +1066,7 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 
 	networkInterfaces := strings.Split(strings.TrimSpace(string(output)), "\n")
 	log.WithFields(log.Fields{
-		"interface": networkInterfaces}).Info("Namehelp: Network interfaces found")
+		"interface": networkInterfaces}).Debug("Namehelp: Network interfaces found")
 
 	// Only focus on wifi and ethernet
 	interfaceKeywords := []string{"", ""}
@@ -1104,13 +1165,13 @@ func (program *Program) saveCurrentDNSConfiguration() (oldDNSServers map[string]
 		// if all else fails, at least save "empty"
 		if len(oldDNSServers[networkInterface]) == 0 {
 			log.WithFields(log.Fields{
-				"interface": networkInterface}).Info("Namehelp: No DNS servers to save.  Saving {'empty'}")
+				"interface": networkInterface}).Debug("Namehelp: No DNS servers to save.  Saving {'empty'}")
 			oldDNSServers[networkInterface] = []string{"empty"}
 		}
 	}
 
 	log.WithFields(log.Fields{
-		"old DNS server": oldDNSServers}).Info("Namehelp: old DNS server saved")
+		"old DNS server": oldDNSServers}).Debug("Namehelp: old DNS server saved")
 	fmt.Printf("oldDNSServers: %v Length [%d]\n", oldDNSServers, len(oldDNSServers))
 
 	return oldDNSServers
@@ -1124,7 +1185,7 @@ func (program *Program) setDNSServer(primaryDNS string, backupDNSList []string, 
 			"primary DNS": primaryDNS,
 			"backup DNS":  backupDNSList,
 			"OS":          runtime.GOOS,
-		}).Info("Namehelp: changing DNS server for interface to primary and backup")
+		}).Debug("Namehelp: changing DNS server for interface to primary and backup")
 
 		// "..." flattens the list to use each element as separate argument
 		if runtime.GOOS == "darwin" {
@@ -1160,14 +1221,14 @@ func (program *Program) setDNSServer(primaryDNS string, backupDNSList []string, 
 				log.Fatal(err)
 				return
 			}
-			log.WithFields(log.Fields{"output": output}).Info("Namehelp: Windows IPv4 DNS setting finished")
+			log.WithFields(log.Fields{"output": output}).Debug("Namehelp: Windows IPv4 DNS setting finished")
 			command = exec.Command("cmd", "/C", fmt.Sprintf(" netsh interface ipv6 add dnsservers %q address=::1 index=1", networkInterface.String()))
 			output, err = command.Output()
 			if err != nil {
 				log.Fatal(err)
 				return
 			}
-			log.WithFields(log.Fields{"output": output}).Info("Namehelp: Windows IPv6 DNS setting finished")
+			log.WithFields(log.Fields{"output": output}).Debug("Namehelp: Windows IPv6 DNS setting finished")
 		}
 	}
 }
@@ -1256,7 +1317,7 @@ func (program *Program) heartbeat(interval int) {
 				"country":   program.country,
 			}}
 			program.reporter.UpdateToMongoDB("SubRosa-Test", "Heartbeats", filter, doc)
-			log.WithFields(log.Fields{"time stamp": t}).Info("Namehelp: Sending heartbeat to server")
+			log.WithFields(log.Fields{"time stamp": t}).Debug("Namehelp: Sending heartbeat to server")
 			break
 		}
 	}
@@ -1307,7 +1368,7 @@ func main() {
 	// execute the specific operation
 	if len(*serviceFlag) != 0 {
 		log.WithFields(log.Fields{
-			"flag": *serviceFlag}).Info("Namehelp: Calling service.Control with flag")
+			"flag": *serviceFlag}).Debug("Namehelp: Calling service.Control with flag")
 		err := service.Control(namehelpService, *serviceFlag)
 		log.Info("Namehelp: Returned from service.Control()")
 

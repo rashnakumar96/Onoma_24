@@ -78,20 +78,20 @@ func (c *MemoryCache) Get(key string) (*dns.Msg, error) {
 	c.mu.RUnlock()
 	if !ok {
 		log.WithFields(log.Fields{
-			"key": key}).Info("KEY NOT FOUND")
+			"key": key}).Debug("KEY NOT FOUND")
 		return nil, KeyNotFound{key}
 	}
 
 	// if mesg.Expire.Before(time.Now()) {
 	//     fmt.Println("THE KEY HAS EXPIRED: ",mesg)
 	//     log.WithFields(log.Fields{
-	//            		"mesg": mesg}).Info("The msg has expired")
+	//            		"mesg": mesg}).Debug("The msg has expired")
 	// 	c.Remove(key)
 	// 	return nil, KeyExpired{key}
 	// }
 	log.WithFields(log.Fields{
 		"mesg": mesg.Msg,
-		"key":  key}).Info("GET MSG FOR KEY")
+		"key":  key}).Debug("GET MSG FOR KEY")
 
 	return mesg.Msg, nil
 
@@ -103,7 +103,7 @@ func (c *MemoryCache) Set(key string, msg *dns.Msg) error {
 		"mesg":      msg,
 		"key":       key,
 		"length":    c.Length(),
-		"maxLength": c.Maxcount}).Info("SETTING KEY")
+		"maxLength": c.Maxcount}).Debug("SETTING KEY")
 	if c.Full() && !c.Exists(key) {
 		log.Info("THE CACHE IS FULL")
 		return IsFull{}
@@ -112,13 +112,13 @@ func (c *MemoryCache) Set(key string, msg *dns.Msg) error {
 	mesg := Mesg{msg, expire}
 	log.WithFields(log.Fields{
 		"mesg":   mesg,
-		"expire": c.Expire}).Info("ADDING MSG TO CACHE")
+		"expire": c.Expire}).Debug("ADDING MSG TO CACHE")
 
 	c.mu.Lock()
 	c.Backend[key] = mesg
 	log.WithFields(log.Fields{
 		"mesg": c.Backend[key],
-		"key":  key}).Info("ADDING MSG TO Backend CACHE")
+		"key":  key}).Debug("ADDING MSG TO Backend CACHE")
 	c.mu.Unlock()
 	return nil
 }
@@ -153,7 +153,7 @@ func (c *MemoryCache) Full() bool {
 	}
 	log.WithFields(log.Fields{
 		"Length":   c.Length,
-		"maxCount": c.Maxcount}).Info("THE CACHE IS FULL AND HAS LENGTH:")
+		"maxCount": c.Maxcount}).Debug("THE CACHE IS FULL AND HAS LENGTH:")
 	return c.Length() >= c.Maxcount
 }
 

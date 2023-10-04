@@ -94,7 +94,7 @@ func (r *Reporter) PushToMongoDB(databaseName string, collectionName string, dat
 		"result":     result,
 		"db":         databaseName,
 		"collection": collectionName,
-	}).Info("Reporter: MongoDB data store finished.")
+	}).Debug("Reporter: MongoDB data store finished.")
 
 	return nil
 }
@@ -149,7 +149,7 @@ func (r *Reporter) UpdateToMongoDB(databaseName string, collectionName string, f
 		"result":     result,
 		"db":         databaseName,
 		"collection": collectionName,
-	}).Info("Reporter: MongoDB data update finished.")
+	}).Debug("Reporter: MongoDB data update finished.")
 
 	return nil
 }
@@ -197,7 +197,7 @@ func (r *Reporter) PushToMongoDBMulti(dataMap map[string]map[string][]interface{
 			log.WithFields(log.Fields{
 				"db":         databaseName,
 				"collection": collectionName,
-			}).Info("Reporter: MongoDB data store finished.")
+			}).Debug("Reporter: MongoDB data store finished.")
 		}
 	}
 

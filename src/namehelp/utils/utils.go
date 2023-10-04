@@ -103,14 +103,14 @@ func GetDirectoryOfExecutable() string {
 }
 
 func RunCommand(name string, arguments ...string) (combinedOutputString string, err error) {
-	log.WithFields(log.Fields{"command": name, "args": arguments}).Info("Running command")
+	log.WithFields(log.Fields{"command": name, "args": arguments}).Debug("Running command")
 	command := exec.Command(name, arguments...)
 	combinedOutput, err := command.CombinedOutput()
 	combinedOutputString = string(combinedOutput)
 	log.WithFields(log.Fields{
 		"command":  name,
 		"argument": arguments,
-		"output":   combinedOutput}).Info("Executing command")
+		"output":   combinedOutput}).Debug("Executing command")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"command":  name,

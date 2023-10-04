@@ -60,7 +60,7 @@ func (c *Fetcher) FetchOne(databaseName string, collectionName string, filter ma
 		"result":     result,
 		"db":         databaseName,
 		"collection": collectionName,
-	}).Info("Fetcher: Data Fetched.")
+	}).Debug("Fetcher: Data Fetched.")
 
 	return data, nil
 }

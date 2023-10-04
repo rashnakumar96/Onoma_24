@@ -27,7 +27,7 @@ func doUpdate(url string) error {
 		log.Withfields(log.Fields{"error": err}).Error("Updater: Error getting executable path")
 		return err
 	}
-	log.WithFields(log.Fields{"exe": filename}).Info("Updater: Attempting restart.")
+	log.WithFields(log.Fields{"exe": filename}).Debug("Updater: Attempting restart.")
 	args := []string{"--service", "restart"}
 	c := exec.Command(filename, args...)
 

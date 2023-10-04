@@ -3,11 +3,11 @@
 package resolver
 
 import (
-// 	"bytes"
+	// 	"bytes"
 	"errors"
 	"fmt"
 	"math/rand"
-// 	"os/exec"
+	// 	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -18,14 +18,16 @@ import (
 	"namehelp/utils"
 
 	proxy "github.com/alexthemonk/DoH_Proxy"
+	bloom "github.com/bits-and-blooms/bloom"
+	domainutil "github.com/bobesa/go-domain-util/domainutil"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
-	domainutil "github.com/bobesa/go-domain-util/domainutil"
-	bloom "github.com/bits-and-blooms/bloom"
 )
 
 // Client for resolver proxy that translate DNS to DoH
 var Client proxy.Client
+var mutex = &sync.Mutex{}
+
 
 // ResolvError error type
 type ResolvError struct {
@@ -74,7 +76,7 @@ func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.
         log.WithFields(log.Fields{
             "id":          doID,
             "query":       qname,
-            "name server": nameserver}).Info("Resolver: This is the inserted query, no response needed")
+            "name server": nameserver}).Debug("Resolver: This is the inserted query, no response needed")
         return
     }
     defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
@@ -98,7 +100,7 @@ func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.
 		log.WithFields(log.Fields{
 			"id":          doID,
 			"query":       qname,
-			"name server": nameserver}).Info("Resolver: Failed to get a valid answer for query from nameserver")
+			"name server": nameserver}).Debug("Resolver: Failed to get a valid answer for query from nameserver")
 		if responseMessage.Rcode == dns.RcodeServerFailure {
 			// SERVFAIL: don't provide response because other DNS servers may have better luck
 			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Error("Resolver: ServFail")
@@ -114,7 +116,7 @@ func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.
 			"query type":  dns.TypeToString[qType],
 			"name server": nameserver,
 			"net":         net,
-			"tll":         rtt}).Info("Resolver: resolve successfully")
+			"tll":         rtt}).Debug("Resolver: resolve successfully")
 	}
 
 	// use select statement with default to try the send without blocking
@@ -141,7 +143,7 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 
 	qname := requestMessage.Question[0].Name
 	qType := requestMessage.Question[0].Qtype
-	log.WithFields(log.Fields{"nameserver": nameserver}).Info("Resolver: DoH look up at Namehelp")
+	log.WithFields(log.Fields{"nameserver": nameserver}).Debug("Resolver: DoH look up at Namehelp")
 
 	//Match the resolverName with the resolver
 	var resolver proxy.Server
@@ -151,14 +153,14 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 			break
 		}
 	}
-	log.WithFields(log.Fields{"nameserver": resolver}).Info("Resolver: DoH look up at Namehelp")
+	log.WithFields(log.Fields{"nameserver": resolver}).Debug("Resolver: DoH look up at Namehelp")
 
 	responseMessage, err := Client.Resolve(requestMessage, resolver)
 	if insertion==true{
         log.WithFields(log.Fields{
             "id":          doID,
             "query":       qname,
-            "name server": nameserver}).Info("ResolverDoH: This is the inserted query, no response needed")
+            "name server": nameserver}).Debug("ResolverDoH: This is the inserted query, no response needed")
         return
     }
     defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
@@ -177,7 +179,7 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 
 	log.WithFields(log.Fields{
 		"name server": nameserver,
-	}).Info("Resolver: Response from DoH")
+	}).Debug("Resolver: Response from DoH")
 
 	// If SERVFAIL happens, should return immediately and try another upstream resolver.
 	// However, other Error codes like NXDOMAIN are a clear response stating
@@ -188,7 +190,7 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 		log.WithFields(log.Fields{
 			"id":          doID,
 			"query":       qname,
-			"name server": nameserver}).Info("Resolver: Failed to get a valid answer for query from nameserver")
+			"name server": nameserver}).Debug("Resolver: Failed to get a valid answer for query from nameserver")
 		if responseMessage.Rcode == dns.RcodeServerFailure {
 			// SERVFAIL: don't provide response because other DNS servers may have better luck
 			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Error("Resolver: ServFail")
@@ -205,7 +207,7 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 			"domain name": utils.UnFullyQualifyDomainName(qname),
 			"query type":  dns.TypeToString[qType],
 			"name server": nameserver,
-			"net":         net}).Info("Resolver: resolve successfully")
+			"net":         net}).Debug("Resolver: resolve successfully")
 	}
 
 	// use select statement with default to try the send without blocking
@@ -214,13 +216,13 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 	case resultChannel <- responseMessage:
 		log.WithFields(log.Fields{
 			"id":          doID,
-			"name server": nameserver}).Info("Resolver: name server won the resolver race.")
+			"name server": nameserver}).Debug("Resolver: name server won the resolver race.")
 	default:
 		// if another goroutine already sent on channel and the message is not yet read
 		// we simply return in order to invoke the deferred waitGroup.Done() call
 		log.WithFields(log.Fields{
 			"id":          doID,
-			"name server": nameserver}).Info("Resolver: name server DID NOT win the resolver race.")
+			"name server": nameserver}).Debug("Resolver: name server DID NOT win the resolver race.")
 		return
 	}
 }
@@ -241,7 +243,7 @@ func (resolver *Resolver) LookupAtNameserver(net string, requestMessage *dns.Msg
 		"query":        requestMessage.Question[0].String(),
 		"name server":  nameserver,
 		"net":          net,
-		"full request": requestMessage.String()}).Info("Resolver: Performing lookup at nameserver for DR")
+		"full request": requestMessage.String()}).Debug("Resolver: Performing lookup at nameserver for DR")
 
 	dnsClient := &dns.Client{
 		Net:          net,
@@ -268,7 +270,7 @@ func (resolver *Resolver) LookupAtNameserver(net string, requestMessage *dns.Msg
 		log.WithFields(log.Fields{
 			"id":          doID,
 			"name server": nameserver,
-			"message":     resultMessage.String()}).Info("Resolver: Response from nameserver")
+			"message":     resultMessage.String()}).Debug("Resolver: Response from nameserver")
 		return resultMessage, nil
 	case <-ticker.C:
 		break
@@ -291,12 +293,12 @@ func (resolver *Resolver) LookupAtNameserver(net string, requestMessage *dns.Msg
 		log.WithFields(log.Fields{
 			"id":          doID,
 			"name server": nameserver,
-			"message":     resultMessage.String()}).Info("Resolver: Response from nameserver for DR successfull")
+			"message":     resultMessage.String()}).Debug("Resolver: Response from nameserver for DR successfull")
 		return resultMessage, nil
 	default:
 		log.WithFields(log.Fields{
 			"id":          doID,
-			"name server": nameserver}).Info("Resolver: Response from nameserver for DR is: [nil] (SERVFAIL?)")
+			"name server": nameserver}).Debug("Resolver: Response from nameserver for DR is: [nil] (SERVFAIL?)")
 		return nil, ResolvError{qname, net, []string{nameserver}}
 	}
 }
@@ -317,7 +319,7 @@ func (resolver *Resolver) Shard() []proxy.Server {
 	// return Client.Resolvers[:cutOff]
 	log.WithFields(log.Fields{
 		"resolversLength": len(Client.Resolvers),
-		"resolvers":       Client.Resolvers}).Info("Resolver: These are the shuffled resolvers")
+		"resolvers":       Client.Resolvers}).Debug("Resolver: These are the shuffled resolvers")
 	return Client.Resolvers
 
 }
@@ -360,7 +362,6 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 
 	_question := requestMessage.Question[0]
 	question := strings.Split(_question.String()[1:], ".\tIN\t")[0]
-	var mutex = &sync.Mutex{}
 // 	var stdout bytes.Buffer
 	var domain string
 	//The eperiment flag is turned on when testing individual resolvers and is off when testing DoHProxy and SubRosa
@@ -373,11 +374,11 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 		if len(val) == 1 {
 			domain = question
 			log.WithFields(log.Fields{
-				"website": domain}).Info("Resolver: Using original website name")
+				"website": domain}).Debug("Resolver: Using original website name")
 		} else {
 			domain = val[0]
 			log.WithFields(log.Fields{
-				"website": domain}).Info("Resolver: This is the domain of the website")
+				"website": domain}).Debug("Resolver: This is the domain of the website")
 		}
 // 		cmd := exec.Command("python3", "2ld.py", "https://"+domain)
 // 		cmd.Stdout = &stdout
@@ -388,7 +389,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
             "go2ld": secondld,
             "question_requestMessage": requestMessage,
             "question_name": _question.Name,
-            "website": domain}).Info("Resolver: Found second level domain")
+            "website": domain}).Debug("Resolver: Found second level domain")
              domain=secondld
         }else{
             log.WithFields(log.Fields{
@@ -428,7 +429,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 			}
 			log.WithFields(log.Fields{
 				"resolvers": resolvers,
-				"website":   domain}).Info("Resolver: These resolvers assigned to the domain")
+				"website":   domain}).Debug("Resolver: These resolvers assigned to the domain")
 		} else {
 			//if domain not found in resolvermapping and if testing DoHProxy, shard and select a random resolver
 			if _proxy {
@@ -509,7 +510,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 		"PrivacyEnabled": PrivacyEnabled,
 		"Racing":         Racing,
 		"Decentralized":  Decentralized,
-		"resolvers":      resolvers}).Info("Resolver: These are the resolvers assigned checkP")
+		"resolvers":      resolvers}).Debug("Resolver: These are the resolvers assigned checkP")
 	// for _, nameserver := range nameservers {
 	for _, nameserver := range resolvers {
 		// add to waitGroup and launch goroutine to do lookup
@@ -552,7 +553,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
                     log.WithFields(log.Fields{
                         "originalQuestion": requestMessage.Question[0].Name,
                         "insertedQuestion": m.Question[0].Name,
-                        "insertedDomain": insertedDomain}).Info("ResolverDoH: This is the Inserted Question")
+                        "insertedDomain": insertedDomain}).Debug("ResolverDoH: This is the Inserted Question")
                     go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, m, net, resultChannel, doID, true)
                 }
             }
@@ -575,7 +576,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
                     log.WithFields(log.Fields{
                         "originalQuestion": requestMessage.Question[0].Name,
                         "insertedQuestion": m.Question[0].Name,
-                        "insertedDomain": insertedDomain}).Info("Resolver: This is the Inserted Question")
+                        "insertedDomain": insertedDomain}).Debug("Resolver: This is the Inserted Question")
                     go routine_DoLookup(nameserver, dnsClient, &waitGroup, m, net, resultChannel, doID, true)
                 }
             }
@@ -589,12 +590,12 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 			return result, nil
 		// case <-ticker.C:
 		// 	log.WithFields(log.Fields{
-		// 		"ticker.C": ticker.C}).Info("time ticked sending query to another resolver")
+		// 		"ticker.C": ticker.C}).Debug("time ticked sending query to another resolver")
 		// 	// when interval ticks, repeat loop
 		// 	continue
 		default:
 			log.WithFields(log.Fields{
-				"ticker.C": ticker.C}).Info("Resolver: time ticked sending query to another resolver")
+				"ticker.C": ticker.C}).Debug("Resolver: time ticked sending query to another resolver")
 			// when interval ticks, repeat loop
 			continue
 		}
@@ -605,10 +606,10 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	// 	lookupFinished := make(chan bool, 1)
 	// 	go func(lookupFinished chan bool, waitGroup sync.WaitGroup) {
 	// 		log.WithFields(log.Fields{
-	// 			"question": question}).Info("Waiting for lookup queries to finish.")
+	// 			"question": question}).Debug("Waiting for lookup queries to finish.")
 	// 		waitGroup.Wait() // wait for all the goroutines to finish
 	// 		log.WithFields(log.Fields{
-	// 			"question": question}).Info("All lookup queries have finished.")
+	// 			"question": question}).Debug("All lookup queries have finished.")
 	// 		lookupFinished <- true
 	// 	}(lookupFinished, waitGroup)
 
@@ -617,24 +618,24 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	// 		// at least one succeeded
 	// 		log.WithFields(log.Fields{
 	// 			"question": question,
-	// 			"response": result.String()}).Info("Early Response from nameserver")
+	// 			"response": result.String()}).Debug("Early Response from nameserver")
 	// 		return result, nil
 	// 	case <-lookupFinished:
 	// 		log.WithFields(log.Fields{
-	// 			"question": question}).Info("WaitGroup done for all lookup queries")
+	// 			"question": question}).Debug("WaitGroup done for all lookup queries")
 	// 	}
 
 	// go routines have finished we check if we get anything on resultChannel otherwise it's a serve fail
 	if Racing {
 		lookupFinished := make(chan bool, 1)
-		go func(lookupFinished chan bool, waitGroup sync.WaitGroup) {
+		go func(lookupFinished chan bool, waitGroup *sync.WaitGroup) {
 			log.WithFields(log.Fields{
-				"question": question}).Info("Resolver: Waiting for lookup queries to finish.")
+				"question": question}).Debug("Resolver: Waiting for lookup queries to finish.")
 			waitGroup.Wait() // wait for all the goroutines to finish
 			log.WithFields(log.Fields{
-				"question": question}).Info("Resolver: All lookup queries have finished.")
+				"question": question}).Debug("Resolver: All lookup queries have finished.")
 			lookupFinished <- true
-		}(lookupFinished, waitGroup)
+		}(lookupFinished, &waitGroup)
 
 		// while waiting for previous go routines to finish, we are listening on result Channel for a resultmsg, if we get it,
 		//we return early or are listening on lookupFinished channel for prev goroutines to finish
@@ -645,11 +646,11 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 			// at least one succeeded
 			log.WithFields(log.Fields{
 				"question": question,
-				"response": resultMessage.String()}).Info("Resolver: Early Response from nameserver")
+				"response": resultMessage.String()}).Debug("Resolver: Early Response from nameserver")
 			return resultMessage, nil
 		case <-lookupFinished:
 			log.WithFields(log.Fields{
-				"question": question}).Info("Resolver: WaitGroup done for all lookup queries")
+				"question": question}).Debug("Resolver: WaitGroup done for all lookup queries")
 			// waitDone=true
 		}
 		// if waitDone{
@@ -659,10 +660,10 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	} else {
 		//racing is false so we just wait for go routines to finish
 		log.WithFields(log.Fields{
-			"id": doID}).Info("Resolver: Racing disabled, Waiting for lookup queries to finish.")
+			"id": doID}).Debug("Resolver: Racing disabled, Waiting for lookup queries to finish.")
 		waitGroup.Wait() // wait for all the goroutines to finish
 		log.WithFields(log.Fields{
-			"id": doID}).Info("Resolver: Racing disabled, All lookup queries have finished.")
+			"id": doID}).Debug("Resolver: Racing disabled, All lookup queries have finished.")
 	}
 
 	//go routines have finished we check if we get anything on resultChannel otherwise it's a serve fail
@@ -671,12 +672,12 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 		// at least one succeeded
 		log.WithFields(log.Fields{
 			"id":       doID,
-			"response": resultMessage.String()}).Info("Resolver: Response from nameserver(s)")
+			"response": resultMessage.String()}).Debug("Resolver: Response from nameserver(s)")
 		return resultMessage, nil
 	default:
 		// all had SERVFAIL errors
 		log.WithFields(log.Fields{
-			"id": doID}).Info("Resolver: Response from nameserver(s) is: [nil]  (all SERVFAIL?)")
+			"id": doID}).Debug("Resolver: Response from nameserver(s) is: [nil]  (all SERVFAIL?)")
 		qname := requestMessage.Question[0].Name
 		return nil, ResolvError{qname, net, resolver.Nameservers()}
 	}
