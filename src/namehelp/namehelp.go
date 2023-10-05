@@ -245,8 +245,20 @@ func (program *Program) run() {
 	signalChannel = make(chan os.Signal)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
-	go program.runConfigTest()
+	ipinfo, err := utils.GetPublicIPInfo()
+	if err != nil {
+		log.Info("Error getting local IP info:", err)
+		return
+	}
 
+	log.Info("Current IP info: ", ipinfo)
+
+	go program.runConfigTest(ipinfo.Country)
+
+	program.runOnoma(ipinfo.Ip)
+}
+
+func (program *Program) runOnoma(ipAddr string) {
 	err := program.launchNamehelpDNSServer()
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error()}).Error("Namehelp: Failed to launch namehelp.  Error: [%s]\nShutting down.")
@@ -265,27 +277,64 @@ func (program *Program) run() {
 	// go program.smartDNSSelector.routine_Do()
 
 	// TODO run aquarium measurements
+	interval := 5 * time.Second
+	ipChangeSignal := make(chan struct{})
 
-	log.Info("Namehelp: Waiting for signal from signalChannel (blocking)")
+	// Start a goroutine to periodically check the IP address
+	go func() {
+		for {
+			time.Sleep(interval)
 
-	thisSignal := <-signalChannel
+			newIpInfo, err := utils.GetPublicIPInfo()
+			if err != nil {
+				log.Info("Error getting local IP info:", err)
+				continue
+			}
 
-	log.WithFields(log.Fields{
-		"signal": thisSignal.String()}).Debug("Namehelp: Signal received")
+			log.Info("Every 5 secs with ip addr: ", newIpInfo.Ip)
 
-	// restore original DNS settings
-	program.restoreOldDNSServers(program.oldDNSServers)
-	// save user's top sites to file
-	// program.dnsQueryHandler.topSites.SaveUserSites()
+			if newIpInfo.Ip != ipAddr {
+				log.Infof("Network switch detected. New IP address: %s\n", newIpInfo.Ip)
 
-	log.Info("Namehelp: Shutdown complete. Exiting.")
-	program.shutdownChan <- true
+				// Update the IP address for future comparisons
+				ipAddr = newIpInfo.Ip
+
+				// Send IP address change signal
+				ipChangeSignal <- struct{}{}
+			}
+		}
+	}()
+
+	_ = <-signalChannel
+
+	select {
+	case <-ipChangeSignal:
+		log.Info("Received IP address change signal.")
+		go program.runConfigTest(ipAddr)
+
+	case <-signalChannel:
+		log.Info("Received signal from signalChannel")
+
+		thisSignal := <-signalChannel
+
+		log.WithFields(log.Fields{
+			"signal": thisSignal.String()}).Debug("Namehelp: Signal received")
+
+		// restore original DNS settings
+		program.restoreOldDNSServers(program.oldDNSServers)
+		// save user's top sites to file
+		// program.dnsQueryHandler.topSites.SaveUserSites()
+
+		log.Info("Namehelp: Shutdown complete. Exiting.")
+		program.shutdownChan <- true
+	}
 }
 
-func (program *Program) runConfigTest() {
+func (program *Program) runConfigTest(country string) {
 	log.Info("Namehelp: run runConfigTest.")
 	dir := filepath.Join(srcDir, "analysis", "parsepublicdns.py")
-	cmd := exec.Command("python", dir)
+	args := []string{dir, country}
+	cmd := exec.Command("python", args...)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

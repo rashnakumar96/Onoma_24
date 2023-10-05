@@ -1,7 +1,11 @@
 package utils
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -21,6 +25,12 @@ const (
 	// PORT is the port for localhost
 	PORT = 53 // DNS port
 )
+
+type IPInfoResponse struct {
+	Ip string `json:"ip"`
+	Hostname string `json:"hostname"`
+	Country string `json:"country"`
+}
 
 func UnionStringLists(list1 []string, list2 []string) []string {
 	var baseList []string
@@ -283,4 +293,29 @@ func UnFullyQualifyDomainName(s string) string {
 		return s[:len(s)-1]
 	}
 	return s
+}
+
+func GetPublicIPInfo() (*IPInfoResponse, error) {
+	url := "https://ipinfo.io"
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP request failed with status code: %d", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var ipInfo *IPInfoResponse
+	if err := json.Unmarshal(body, &ipInfo); err != nil {
+		return nil, err
+	}
+
+	return ipInfo, nil
 }
