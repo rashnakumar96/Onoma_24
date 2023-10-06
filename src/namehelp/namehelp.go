@@ -53,6 +53,7 @@ import (
 var backupHosts = []string{}
 
 var signalChannel chan os.Signal
+var stopConfigSignalChan chan struct{}
 
 // Config contains the configuration specifications
 type Config struct {
@@ -102,58 +103,58 @@ func NewProgram() *Program {
 	program.initializeReporter()
 
 	// Get client IP info
-// 	url := "http://ipinfo.io/json"
-// 	resp, err := http.Get(url)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer resp.Body.Close()
-// 	body, readErr := ioutil.ReadAll(resp.Body)
-// 	if readErr != nil {
-// 		log.Fatal(readErr)
-// 	}
-// 	jsonMap := make(map[string]interface{})
-//
-// 	jsonErr := json.Unmarshal(body, &jsonMap)
-// 	if jsonErr != nil {
-// 		log.Fatal(jsonErr)
-// 	}
-//
-// 	country, ok := jsonMap["country"].(string)
-// 	if ok {
-// 		log.WithFields(log.Fields{
-// 			"country": jsonMap["country"]}).Debug("Namehelp: Country code")
-// 	} else {
-// 		url := "https://extreme-ip-lookup.com/json"
-// 		resp, err := http.Get(url)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		defer resp.Body.Close()
-// 		body, readErr := ioutil.ReadAll(resp.Body)
-// 		if readErr != nil {
-// 			log.Fatal(readErr)
-// 		}
-// 		jsonMap := make(map[string]interface{})
-//
-// 		jsonErr := json.Unmarshal(body, &jsonMap)
-// 		if jsonErr != nil {
-// 			log.Fatal(jsonErr)
-// 		}
-//
-// 		country, ok = jsonMap["countryCode"].(string)
-// 		if ok {
-// 			log.WithFields(log.Fields{
-// 				"country": jsonMap["countryCode"]}).Debug("Namehelp: Country code")
-// 		} else {
-// 			log.Fatal("Failed to get country code")
-// 		}
-// 	}
-// 	program.country = country
-//
-// 	clientIP := jsonMap["ip"].(string)
-    program.country = "US"
-    clientIP:=""
+	// 	url := "http://ipinfo.io/json"
+	// 	resp, err := http.Get(url)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	defer resp.Body.Close()
+	// 	body, readErr := ioutil.ReadAll(resp.Body)
+	// 	if readErr != nil {
+	// 		log.Fatal(readErr)
+	// 	}
+	// 	jsonMap := make(map[string]interface{})
+	//
+	// 	jsonErr := json.Unmarshal(body, &jsonMap)
+	// 	if jsonErr != nil {
+	// 		log.Fatal(jsonErr)
+	// 	}
+	//
+	// 	country, ok := jsonMap["country"].(string)
+	// 	if ok {
+	// 		log.WithFields(log.Fields{
+	// 			"country": jsonMap["country"]}).Debug("Namehelp: Country code")
+	// 	} else {
+	// 		url := "https://extreme-ip-lookup.com/json"
+	// 		resp, err := http.Get(url)
+	// 		if err != nil {
+	// 			log.Fatal(err)
+	// 		}
+	// 		defer resp.Body.Close()
+	// 		body, readErr := ioutil.ReadAll(resp.Body)
+	// 		if readErr != nil {
+	// 			log.Fatal(readErr)
+	// 		}
+	// 		jsonMap := make(map[string]interface{})
+	//
+	// 		jsonErr := json.Unmarshal(body, &jsonMap)
+	// 		if jsonErr != nil {
+	// 			log.Fatal(jsonErr)
+	// 		}
+	//
+	// 		country, ok = jsonMap["countryCode"].(string)
+	// 		if ok {
+	// 			log.WithFields(log.Fields{
+	// 				"country": jsonMap["countryCode"]}).Debug("Namehelp: Country code")
+	// 		} else {
+	// 			log.Fatal("Failed to get country code")
+	// 		}
+	// 	}
+	// 	program.country = country
+	//
+	// 	clientIP := jsonMap["ip"].(string)
+	program.country = "US"
+	clientIP := ""
 	as, err := program.getMacAddr()
 	if err != nil {
 		log.Fatal(err)
@@ -245,6 +246,7 @@ func (program *Program) run() {
 	signalChannel = make(chan os.Signal)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 
+	stopConfigSignalChan = make(chan struct{})
 	ipinfo, err := utils.GetPublicIPInfo()
 	if err != nil {
 		log.Info("Error getting local IP info:", err)
@@ -278,20 +280,21 @@ func (program *Program) runOnoma(ipAddr string) {
 
 	// TODO run aquarium measurements
 	interval := 5 * time.Second
-	ipChangeSignal := make(chan struct{})
 
 	// Start a goroutine to periodically check the IP address
 	go func() {
 		for {
 			time.Sleep(interval)
 
+			utils.FlushLocalDnsCache()
+
 			newIpInfo, err := utils.GetPublicIPInfo()
 			if err != nil {
-				log.Info("Error getting local IP info:", err)
+				log.Error("Error getting local IP info:", err)
 				continue
 			}
 
-			log.Info("Every 5 secs with ip addr: ", newIpInfo.Ip)
+			log.Info("Every 5 secs with new ip addr: ", newIpInfo.Ip, ". old ip addr: ", ipAddr)
 
 			if newIpInfo.Ip != ipAddr {
 				log.Infof("Network switch detected. New IP address: %s\n", newIpInfo.Ip)
@@ -299,96 +302,97 @@ func (program *Program) runOnoma(ipAddr string) {
 				// Update the IP address for future comparisons
 				ipAddr = newIpInfo.Ip
 
-				// Send IP address change signal
-				ipChangeSignal <- struct{}{}
+				stopConfigSignalChan <- struct{}{}
+
+				time.Sleep(interval)
+
+				go program.runConfigTest(newIpInfo.Country)
 			}
 		}
 	}()
 
-	_ = <-signalChannel
+	thisSignal := <-signalChannel
+	log.Info("Received signal from signalChannel")
 
-	select {
-	case <-ipChangeSignal:
-		log.Info("Received IP address change signal.")
-		go program.runConfigTest(ipAddr)
+	log.WithFields(log.Fields{
+		"signal": thisSignal.String()}).Debug("Namehelp: Signal received")
 
-	case <-signalChannel:
-		log.Info("Received signal from signalChannel")
+	// restore original DNS settings
+	program.restoreOldDNSServers(program.oldDNSServers)
+	// save user's top sites to file
+	// program.dnsQueryHandler.topSites.SaveUserSites()
 
-		thisSignal := <-signalChannel
-
-		log.WithFields(log.Fields{
-			"signal": thisSignal.String()}).Debug("Namehelp: Signal received")
-
-		// restore original DNS settings
-		program.restoreOldDNSServers(program.oldDNSServers)
-		// save user's top sites to file
-		// program.dnsQueryHandler.topSites.SaveUserSites()
-
-		log.Info("Namehelp: Shutdown complete. Exiting.")
-		program.shutdownChan <- true
-	}
+	log.Info("Namehelp: Shutdown complete. Exiting.")
+	program.shutdownChan <- true
 }
 
 func (program *Program) runConfigTest(country string) {
-	log.Info("Namehelp: run runConfigTest.")
-	dir := filepath.Join(srcDir, "analysis", "parsepublicdns.py")
-	args := []string{dir, country}
-	cmd := exec.Command("python", args...)
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"configTest": stdout}).Error("Failed to create stdout pipe")
+	for {
+	select {
+	case <-stopConfigSignalChan:
+		// The stop signal has been received, exit the goroutine
+		fmt.Println("runConfigTest goroutine is exiting.")
 		return
-	}
+	default:
+		log.Info("Namehelp: run runConfigTest.")
+		dir := filepath.Join(srcDir, "analysis", "parsepublicdns.py")
+		args := []string{dir, country}
+		cmd := exec.Command("python", args...)
 
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"configTest": stderr}).Error("Failed to create stderr pipe")
-		return
-	}
-
-	if err := cmd.Start(); err != nil {
-		log.WithFields(log.Fields{
-			"configTest": err}).Error("Failed to start the RunConfigTest")
-		return
-	}
-
-	// Create channels to capture and log output
-	stdoutScanner := bufio.NewScanner(stdout)
-	stderrScanner := bufio.NewScanner(stderr)
-
-	// Start goroutines to capture and log output
-	go func() {
-		for stdoutScanner.Scan() {
-			log.Info("Python stdout: " + stdoutScanner.Text())
-		}
-	}()
-
-	go func() {
-		for stderrScanner.Scan() {
-			log.Error("Python stderr: " + stderrScanner.Text())
-		}
-	}()
-
-	// Wait for the command to finish
-	if err := cmd.Wait(); err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			exitStatus := exitError.ExitCode()
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
 			log.WithFields(log.Fields{
-				"configTest": exitStatus}).Error("RunConfigTest execution failed with exit code")
+				"configTest": stdout}).Error("Failed to create stdout pipe")
+			return
+		}
+
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"configTest": stderr}).Error("Failed to create stderr pipe")
+			return
+		}
+
+		if err := cmd.Start(); err != nil {
+			log.WithFields(log.Fields{
+				"configTest": err}).Error("Failed to start the RunConfigTest")
+			return
+		}
+
+		// Create channels to capture and log output
+		stdoutScanner := bufio.NewScanner(stdout)
+		stderrScanner := bufio.NewScanner(stderr)
+
+		// Start goroutines to capture and log output
+		go func() {
+			for stdoutScanner.Scan() {
+				log.Info("Python stdout: " + stdoutScanner.Text())
+			}
+		}()
+
+		go func() {
+			for stderrScanner.Scan() {
+				log.Error("Python stderr: " + stderrScanner.Text())
+			}
+		}()
+
+		// Wait for the command to finish
+		if err := cmd.Wait(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitStatus := exitError.ExitCode()
+				log.WithFields(log.Fields{
+					"configTest": exitStatus}).Error("RunConfigTest execution failed with exit code")
+			} else {
+				log.WithFields(log.Fields{
+					"configTest": err}).Error("RunConfigTest execution failed")
+			}
 		} else {
-			log.WithFields(log.Fields{
-				"configTest": err}).Error("RunConfigTest execution failed")
+			log.Info("Python script executed successfully.")
 		}
-	} else {
-		log.Info("Python script executed successfully.")
-	}
 
-	log.Info("Namehelp: complete runConfigTest.")
-}
+		log.Info("Namehelp: complete runConfigTest.")
+	}
+}}
 
 func (program *Program) initializeReporter() {
 	program.reporter = reporter.NewReporter(appConfig.Version)
@@ -446,10 +450,10 @@ func (program *Program) launchNamehelpDNSServer() error {
 	}
 	jsonFile, err := os.Open(filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
 	if err != nil {
-	    log.WithFields(log.Fields{
-	    "error": err,
-        "filename": filepath.Join(srcDir, testingDir, "publicDNSServers.json")}).Debug("Namehelp: error opening file")
-// 		log.Info("Namehelp: error opening file: " + filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
+		log.WithFields(log.Fields{
+			"error":    err,
+			"filename": filepath.Join(srcDir, testingDir, "publicDNSServers.json")}).Debug("Namehelp: error opening file")
+		// 		log.Info("Namehelp: error opening file: " + filepath.Join(srcDir, testingDir, "publicDNSServers.json"))
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
@@ -460,56 +464,38 @@ func (program *Program) launchNamehelpDNSServer() error {
 	handler.PDNSServers = publicDNSServers
 
 	program.initializeDNSServers()
-//     load top500 sites in bloom filter and top50 to randomly pick from in privacy enabled setting
-//     topAlexaSites := filepath.Join(srcDir,"Top500sites.txt")
-    filter := bloom.NewWithEstimates(50, 0.0001)
-//     _file, err := os.OpenFile(topAlexaSites,os.O_RDONLY,0777)
-//     if err != nil {
-//         log.Fatal(err)
-//
-//     }
+	//     load top500 sites in bloom filter and top50 to randomly pick from in privacy enabled setting
+	//     topAlexaSites := filepath.Join(srcDir,"Top500sites.txt")
+	filter := bloom.NewWithEstimates(50, 0.0001)
 
-//     scanner := bufio.NewScanner(_file)
-//     count:=0
-//     var websites []string
-//     for scanner.Scan() {
-//         website := scanner.Text()
-// //     	filter.Add([]byte(seconded))
-//         if count<50{
-//             websites = append(websites, website)
-//         }
-//         count+=1
-//     }
-//     _file.Close()
-    websites:= []string{"google.com", "youtube.com", "tmall.com", "qq.com", "sohu.com", "taobao.com", "baidu.com",
-    "360.cn", "jd.com", "amazon.com", "facebook.com", "wikipedia.org", "yahoo.com", "weibo.com", "sina.com.cn",
-    "xinhuanet.com", "netflix.com", "live.com", "reddit.com", "alipay.com", "instagram.com", "google.com.hk",
-    "zhanqi.tv", "panda.tv", "vk.com", "zoom.us", "microsoft.com", "csdn.net", "twitch.tv", "yahoo.co.jp",
-    "myshopify.com", "bongacams.com", "office.com", "okezone.com", "yy.com", "aliexpress.com", "ebay.com",
-     "huanqiu.com", "naver.com", "aparat.com", "amazon.in", "tianya.cn", "bing.com", "amazon.co.jp", "twitter.com",
-     "adobe.com", "17ok.com", "microsoftonline.com", "chaturbate.com", "ok.ru", "yandex.ru"}
+	websites := []string{"google.com", "youtube.com", "tmall.com", "qq.com", "sohu.com", "taobao.com", "baidu.com",
+		"360.cn", "jd.com", "amazon.com", "facebook.com", "wikipedia.org", "yahoo.com", "weibo.com", "sina.com.cn",
+		"xinhuanet.com", "netflix.com", "live.com", "reddit.com", "alipay.com", "instagram.com", "google.com.hk",
+		"zhanqi.tv", "panda.tv", "vk.com", "zoom.us", "microsoft.com", "csdn.net", "twitch.tv", "yahoo.co.jp",
+		"myshopify.com", "bongacams.com", "office.com", "okezone.com", "yy.com", "aliexpress.com", "ebay.com",
+		"huanqiu.com", "naver.com", "aparat.com", "amazon.in", "tianya.cn", "bing.com", "amazon.co.jp", "twitter.com",
+		"adobe.com", "17ok.com", "microsoftonline.com", "chaturbate.com", "ok.ru", "yandex.ru"}
 
-     websites500:=[]string{"google.com", "youtube.com", "tmall.com", "qq.com", "sohu.com", "taobao.com", "baidu.com",
-      "360.cn", "jd.com", "amazon.com", "facebook.com", "wikipedia.org", "yahoo.com", "weibo.com", "sina.com.cn", "xinhuanet.com",
-       "netflix.com", "live.com", "reddit.com", "alipay.com", "instagram.com", "google.com.hk", "zhanqi.tv", "panda.tv", "vk.com", "zoom.us", "microsoft.com", "csdn.net",
-        "twitch.tv", "yahoo.co.jp", "myshopify.com", "bongacams.com", "office.com", "okezone.com", "yy.com", "aliexpress.com", "ebay.com", "huanqiu.com", "naver.com", "aparat.com", "amazon.in",
-        "tianya.cn", "bing.com", "amazon.co.jp", "twitter.com", "adobe.com", "17ok.com", "microsoftonline.com", "chaturbate.com", "ok.ru", "yandex.ru", "whatsapp.com", "so.com", "haosou.com",
-        "wordpress.com", "fandom.com", "1688.com", "linkedin.com", "mail.ru", "imdb.com", "pornhub.com", "google.com.br", "xvideos.com", "msn.com", "google.co.in", "gome.com.cn", "etsy.com",
-        "xhamster.com", "roblox.com", "babytree.com", "udemy.com", "rakuten.co.jp", "hao123.com", "canva.com", "livejasmin.com", "alibaba.com", "tiktok.com", "google.co.jp", "primevideo.com",
-        "indeed.com", "dropbox.com", "tribunnews.com", "google.de", "6.cn", "paypal.com", "chase.com", "flipkart.com", "savefrom.net", "espn.com", "kompas.com", "walmart.com", "booking.com", "spotify.com",
-        "freepik.com", "bbc.com", "imgur.com", "cnblogs.com", "amazon.de", "163.com", "zillow.com", "telegram.org", "rednet.cn", "stackoverflow.com", "kumparan.com", "amazon.co.uk", "ettoday.net",
-        "apple.com", "duckduckgo.com", "google.fr", "google.es", "force.com", "bilibili.com", "google.ru", "amazonaws.com", "nytimes.com", "github.com", "pikiran-rakyat.com", "digikala.com", "salesforce.com", "detik.com", "daum.net", "cnn.com", "slack.com", "grammarly.com", "google.com.sg", "google.it", "nih.gov", "instructure.com", "tumblr.com", "metropoles.com", "indiatimes.com", "godaddy.com", "cowin.gov.in", "soundcloud.com", "pixnet.net", "bbc.co.uk", "51.la", "cnzz.com", "healthline.com", "bet9ja.com", "jiameng.com", "pinterest.com", "youm7.com", "zhihu.com", "researchgate.net", "varzesh3.com", "ilovepdf.com", "amazon.ca", "craigslist.org", "tistory.com", "tokopedia.com", "speedtest.net", "theguardian.com", "bet365.com", "homedepot.com", "hotstar.com", "51yes.com", "stackexchange.com", "wetransfer.com", "pixabay.com", "bestbuy.com", "wix.com", "hulu.com", "ltn.com.tw", "tudou.com", "momoshop.com.tw", "w3schools.com", "soso.com", "notion.so", "archive.org", "xnxx.com", "chess.com", "google.com.tw", "coursera.org", "telewebion.com", "tradingview.com", "coinmarketcap.com", "binance.com", "shutterstock.com", "etoro.com", "mediafire.com", "intuit.com", "avito.ru", "smallpdf.com", "lazada.sg", "steamcommunity.com", "asana.com", "zendesk.com", "iqbroker.com", "asos.com", "manoramaonline.com", "google.co.uk", "wellsfargo.com", "investing.com", "cnet.com", "google.com.tr", "coingecko.com", "y2mate.com", "airbnb.com", "vimeo.com", "disneyplus.com", "americanexpress.com", "liputan6.com", "ebay.de", "suara.com", "yelp.com", "globo.com", "google.ca", "videocampaign.co", "onlinesbi.com", "okta.com", "chouftv.ma", "cnnic.cn", "googlevideo.com", "grid.id", "slideshare.net", "deepl.com", "investopedia.com", "trendyol.com", "sogou.com", "forbes.com", "target.com", "gosuslugi.ru", "google.com.sa", "wikihow.com", "capitalone.com", "amazon.fr", "360.com", "spankbang.com", "get-express-vpn.online", "quizlet.com", "washingtonpost.com", "discord.com", "fc2.com", "manage.wix.com", "fiverr.com", "ikea.com", "proiezionidiborsa.it", "wayfair.com", "namnak.com", "in.gr", "sonhoo.com", "namu.wiki", "gmw.cn", "google.com.mx", "1stepdownload.com", "sindonews.com", "remove.bg", "redfin.com", "hdfcbank.com", "google.com.eg", "exchain.ai", "realtor.com", "evernote.com", "shein.com", "zerodha.com", "google.pl", "sq.cn", "mozilla.org", "icloud.com", "redd.it", "douban.com", "taboola.com", "formula1.com", "japanpost.jp", "thepiratebay.org", "behance.net", "ca.gov", "uol.com.br", "businessinsider.com", "sciencedirect.com", "donya-e-eqtesad.com", "shaparak.ir", "zol.com.cn", "blogger.com", "mercadolibre.com.ar", "wildberries.ru", "amazon.es", "sahibinden.com", "setn.com", "yandex.com", "scribd.com", "academia.edu", "google.co.th", "dailymail.co.uk", "twimg.com", "usps.com", "google.com.ar", "sberbank.ru", "lowes.com", "op.gg", "weather.com", "aliexpress.ru", "dailymotion.com", "t.me", "gismeteo.ru", "skype.com", "agacelebir.com", "rezka.ag", "t.co", "hbomax.com", "crunchyroll.com", "elwatannews.com", "rt.com", "ibicn.com", "foxnews.com", "1337x.to", "marca.com", "ebay.co.uk", "bukalapak.com", "coinbase.com", "allegro.pl", "qoo10.sg", "patreon.com", "samsung.com", "fast.com", "pinimg.com", "mercadolivre.com.br", "worldometers.info", "nike.com", "merdeka.com", "aol.com", "liansuo.com", "padlet.com", "linktr.ee", "shippingchina.com", "dribbble.com", "ih5.cn", "icicibank.com", "reverso.net", "yts.mx", "tutorialspoint.com", "rakuten.com", "ladbible.com", "orange.fr", "livescore.com", "tripadvisor.com", "genius.com", "namasha.com", "hp.com", "ask.com", "alwafd.news", "cnbc.com", "idntimes.com", "chegg.com", "ozon.ru", "shopee.tw", "ny.gov", "babyschool.com.cn", "costco.com", "ouedkniss.com", "iyiou.com", "fedex.com", "thestartmagazine.com", "cloudfront.net", "moneycontrol.com", "softonic.com", "squarespace.com", "google.co.id", "xfinity.com", "nba.com", "goodreads.com", "biobiochile.cl", "medium.com", "onlyfans.com", "dbs.com.sg", "wikimedia.org", "eghtesadnews.com", "rctiplus.com", "ninisite.com", "ria.ru", "rambler.ru", "ikco.ir", "thesaurus.com", "dspultra.com", "blackboard.com", "hotmart.com", "kompas.tv", "cambridge.org", "gmx.net", "wholeactualjournal.com", "divar.ir", "clickpost.jp", "360doc.com", "akamaized.net", "kakao.com", "dcard.tw", "crowdworks.jp", "cnbeta.com", "ameblo.jp", "quora.com", "prothomalo.com", "crunchbase.com", "google.co.kr", "dell.com", "stripchat.com", "uniswap.org", "shopee.co.id", "line.me", "ebay-kleinanzeigen.de", "eee114.com", "irs.gov", "premierleague.com", "atlassian.com", "teachable.com", "meituan.com", "citi.com", "bankofamerica.com", "cnnindonesia.com", "gogoanime.ai", "amazon.it", "laodong.vn", "springer.com", "zhibo8.cc", "bp.blogspot.com", "epicgames.com", "eluniverso.com", "google.com.au", "flashscore.com", "9gag.com", "trustpilot.com", "58.com", "coursehero.com", "albawabhnews.com", "infobae.com", "yt1s.com", "rutracker.org", "mlb.com", "nicovideo.jp", "uptodown.com", "web.de", "shopee.com.my", "eatthis.com", "breitbart.com", "wish.com", "eghtesadonline.com", "coupang.com", "258.com", "indiamart.com", "brilio.net", "gusuwang.com", "ai.marketing", "filimo.com", "9384.com", "ebc.net.tw", "alodokter.com", "google.ro", "nextdoor.com", "baixarfilmetorrent.net", "naukri.com", "elpais.com", "iqiyi.com", "google.gr", "outbrain.com", "runoob.com", "weebly.com", "kundelik.kz", "jpnn.com", "macys.com", "google.co.ve", "canada.ca", "11st.co.kr", "glassdoor.com", "chaduo.com", "ensonhaber.com", "sourceforge.net", "vnexpress.net", "kooora.com", "oschina.net", "viva.co.id", "matchesfashion.com", "clickfunnels.com", "tinyurl.is", "eksisozluk.com", "91jm.com", "reuters.com", "as.com", "creditkarma.com", "google.com.ua", "wiley.com", "kontan.co.id", "google.com.vn", "chinanetrank.com", "dostor.org", "khanacademy.org", "expedia.com", "fidelity.com", "onizatop.net", "t66y.com", "lenta.ru", "creditchina.gov.cn", "att.com", "patch.com", "wordpress.org", "webmd.com", "kakaku.com", "oracle.com", "onet.pl", "britannica.com", "trello.com", "cdc.gov"}
+	websites500 := []string{"google.com", "youtube.com", "tmall.com", "qq.com", "sohu.com", "taobao.com", "baidu.com",
+		"360.cn", "jd.com", "amazon.com", "facebook.com", "wikipedia.org", "yahoo.com", "weibo.com", "sina.com.cn", "xinhuanet.com",
+		"netflix.com", "live.com", "reddit.com", "alipay.com", "instagram.com", "google.com.hk", "zhanqi.tv", "panda.tv", "vk.com", "zoom.us", "microsoft.com", "csdn.net",
+		"twitch.tv", "yahoo.co.jp", "myshopify.com", "bongacams.com", "office.com", "okezone.com", "yy.com", "aliexpress.com", "ebay.com", "huanqiu.com", "naver.com", "aparat.com", "amazon.in",
+		"tianya.cn", "bing.com", "amazon.co.jp", "twitter.com", "adobe.com", "17ok.com", "microsoftonline.com", "chaturbate.com", "ok.ru", "yandex.ru", "whatsapp.com", "so.com", "haosou.com",
+		"wordpress.com", "fandom.com", "1688.com", "linkedin.com", "mail.ru", "imdb.com", "pornhub.com", "google.com.br", "xvideos.com", "msn.com", "google.co.in", "gome.com.cn", "etsy.com",
+		"xhamster.com", "roblox.com", "babytree.com", "udemy.com", "rakuten.co.jp", "hao123.com", "canva.com", "livejasmin.com", "alibaba.com", "tiktok.com", "google.co.jp", "primevideo.com",
+		"indeed.com", "dropbox.com", "tribunnews.com", "google.de", "6.cn", "paypal.com", "chase.com", "flipkart.com", "savefrom.net", "espn.com", "kompas.com", "walmart.com", "booking.com", "spotify.com",
+		"freepik.com", "bbc.com", "imgur.com", "cnblogs.com", "amazon.de", "163.com", "zillow.com", "telegram.org", "rednet.cn", "stackoverflow.com", "kumparan.com", "amazon.co.uk", "ettoday.net",
+		"apple.com", "duckduckgo.com", "google.fr", "google.es", "force.com", "bilibili.com", "google.ru", "amazonaws.com", "nytimes.com", "github.com", "pikiran-rakyat.com", "digikala.com", "salesforce.com", "detik.com", "daum.net", "cnn.com", "slack.com", "grammarly.com", "google.com.sg", "google.it", "nih.gov", "instructure.com", "tumblr.com", "metropoles.com", "indiatimes.com", "godaddy.com", "cowin.gov.in", "soundcloud.com", "pixnet.net", "bbc.co.uk", "51.la", "cnzz.com", "healthline.com", "bet9ja.com", "jiameng.com", "pinterest.com", "youm7.com", "zhihu.com", "researchgate.net", "varzesh3.com", "ilovepdf.com", "amazon.ca", "craigslist.org", "tistory.com", "tokopedia.com", "speedtest.net", "theguardian.com", "bet365.com", "homedepot.com", "hotstar.com", "51yes.com", "stackexchange.com", "wetransfer.com", "pixabay.com", "bestbuy.com", "wix.com", "hulu.com", "ltn.com.tw", "tudou.com", "momoshop.com.tw", "w3schools.com", "soso.com", "notion.so", "archive.org", "xnxx.com", "chess.com", "google.com.tw", "coursera.org", "telewebion.com", "tradingview.com", "coinmarketcap.com", "binance.com", "shutterstock.com", "etoro.com", "mediafire.com", "intuit.com", "avito.ru", "smallpdf.com", "lazada.sg", "steamcommunity.com", "asana.com", "zendesk.com", "iqbroker.com", "asos.com", "manoramaonline.com", "google.co.uk", "wellsfargo.com", "investing.com", "cnet.com", "google.com.tr", "coingecko.com", "y2mate.com", "airbnb.com", "vimeo.com", "disneyplus.com", "americanexpress.com", "liputan6.com", "ebay.de", "suara.com", "yelp.com", "globo.com", "google.ca", "videocampaign.co", "onlinesbi.com", "okta.com", "chouftv.ma", "cnnic.cn", "googlevideo.com", "grid.id", "slideshare.net", "deepl.com", "investopedia.com", "trendyol.com", "sogou.com", "forbes.com", "target.com", "gosuslugi.ru", "google.com.sa", "wikihow.com", "capitalone.com", "amazon.fr", "360.com", "spankbang.com", "get-express-vpn.online", "quizlet.com", "washingtonpost.com", "discord.com", "fc2.com", "manage.wix.com", "fiverr.com", "ikea.com", "proiezionidiborsa.it", "wayfair.com", "namnak.com", "in.gr", "sonhoo.com", "namu.wiki", "gmw.cn", "google.com.mx", "1stepdownload.com", "sindonews.com", "remove.bg", "redfin.com", "hdfcbank.com", "google.com.eg", "exchain.ai", "realtor.com", "evernote.com", "shein.com", "zerodha.com", "google.pl", "sq.cn", "mozilla.org", "icloud.com", "redd.it", "douban.com", "taboola.com", "formula1.com", "japanpost.jp", "thepiratebay.org", "behance.net", "ca.gov", "uol.com.br", "businessinsider.com", "sciencedirect.com", "donya-e-eqtesad.com", "shaparak.ir", "zol.com.cn", "blogger.com", "mercadolibre.com.ar", "wildberries.ru", "amazon.es", "sahibinden.com", "setn.com", "yandex.com", "scribd.com", "academia.edu", "google.co.th", "dailymail.co.uk", "twimg.com", "usps.com", "google.com.ar", "sberbank.ru", "lowes.com", "op.gg", "weather.com", "aliexpress.ru", "dailymotion.com", "t.me", "gismeteo.ru", "skype.com", "agacelebir.com", "rezka.ag", "t.co", "hbomax.com", "crunchyroll.com", "elwatannews.com", "rt.com", "ibicn.com", "foxnews.com", "1337x.to", "marca.com", "ebay.co.uk", "bukalapak.com", "coinbase.com", "allegro.pl", "qoo10.sg", "patreon.com", "samsung.com", "fast.com", "pinimg.com", "mercadolivre.com.br", "worldometers.info", "nike.com", "merdeka.com", "aol.com", "liansuo.com", "padlet.com", "linktr.ee", "shippingchina.com", "dribbble.com", "ih5.cn", "icicibank.com", "reverso.net", "yts.mx", "tutorialspoint.com", "rakuten.com", "ladbible.com", "orange.fr", "livescore.com", "tripadvisor.com", "genius.com", "namasha.com", "hp.com", "ask.com", "alwafd.news", "cnbc.com", "idntimes.com", "chegg.com", "ozon.ru", "shopee.tw", "ny.gov", "babyschool.com.cn", "costco.com", "ouedkniss.com", "iyiou.com", "fedex.com", "thestartmagazine.com", "cloudfront.net", "moneycontrol.com", "softonic.com", "squarespace.com", "google.co.id", "xfinity.com", "nba.com", "goodreads.com", "biobiochile.cl", "medium.com", "onlyfans.com", "dbs.com.sg", "wikimedia.org", "eghtesadnews.com", "rctiplus.com", "ninisite.com", "ria.ru", "rambler.ru", "ikco.ir", "thesaurus.com", "dspultra.com", "blackboard.com", "hotmart.com", "kompas.tv", "cambridge.org", "gmx.net", "wholeactualjournal.com", "divar.ir", "clickpost.jp", "360doc.com", "akamaized.net", "kakao.com", "dcard.tw", "crowdworks.jp", "cnbeta.com", "ameblo.jp", "quora.com", "prothomalo.com", "crunchbase.com", "google.co.kr", "dell.com", "stripchat.com", "uniswap.org", "shopee.co.id", "line.me", "ebay-kleinanzeigen.de", "eee114.com", "irs.gov", "premierleague.com", "atlassian.com", "teachable.com", "meituan.com", "citi.com", "bankofamerica.com", "cnnindonesia.com", "gogoanime.ai", "amazon.it", "laodong.vn", "springer.com", "zhibo8.cc", "bp.blogspot.com", "epicgames.com", "eluniverso.com", "google.com.au", "flashscore.com", "9gag.com", "trustpilot.com", "58.com", "coursehero.com", "albawabhnews.com", "infobae.com", "yt1s.com", "rutracker.org", "mlb.com", "nicovideo.jp", "uptodown.com", "web.de", "shopee.com.my", "eatthis.com", "breitbart.com", "wish.com", "eghtesadonline.com", "coupang.com", "258.com", "indiamart.com", "brilio.net", "gusuwang.com", "ai.marketing", "filimo.com", "9384.com", "ebc.net.tw", "alodokter.com", "google.ro", "nextdoor.com", "baixarfilmetorrent.net", "naukri.com", "elpais.com", "iqiyi.com", "google.gr", "outbrain.com", "runoob.com", "weebly.com", "kundelik.kz", "jpnn.com", "macys.com", "google.co.ve", "canada.ca", "11st.co.kr", "glassdoor.com", "chaduo.com", "ensonhaber.com", "sourceforge.net", "vnexpress.net", "kooora.com", "oschina.net", "viva.co.id", "matchesfashion.com", "clickfunnels.com", "tinyurl.is", "eksisozluk.com", "91jm.com", "reuters.com", "as.com", "creditkarma.com", "google.com.ua", "wiley.com", "kontan.co.id", "google.com.vn", "chinanetrank.com", "dostor.org", "khanacademy.org", "expedia.com", "fidelity.com", "onizatop.net", "t66y.com", "lenta.ru", "creditchina.gov.cn", "att.com", "patch.com", "wordpress.org", "webmd.com", "kakaku.com", "oracle.com", "onet.pl", "britannica.com", "trello.com", "cdc.gov"}
 
-
-    for _, website := range websites500 {
-        secondld:=domainutil.DomainPrefix(website)
-        filter.Add([]byte(secondld))
-    }
-    handler.Top50Websites = websites
-    handler.Filter=*filter
-    log.WithFields(log.Fields{
-            "bloomfilter": *filter,
-            "top50Sites": websites}).Debug("Namehelp: These are the top 50 sites")
+	for _, website := range websites500 {
+		secondld := domainutil.DomainPrefix(website)
+		filter.Add([]byte(secondld))
+	}
+	handler.Top50Websites = websites
+	handler.Filter = *filter
+	log.WithFields(log.Fields{
+		"bloomfilter": *filter,
+		"top50Sites":  websites}).Debug("Namehelp: These are the top 50 sites")
 
 	// start DNS servers for UDP and TCP requests
 	go program.startDNSServer(program.udpServer)
@@ -518,15 +504,15 @@ func (program *Program) launchNamehelpDNSServer() error {
 	// TODO: change this to per-trigger base
 
 	//run SubRosa with No Privacy Enabled,but Racing enabled(SubRosaNP) until measurements start
-	handler.DNSDistribution=make(map[string][]int64)
-	handler.DNSDistributionPerformance=make(map[string][]string)
+	handler.DNSDistribution = make(map[string][]int64)
+	handler.DNSDistributionPerformance = make(map[string][]string)
 
-	handler.DNSTime=0
+	handler.DNSTime = 0
 	handler.DoHEnabled = true
 	handler.Experiment = false
 	handler.Decentralized = true
 	utils.FlushLocalDnsCache()
-	handler.ResolverMapping=make(map[string][]string)
+	handler.ResolverMapping = make(map[string][]string)
 	handler.PrivacyEnabled = false
 	handler.Racing = true
 	program.dnsQueryHandler.EnableDirectResolution()
@@ -534,7 +520,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 
 	//convert client id to string
-// 	go program.doMeasurement(testingDir, program.clientID) //uncomment this for the experiment with individual resolvers
+	// 	go program.doMeasurement(testingDir, program.clientID) //uncomment this for the experiment with individual resolvers
 	return nil
 }
 
@@ -587,10 +573,10 @@ func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir 
 	} else if !handler.DoHEnabled && handler.Experiment {
 		handler.DNSServersToTest = []string{ip}
 	}
-	handler.DNSDistribution=make(map[string][]int64)
-	handler.DNSDistributionPerformance=make(map[string][]string)
+	handler.DNSDistribution = make(map[string][]int64)
+	handler.DNSDistributionPerformance = make(map[string][]string)
 
-	handler.DNSTime=0
+	handler.DNSTime = 0
 	dict1, err = program.dnsQueryHandler.MeasureDnsLatencies(0, dnsLatencyFile, 0, handler.DoHEnabled, handler.Experiment, iterations, dict1, resolverName)
 	file, _ := json.MarshalIndent(handler.DNSDistributionPerformance, "", " ")
 	_ = ioutil.WriteFile(filepath.Join(dir, "DNSDistributionPerformance2.json"), file, 0644)
@@ -606,24 +592,24 @@ func (program *Program) MeasureDnsLatencies(resolverName string, ip string, dir 
 		"dnsLatencyFile: ": filepath.Join(dir, "dnsLatencies.json")}).Debug("Namehelp: Write DNS latency result to file")
 }
 
-func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string, client_id string,dict1 map[string]interface{},websites []string,feature string) {
+func (program *Program) DnsLatenciesSettings(dir string, testingDir string, publicDNSServers []string, client_id string, dict1 map[string]interface{}, websites []string, feature string) {
 	log.WithFields(log.Fields{"dir": dir, "testing dir": testingDir}).Debug("Namehelp: Setting up for DNS latency testing")
 
 	// dict1 := make(map[string]map[string]map[string]interface{})
 	// dict1 := make(map[string]interface{})
 
 	iterations := 3
-	if feature=="SubRosa"{
+	if feature == "SubRosa" {
 		handler.DoHEnabled = true
 		handler.Experiment = false
 		handler.Decentralized = true
-		handler.PrivacyEnabled=true
-		handler.Racing=true
+		handler.PrivacyEnabled = true
+		handler.Racing = true
 		program.dnsQueryHandler.EnableDirectResolution()
-		handler.Proxy=false
-		handler.DoHServersToTest=[]string{"127.0.0.1"}
+		handler.Proxy = false
+		handler.DoHServersToTest = []string{"127.0.0.1"}
 		utils.FlushLocalDnsCache()
-		handler.ResolverMapping=make(map[string][]string)
+		handler.ResolverMapping = make(map[string][]string)
 		// program.MeasureDnsLatencies("SubRosa", "", filepath.Join(srcDir, testingDir), dict1,websites, iterations, testingDir)
 
 		return
@@ -741,8 +727,8 @@ func hash(s string) uint32 {
 
 func (program *Program) doMeasurement(testingDir string, client_id string) error {
 
-	handler.DNSDistribution=make(map[string][]int64)
-	handler.DNSTime=0
+	handler.DNSDistribution = make(map[string][]int64)
+	handler.DNSTime = 0
 	for {
 		if _, err := os.Stat(filepath.Join(srcDir, "dat")); os.IsNotExist(err) {
 			time.Sleep(time.Second)
@@ -768,7 +754,7 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 
 	// Measuring DNSLatencies and Pings to Replicas
 	dnsLatencyFile := filepath.Join(srcDir, testingDir, "AlexaUniqueResources.txt")
-	websiteFile:=dnsLatencyFile
+	websiteFile := dnsLatencyFile
 	log.WithFields(log.Fields{"dir": websiteFile}).Debug("Handler: Loading website file")
 	_file, err := os.Open(websiteFile)
 	if err != nil {
@@ -776,16 +762,16 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	}
 
 	scanner := bufio.NewScanner(_file)
-	count:=0
+	count := 0
 	var websites []string
 	for scanner.Scan() {
 		// measure latencies of 100 resources
 		// if len(websites)==50{
-		if count==100{
+		if count == 100 {
 			break
 
 		}
-		count+=1
+		count += 1
 		website := scanner.Text()
 		u, err := url.Parse(website)
 		if err != nil {
@@ -797,7 +783,7 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 		found := 0
 		for _, ele := range websites {
 			if ele == u.Hostname() {
-			// if ele == u.String(){
+				// if ele == u.String(){
 				found = 1
 			}
 		}
@@ -808,9 +794,8 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	}
 	_file.Close()
 	handler.ResolverMapping = make(map[string][]string)
-	dict1:=make(map[string]interface{})
-	program.DnsLatenciesSettings(srcDir, testingDir, publicDNSServers,client_id,dict1,websites,"")
-
+	dict1 := make(map[string]interface{})
+	program.DnsLatenciesSettings(srcDir, testingDir, publicDNSServers, client_id, dict1, websites, "")
 
 	d1 := []byte("start Lighthouse Measurements\n")
 	err = ioutil.WriteFile(filepath.Join(srcDir, "dat1"), d1, 0644)
@@ -950,44 +935,42 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 		"bestResolvers": bestResolvers}).Debug("These are the best public DNS resolvers")
 	handler.BestResolvers = bestResolvers
 
-
 	// //testing SubRosa with Privacy Enabled and Racing
-	handler.PrivacyEnabled=true
-	handler.Racing=true
+	handler.PrivacyEnabled = true
+	handler.Racing = true
 	utils.FlushLocalDnsCache()
 	program.dnsQueryHandler.EnableDirectResolution()
-	handler.Proxy=false
-	handler.DoHServersToTest=[]string{"127.0.0.1"}
+	handler.Proxy = false
+	handler.DoHServersToTest = []string{"127.0.0.1"}
 
 	// program.DnsLatenciesSettings(srcDir, testingDir, publicDNSServers,client_id,dict1,websites,"SubRosa")
-	handler.ResolverMapping=make(map[string][]string)
+	handler.ResolverMapping = make(map[string][]string)
 	utils.FlushLocalDnsCache()
-
 
 	// // //these for loops ensure that DoHServersToTest is SubRosa with Privacy enabled & Racing (but new resolver mapping dict btw each run)
 	// // // till we collect all measurements with this resolver
 	// // //and file filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa.json" is made in the directory
 	// // utils.FlushLocalDnsCache()
-	for{
-		if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa0.json"); os.IsNotExist(err) {
+	for {
+		if _, err := os.Stat(filepath.Join(srcDir, testingDir) + "/lighthouseTTBSubRosa0.json"); os.IsNotExist(err) {
 			continue
-		}else{
+		} else {
 			break
 		}
 	}
-	handler.ResolverMapping=make(map[string][]string)
-	for{
-		if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa1.json"); os.IsNotExist(err) {
+	handler.ResolverMapping = make(map[string][]string)
+	for {
+		if _, err := os.Stat(filepath.Join(srcDir, testingDir) + "/lighthouseTTBSubRosa1.json"); os.IsNotExist(err) {
 			continue
-		}else{
+		} else {
 			break
 		}
 	}
-	handler.ResolverMapping=make(map[string][]string)
-	for{
-		if _, err := os.Stat(filepath.Join(srcDir, testingDir)+"/lighthouseTTBSubRosa_.json"); os.IsNotExist(err) {
+	handler.ResolverMapping = make(map[string][]string)
+	for {
+		if _, err := os.Stat(filepath.Join(srcDir, testingDir) + "/lighthouseTTBSubRosa_.json"); os.IsNotExist(err) {
 			continue
-		}else{
+		} else {
 			break
 		}
 	}
@@ -1025,7 +1008,6 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	handler.DoHServersToTest = []string{"127.0.0.1"}
 	program.runTests("SubRosaNP", "", filepath.Join(srcDir, testingDir), testingDir)
 
-
 	dict2["country"] = program.country
 	dict2["clientID"] = program.clientID
 	program.reporter.PushToMongoDB("SubRosa-Test", "PingServers_"+program.country, dict2)
@@ -1044,7 +1026,6 @@ func (program *Program) doMeasurement(testingDir string, client_id string) error
 	jsonMap["country"] = program.country
 	jsonMap["clientID"] = program.clientID
 	program.reporter.PushToMongoDB("SubRosa-Test", "resourcesttbbyCDNLighthouse_"+program.country, jsonMap)
-
 
 	log.Info("Namehelp: Namehelp finish measurement")
 

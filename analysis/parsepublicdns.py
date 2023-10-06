@@ -66,7 +66,7 @@ def configBestResolvers(country):
 
     try:
         subprocess.run(["sudo", "dscacheutil", "-flushcache"], check=True)
-        print("DNS cache flushed successfully on macOS.")
+        print("DNS cache flushed successfully on macOS.", country)
     except subprocess.CalledProcessError as e:
         print(f"Error flushing DNS cache on macOS: {e}")
 

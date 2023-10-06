@@ -319,3 +319,12 @@ func GetPublicIPInfo() (*IPInfoResponse, error) {
 
 	return ipInfo, nil
 }
+
+func GetSrcDir() string {
+	exe, err := osext.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exeDir := path.Dir(exe)
+	return path.Dir(path.Dir(exeDir))
+}

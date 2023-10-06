@@ -380,9 +380,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 			log.WithFields(log.Fields{
 				"website": domain}).Debug("Resolver: This is the domain of the website")
 		}
-// 		cmd := exec.Command("python3", "2ld.py", "https://"+domain)
-// 		cmd.Stdout = &stdout
-// 		err := cmd.Run()
+
         secondld:=domainutil.DomainPrefix(domain)
         if secondld!=""{
             log.WithFields(log.Fields{

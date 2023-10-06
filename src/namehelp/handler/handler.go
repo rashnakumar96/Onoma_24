@@ -6,8 +6,10 @@ package handler
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"namehelp/cache"
 	"namehelp/hosts"
 	"namehelp/network"
@@ -15,6 +17,7 @@ import (
 	"namehelp/settings"
 	"namehelp/utils"
 	"net"
+	"path/filepath"
 
 	// "net/url"
 	"os"
@@ -160,16 +163,6 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 
 	dnsQueryHandlerMutex := sync.Mutex{}
 
-	// alexaListPath := "data/alexa-top-30000-domains.txt"
-	// alexaListBytes, err := Asset(alexaListPath)
-	// if err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Asset": alexaListPath, "Error": err.Error()}).Error("Failed to go-bindata")
-	// 	alexaListBytes = []byte{}
-	// }
-
-	// topSites := topsites.NewTopSites(alexaListBytes)
-
 	dnsQueryHandler := DNSQueryHandler{
 		resolver:      handlerResolver,
 		cache:         handlerCache,
@@ -181,27 +174,66 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 		doID: 0,
 	}
 	if len(resolver.Client.Resolvers) == 0 {
-		resolver.Client.AddUpstream("Google", "8.8.8.8/resolve", 443)
-		resolver.Client.AddUpstream("Cloudflare", "1.1.1.1/dns-query", 443)
-		resolver.Client.AddUpstream("Quad9", "9.9.9.9:5053/dns-query", 443)
+		ipInfo, err := utils.GetPublicIPInfo()
+		if err != nil {
+			log.Error("Error getting local IP info:", err)
+			ipInfo = &utils.IPInfoResponse{Country: "US", Ip: "8.8.8.8"}
+		}
+
+		config := readFromResolverConfig(ipInfo.Country)
+		if config == nil {
+			resolver.Client.AddUpstream("Google", "8.8.8.8/resolve", 443)
+			resolver.Client.AddUpstream("Cloudflare", "1.1.1.1/dns-query", 443)
+			resolver.Client.AddUpstream("Quad9", "9.9.9.9:5053/dns-query", 443)
+		} else {
+			res := config[ipInfo.Ip]
+			for i := 0; i < len(res); i++ {
+				log.Info("config is: ", res[i])
+				resolver.Client.AddUpstream("Google", res[i]+"/resolve", 443)
+			}
+		}
+
 		for _, pDNS := range PDNSServers {
 			resolver.Client.AddUpstream(pDNS, pDNS, 53)
 		}
 
 		log.WithFields(log.Fields{
 			"client.Resolvers": resolver.Client.Resolvers}).Debug("Handler: These are the clientResolvers")
-
-		// // resolver.Client.AddUpstream("Comcast", "75.75.75.75", 53)
-		// resolver.Client.AddUpstream("Verizon", "4.2.2.5", 53)
-		// resolver.Client.AddUpstream("Verisign", "64.6.64.6", 53)
-		// localDNSServers := network.DhcpGetLocalDNSServers()
-		// localDNSServers=strings.Split(localDNSServers[0], ",")
-		// localdnsServer:=localDNSServers[0]
-		// resolver.Client.AddUpstream("LocalR",localdnsServer, 53)
-		// resolver.Client.AddUpstream("opendns","208.67.222.222", 53)
 	}
 
 	return &dnsQueryHandler
+}
+
+type JSONData struct {
+	Data []string `json:"data"`
+}
+
+func readFromResolverConfig(country string) map[string][]string {
+	fileName := country+"_config.json"
+	filePath := filepath.Join(utils.GetSrcDir(), "analysis", "measurements", country, fileName)
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return nil
+	}
+	defer file.Close()
+
+	// Read the file content
+	fileContent, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return nil
+	}
+	var config map[string][]string
+
+	if err := json.Unmarshal(fileContent, &config); err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
+		return nil
+	}
+
+	log.Info("config data is: ", config)
+	return config
 }
 
 func addOriginalDNSServers(serversList []string, originalDNSServersMap map[string][]string) []string {
