@@ -224,7 +224,7 @@ func (program *Program) Stop(s service.Service) error {
 	log.Debug("Namehelp: program.Stop(service) invoked")
 	go func() {
 		for signalChannel == nil {
-			// Make sure that shutdown channel has been initilized.
+			// Make sure that shutdown channel has been initialized.
 		}
 		log.Info("Namehelp: Sending SIGINT on signalChannel")
 		signalChannel <- syscall.SIGINT
@@ -255,7 +255,7 @@ func (program *Program) run() {
 
 	log.Info("Current IP info: ", ipinfo)
 
-	go program.runConfigTest(ipinfo.Country)
+	go program.runConfigTest(ipinfo.Ip, ipinfo.Country)
 
 	program.runOnoma(ipinfo.Ip)
 }
@@ -273,10 +273,6 @@ func (program *Program) runOnoma(ipAddr string) {
 	networkInterfaces := reflect.ValueOf(program.oldDNSServers).MapKeys()
 	// get slice of keys
 	program.setDNSServer(utils.LOCALHOST, backupHosts, networkInterfaces)
-
-	// program.smartDNSSelector = NewSmartDNSSelector()
-	// going off to the new locally started DNS server for namehelp
-	// go program.smartDNSSelector.routine_Do()
 
 	// TODO run aquarium measurements
 	interval := 5 * time.Second
@@ -306,7 +302,7 @@ func (program *Program) runOnoma(ipAddr string) {
 
 				time.Sleep(interval)
 
-				go program.runConfigTest(newIpInfo.Country)
+				go program.runConfigTest(ipAddr, newIpInfo.Country)
 			}
 		}
 	}()
@@ -319,15 +315,12 @@ func (program *Program) runOnoma(ipAddr string) {
 
 	// restore original DNS settings
 	program.restoreOldDNSServers(program.oldDNSServers)
-	// save user's top sites to file
-	// program.dnsQueryHandler.topSites.SaveUserSites()
 
 	log.Info("Namehelp: Shutdown complete. Exiting.")
 	program.shutdownChan <- true
 }
 
-func (program *Program) runConfigTest(country string) {
-	for {
+func (program *Program) runConfigTest(currentIpAddr string, country string) {
 	select {
 	case <-stopConfigSignalChan:
 		// The stop signal has been received, exit the goroutine
@@ -336,7 +329,7 @@ func (program *Program) runConfigTest(country string) {
 	default:
 		log.Info("Namehelp: run runConfigTest.")
 		dir := filepath.Join(srcDir, "analysis", "parsepublicdns.py")
-		args := []string{dir, country}
+		args := []string{dir, currentIpAddr, country}
 		cmd := exec.Command("python", args...)
 
 		stdout, err := cmd.StdoutPipe()
@@ -392,7 +385,7 @@ func (program *Program) runConfigTest(country string) {
 
 		log.Info("Namehelp: complete runConfigTest.")
 	}
-}}
+}
 
 func (program *Program) initializeReporter() {
 	program.reporter = reporter.NewReporter(appConfig.Version)

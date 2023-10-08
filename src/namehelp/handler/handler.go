@@ -6,10 +6,8 @@ package handler
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"namehelp/cache"
 	"namehelp/hosts"
 	"namehelp/network"
@@ -17,8 +15,6 @@ import (
 	"namehelp/settings"
 	"namehelp/utils"
 	"net"
-	"path/filepath"
-
 	// "net/url"
 	"os"
 	"os/exec"
@@ -152,7 +148,6 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 			Maxcount: cacheConfig.Maxcount,
 		}
 	default:
-		//logger.Error("Invalid cache backend %s", cacheConfig.Backend)
 		panic("Invalid cache backend")
 	}
 
@@ -180,16 +175,18 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 			ipInfo = &utils.IPInfoResponse{Country: "US", Ip: "8.8.8.8"}
 		}
 
-		config := readFromResolverConfig(ipInfo.Country)
+		config := utils.ReadFromResolverConfig(ipInfo.Ip, ipInfo.Country)
 		if config == nil {
 			resolver.Client.AddUpstream("Google", "8.8.8.8/resolve", 443)
 			resolver.Client.AddUpstream("Cloudflare", "1.1.1.1/dns-query", 443)
 			resolver.Client.AddUpstream("Quad9", "9.9.9.9:5053/dns-query", 443)
 		} else {
-			res := config[ipInfo.Ip]
+			log.Info("Use resolver config file")
+			bestResolvers := config["best_resolvers"]
+			highSpread := config["high_spread"]
+			res := append(bestResolvers, highSpread...)
 			for i := 0; i < len(res); i++ {
-				log.Info("config is: ", res[i])
-				resolver.Client.AddUpstream("Google", res[i]+"/resolve", 443)
+				resolver.Client.AddUpstream(res[i], res[i], 53)
 			}
 		}
 
@@ -202,38 +199,6 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 	}
 
 	return &dnsQueryHandler
-}
-
-type JSONData struct {
-	Data []string `json:"data"`
-}
-
-func readFromResolverConfig(country string) map[string][]string {
-	fileName := country+"_config.json"
-	filePath := filepath.Join(utils.GetSrcDir(), "analysis", "measurements", country, fileName)
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return nil
-	}
-	defer file.Close()
-
-	// Read the file content
-	fileContent, err := ioutil.ReadAll(file)
-	if err != nil {
-		fmt.Println("Error reading file:", err)
-		return nil
-	}
-	var config map[string][]string
-
-	if err := json.Unmarshal(fileContent, &config); err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
-		return nil
-	}
-
-	log.Info("config data is: ", config)
-	return config
 }
 
 func addOriginalDNSServers(serversList []string, originalDNSServersMap map[string][]string) []string {

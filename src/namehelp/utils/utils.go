@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/kardianos/osext"
 	"github.com/miekg/dns"
@@ -327,4 +330,77 @@ func GetSrcDir() string {
 	}
 	exeDir := path.Dir(exe)
 	return path.Dir(path.Dir(exeDir))
+}
+
+type JSONData struct {
+	Data []string `json:"data"`
+}
+
+func ReadFromResolverConfig(ipAddr string, country string) map[string][]string {
+	fileName := "config.json"
+	filePath := filepath.Join(GetSrcDir(), "analysis", "measurements", country, fileName)
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return nil
+	}
+	defer file.Close()
+
+	// Read the file content
+	fileContent, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return nil
+	}
+
+	var config map[string]map[string][]string
+
+	if err := json.Unmarshal(fileContent, &config); err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
+		return nil
+	}
+
+	resolvers, ok := config[ipAddr]
+	if !ok {
+		log.Warn("resolvers config for this ip doesn't exist")
+		return nil
+	}
+
+	return resolvers
+}
+
+func HasOverlap(slice1, slice2 []string) bool {
+	// Create a map to store elements from slice1
+	elementsMap := make(map[string]bool)
+
+	// Populate the map with elements from slice1
+	for _, element := range slice1 {
+		elementsMap[element] = true
+	}
+
+	// Check if any element from slice2 exists in the map
+	for _, element := range slice2 {
+		if elementsMap[element] {
+			return true // Found an overlapping element
+		}
+	}
+
+	return false // No overlapping elements found
+}
+
+func RandomChoice(slice []string) string {
+	// Seed the random number generator with the current time
+	rand.Seed(time.Now().UnixNano())
+
+	// Check if the slice is empty
+	if len(slice) == 0 {
+		return ""
+	}
+
+	// Generate a random index within the range of the slice
+	randomIndex := rand.Intn(len(slice))
+
+	// Return the randomly chosen element
+	return slice[randomIndex]
 }
