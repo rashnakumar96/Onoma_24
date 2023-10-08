@@ -103,10 +103,10 @@ func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.
 			"name server": nameserver}).Debug("Resolver: Failed to get a valid answer for query from nameserver")
 		if responseMessage.Rcode == dns.RcodeServerFailure {
 			// SERVFAIL: don't provide response because other DNS servers may have better luck
-			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Error("Resolver: ServFail")
+			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Debug("Resolver: ServFail")
 			return
 		} else {
-			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Error("Resolver: NXDOMAIN ERROR")
+			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Debug("Resolver: NXDOMAIN ERROR")
 		}
 	} else {
 		// success

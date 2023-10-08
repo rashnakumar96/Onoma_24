@@ -539,7 +539,7 @@ def selectBestResolverstoShard(currentIpAddr, country):
     print("largerSpreadNs: ", len(largerSpreadNs))
 
     configMap = dict()
-    configMap[currentIpAddr] = {"best_resolvers": selected_keys, "high_spread": largerSpreadNs}
+    configMap[currentIpAddr] = {"best_resolvers": list(set(selected_keys)-set(largerSpreadNs)), "high_spread": largerSpreadNs}
 
     with open("analysis/measurements/" + country + "/config.json", 'w', encoding='utf-8') as jsonf:
         jsonf.write(json.dumps(configMap, indent=4))

@@ -275,7 +275,7 @@ func (program *Program) runOnoma(ipAddr string) {
 	program.setDNSServer(utils.LOCALHOST, backupHosts, networkInterfaces)
 
 	// TODO run aquarium measurements
-	interval := 5 * time.Second
+	interval := 120 * time.Second
 
 	// Start a goroutine to periodically check the IP address
 	go func() {
