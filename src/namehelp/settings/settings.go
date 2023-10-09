@@ -65,23 +65,6 @@ type HostsSettings struct {
 }
 
 func init() {
-
-	//executable, err := osext.Executable()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//var configFile string = filepath.Join(path.Dir(executable), "namehelp.conf")
-	//
-	////flag.StringVar(&configFile, "c", "namehelp.conf", "Look for namehelp toml-formatting config file in this directory")
-	////flag.Parse()
-	//
-	//if _, err := toml.DecodeFile(configFile, &NamehelpSettings); err != nil {
-	//	fmt.Printf("%s is not a valid toml config file\n", configFile)
-	//	fmt.Println(err)
-	//	os.Exit(1)
-	//}
-
 	NamehelpSettings.Version = "2.0.0"
 	NamehelpSettings.Debug = false
 	NamehelpSettings.Server = DNSServerSettings{

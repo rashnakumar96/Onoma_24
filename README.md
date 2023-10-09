@@ -14,21 +14,12 @@ After this step you will have a binary named ```namehelp``` in ```/bin/test/``` 
 ### To run the service directly:
 From the project home directory
 ```
-sudo ./bin/test/namehelp --service install
+sudo ./bin/test/namehelp
 ```
 
 In case log file is read-only status, run
 ```
 sudo chmod -R 777 bin/test/namehelp.log
-```
-Run Onoma
-```
-sudo ./bin/test/namehelp --service start
-```
-
-### To stop the service:
-```
-sudo ./bin/test/namehelp --service stop
 ```
 
 ### To uninstall:

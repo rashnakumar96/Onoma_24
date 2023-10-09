@@ -90,7 +90,7 @@ def configBestResolvers(country):
     sites_to_remove = []
     publicdns[country] = set(["8.8.8.8", "1.1.1.1", "9.9.9.9"] + publicdns[country])
     for ns in publicdns[country]:
-        print(100 * count / len(publicdns[country]))
+        # print(100 * count / len(publicdns[country]))
         count += 1
         resolver = dns.resolver.Resolver()
         resolver.nameservers = [ns]
@@ -262,7 +262,7 @@ def selectXBestResolvers(country):
             # print (sample_mean,)
 
     # Print the selected lists
-    print("Selected Lists: ", len(selected_lists))
+    # print("Selected Lists: ", len(selected_lists))
     # for ns in selected_lists:
     #     print(ns)
     data_to_plot = [resTimesPerResolver[ns] for ns in selected_lists]
@@ -274,7 +274,7 @@ def selectXBestResolvers(country):
 
     # Find the lists with IQR significantly larger than the threshold
     largerSpreadNs = [ns for i, ns in enumerate(selected_lists) if iqr_values[i] > threshold * np.median(iqr_values)]
-    print("largerSpreadNs: ", len(largerSpreadNs))
+    # print("largerSpreadNs: ", len(largerSpreadNs))
     # for ns in largerSpreadNs:
     #     print (ns)
 
@@ -440,7 +440,7 @@ def selectXBestResolversModified(country):
                 selected_lists.append(ns)
 
     # Print the selected lists
-    print("Selected Lists: ", len(selected_lists))
+    # print("Selected Lists: ", len(selected_lists))
 
     data_to_plot = [resTimesPerResolver[ns] for ns in selected_lists]
 
@@ -451,7 +451,7 @@ def selectXBestResolversModified(country):
 
     # Find the lists with IQR significantly larger than the threshold
     largerSpreadNs = [ns for i, ns in enumerate(selected_lists) if iqr_values[i] > threshold * np.median(iqr_values)]
-    print("largerSpreadNs: ", len(largerSpreadNs))
+    # print("largerSpreadNs: ", len(largerSpreadNs))
 
     # Create a boxplot for the selected lists
     plt.figure(figsize=(8, 6))
@@ -515,7 +515,7 @@ def selectBestResolverstoShard(currentIpAddr, country):
     leastVar = sorted_by_stdev[0][0]
     best_upper_whisker = stdevdict[leastVar]
 
-    print("best_upper_whisker: ", best_upper_whisker)
+    # print("best_upper_whisker: ", best_upper_whisker)
 
     selected_keys = []
     for key in selected_keysI:
@@ -535,8 +535,8 @@ def selectBestResolverstoShard(currentIpAddr, country):
 
     # Find the lists with IQR significantly larger than the threshold
     largerSpreadNs = [ns for i, ns in enumerate(selected_keys) if iqr_values[i] > threshold * np.median(iqr_values)]
-    print("best resolvers: ", len(selected_keys))
-    print("largerSpreadNs: ", len(largerSpreadNs))
+    # print("best resolvers: ", len(selected_keys))
+    # print("largerSpreadNs: ", len(largerSpreadNs))
 
     configMap = dict()
     configMap[currentIpAddr] = {"best_resolvers": list(set(selected_keys)-set(largerSpreadNs)), "high_spread": largerSpreadNs}
@@ -565,13 +565,12 @@ def selectBestResolverstoShard(currentIpAddr, country):
     plt.ylabel("Resolution Time (ms)")
     # plt.xticks(range(1, 9), best_subset.keys())  # Set x-axis labels to the keys
     plt.savefig("analysis/measurements/" + country + "/bestResolverstoShard.png")
-    plt.show()
+    # plt.show()
 
 
 # # countries=["US","AR","DE"]
 currentIpAddr = sys.argv[1]
 country = sys.argv[2]
-print(country)
 configBestResolvers(country)
 selectBestResolverstoShard(currentIpAddr, country)
 

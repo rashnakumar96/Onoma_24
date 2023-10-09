@@ -28,7 +28,6 @@ import (
 var Client proxy.Client
 var mutex = &sync.Mutex{}
 
-
 // ResolvError error type
 type ResolvError struct {
 	qname, net  string
@@ -67,29 +66,26 @@ func waitTimeout(waitGroup *sync.WaitGroup, timeoutDuration time.Duration) bool 
 func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.WaitGroup,
 	requestMessage *dns.Msg, net string, resultChannel chan *dns.Msg, doID int, insertion bool) {
 
-
 	qname := requestMessage.Question[0].Name
 	qType := requestMessage.Question[0].Qtype
 
 	responseMessage, rtt, err := dnsClient.Exchange(requestMessage, nameserver)
-	if insertion==true{
-        log.WithFields(log.Fields{
-            "id":          doID,
-            "query":       qname,
-            "name server": nameserver}).Debug("Resolver: This is the inserted query, no response needed")
-        return
-    }
-    defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
+	if insertion == true {
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"query":       qname,
+			"name server": nameserver}).Debug("Resolver: This is the inserted query, no response needed")
+		return
+	}
+	defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id":          doID,
 			"query":       qname,
 			"error":       err.Error(),
-			"name server": nameserver}).Error("Resolver: DNS Client Exchange Socket error")
+			"name server": nameserver}).Debug("Resolver: DNS Client Exchange Socket error")
 		return
 	}
-
-
 
 	// If SERVFAIL happens, should return immediately and try another upstream resolver.
 	// However, other Error codes like NXDOMAIN are a clear response stating
@@ -140,7 +136,6 @@ func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.
 func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *sync.WaitGroup, requestMessage *dns.Msg,
 	net string, resultChannel chan *dns.Msg, doID int, insertion bool) {
 
-
 	qname := requestMessage.Question[0].Name
 	qType := requestMessage.Question[0].Qtype
 	log.WithFields(log.Fields{"nameserver": nameserver}).Debug("Resolver: DoH look up at Namehelp")
@@ -156,15 +151,14 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 	log.WithFields(log.Fields{"nameserver": resolver}).Debug("Resolver: DoH look up at Namehelp")
 
 	responseMessage, err := Client.Resolve(requestMessage, resolver)
-	if insertion==true{
-        log.WithFields(log.Fields{
-            "id":          doID,
-            "query":       qname,
-            "name server": nameserver}).Debug("ResolverDoH: This is the inserted query, no response needed")
-        return
-    }
-    defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
-
+	if insertion == true {
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"query":       qname,
+			"name server": nameserver}).Debug("ResolverDoH: This is the inserted query, no response needed")
+		return
+	}
+	defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
 
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -174,8 +168,6 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 			"name server": nameserver}).Error("Resolver: DoH Client Resolve Socket error")
 		return
 	}
-
-
 
 	log.WithFields(log.Fields{
 		"name server": nameserver,
@@ -197,7 +189,6 @@ func routine_DoLookup_DoH(nameserver string, dnsClient *dns.Client, waitGroup *s
 			return
 		} else {
 			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Error("Resolver: NXDOMAIN ERROR")
-
 			// NXDOMAIN and other failures: confirmed failure so provide the response (jump to end of function)
 		}
 	} else {
@@ -261,7 +252,7 @@ func (resolver *Resolver) LookupAtNameserver(net string, requestMessage *dns.Msg
 
 	// add to waitGroup and launch goroutine to do lookup
 	waitGroup.Add(1)
-	insertion:=false
+	insertion := false
 	go routine_DoLookup(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID, insertion)
 
 	// but exit early, if we have an answer
@@ -327,9 +318,9 @@ func (resolver *Resolver) Shard() []proxy.Server {
 // It returns an error if no request has succeeded.
 func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Msg, nameservers []string,
 	doID int, dohEnabled bool, experiment bool, _proxy bool, ResolverMapping map[string][]string,
-	PrivacyEnabled bool, Racing bool, Decentralized bool, BestResolvers []string,DNSDistribution map[string][]int64,DNSTime int, Top50Websites []string, Filter bloom.BloomFilter) (resultMessage *dns.Msg, err error) {
-    var insertionFactor int
-    insertion:=false
+	PrivacyEnabled bool, Racing bool, Decentralized bool, BestResolvers []string, DNSDistribution map[string][]int64, DNSTime int, Top50Websites []string, Filter bloom.BloomFilter) (resultMessage *dns.Msg, err error) {
+	var insertionFactor int
+	insertion := false
 	if experiment && !dohEnabled {
 		nameservers = utils.AddPortToEach(nameservers, resolver.Config.Port)
 	}
@@ -354,19 +345,19 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 	ticker := time.NewTicker(time.Duration(settings.NamehelpSettings.ResolvConfig.Interval) * time.Millisecond)
 	defer ticker.Stop()
 	// Start lookup on each nameserver top-down, in every second
-	//if resolver provided use that, otherwise shard
+	// If resolver provided use that, otherwise shard
 	var resolvers []string
 
 	_question := requestMessage.Question[0]
 	question := strings.Split(_question.String()[1:], ".\tIN\t")[0]
 
 	var domain string
-	//The eperiment flag is turned on when testing individual resolvers and is off when testing DoHProxy and SubRosa
+	// The experiment flag is turned on when testing individual resolvers and is off when testing DoHProxy and SubRosa
 	if experiment {
 		resolvers = nameservers
 	} else if !experiment && PrivacyEnabled {
-		//This condition is true when Privacy flag is turned on for DoHProxy and SubRosa, and all same 2lds go to the same resolver
-		insertionFactor=3 //The number of requests inserted per request not found in top sites
+		// This condition is true when Privacy flag is turned on for DoHProxy and SubRosa, and all same 2lds go to the same resolver
+		insertionFactor = 3 // The number of requests inserted per request not found in top sites
 		val := strings.Split(question, "\\")
 		if len(val) == 1 {
 			domain = question
@@ -378,36 +369,36 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 				"website": domain}).Debug("Resolver: This is the domain of the website")
 		}
 
-        secondld :=domainutil.DomainPrefix(domain)
-        if secondld!=""{
-            log.WithFields(log.Fields{
-            "go2ld": secondld,
-            "question_requestMessage": requestMessage,
-            "question_name": _question.Name,
-            "website": domain}).Debug("Resolver: Found second level domain")
-             domain=secondld
-        }else{
-            log.WithFields(log.Fields{
-            "go2ld": secondld,
-            "website": domain}).Error("Resolver: Error finding second level domain")
-        }
-        if Filter.Test([]byte(domain)){
-            insertion=false
-        }else{
-            insertion=true
-        }
-        log.WithFields(log.Fields{
-            "go2ld": secondld,
-            "insertion": insertion}).Error("Resolver: This is the value of insertion")
+		secondld := domainutil.DomainPrefix(domain)
+		if secondld != "" {
+			log.WithFields(log.Fields{
+				"go2ld":                   secondld,
+				"question_requestMessage": requestMessage,
+				"question_name":           _question.Name,
+				"website":                 domain}).Debug("Resolver: Found second level domain")
+			domain = secondld
+		} else {
+			log.WithFields(log.Fields{
+				"go2ld":   secondld,
+				"website": domain}).Error("Resolver: Error finding second level domain")
+		}
+		if Filter.Test([]byte(domain)) {
+			insertion = false
+		} else {
+			insertion = true
+		}
+		log.WithFields(log.Fields{
+			"go2ld":     secondld,
+			"insertion": insertion}).Error("Resolver: This is the value of insertion")
 
 		mutex.Lock()
 		val, ok := ResolverMapping[domain]
 		mutex.Unlock()
 
-		if ok{
-			//do something here
+		if ok {
 			if !_proxy && len(val) == 1 {
-				//if the resolvermapping has only one resolver and we are testing SubRosa, then add another resolver to the dictionary
+				// if the resolvermapping has only one resolver and we are testing Onoma,
+				// then add another resolver to the dictionary
 				resolvers = val
 				dohResolvers := resolver.Shard()
 				for _, resolver := range dohResolvers {
@@ -426,7 +417,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 				"resolvers": resolvers,
 				"website":   domain}).Debug("Resolver: These resolvers assigned to the domain")
 		} else {
-			//if domain not found in resolvermapping and if testing DoHProxy, shard and select a random resolver
+			// if domain not found in resolvermapping and if testing DoHProxy, shard and select a random resolver
 			if _proxy {
 				dohResolvers := resolver.Shard()
 				for _, resolver := range dohResolvers {
@@ -437,23 +428,22 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 				ResolverMapping[domain] = resolvers
 				mutex.Unlock()
 			} else {
-				//if domain not found in the resolvermapping and if testing SubRosa, shard and select two random resolvers for racing
-				//and the remaining 4 from the bestresolvers stored
+				// if domain not found in the resolvermapping and if testing SubRosa, shard and select two random resolvers for racing
+				// and the remaining 4 from the bestresolvers stored
 
 				dohResolvers := resolver.Shard()
-				// dohResolvers = dohResolvers[:2]
 				for _, resolver := range dohResolvers {
-					found:=0
+					found := 0
 					for _, r := range BestResolvers {
-						if r==resolver.Name{
-							found=1
+						if r == resolver.Name {
+							found = 1
 							break
 						}
 					}
-					if found==1{
+					if found == 1 {
 						continue
 					}
-					if len(resolvers)>=2{
+					if len(resolvers) >= 2 {
 						break
 					}
 
@@ -468,10 +458,9 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 			resolvers = append(resolvers, r)
 		}
 
-
 	} else {
-		//if experiment is false and privacy is also not enabled and
-		//if we are testing with DoHProxy or with racing disabled in SubRosa, pick one random resolver each time
+		// if experiment is false and privacy is also not enabled and
+		// if we are testing with DoHProxy or with racing disabled in SubRosa, pick one random resolver each time
 		if _proxy || !Racing {
 			dohResolvers := resolver.Shard()
 			for _, resolver := range dohResolvers {
@@ -512,7 +501,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 				resolvers = append(resolvers, resolver.Name)
 				m := int64(DNSTime)
 				mutex.Lock()
-				DNSDistribution[resolver.Name]=append(DNSDistribution[resolver.Name],m)
+				DNSDistribution[resolver.Name] = append(DNSDistribution[resolver.Name], m)
 				mutex.Unlock()
 
 			}
@@ -551,42 +540,41 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 		}
 
 		// add to waitGroup and launch goroutine to do lookup
-		// waitGroup.Add(1)
-		//if doh enabled use that otherwise use dnslookup
+		// if doh enabled use that otherwise use dnslookup
 		if dohEnabled {
 			go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID, false)
-			insertion=true
-			if insertion{
-			    for i:=0; i<insertionFactor;i++{
-                    randomIndex := rand.Intn(len(Top50Websites))
-                    insertedDomain := Top50Websites[randomIndex]
-                    m := new(dns.Msg)
-                    m.SetQuestion(dns.Fqdn(insertedDomain), dns.TypeA)
-                    log.WithFields(log.Fields{
-                        "originalQuestion": requestMessage.Question[0].Name,
-                        "insertedQuestion": m.Question[0].Name,
-                        "insertedDomain": insertedDomain}).Debug("ResolverDoH: This is the Inserted Question")
-                    go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, m, net, resultChannel, doID, true)
-                }
-            }
+			insertion = true
+			if insertion {
+				for i := 0; i < insertionFactor; i++ {
+					randomIndex := rand.Intn(len(Top50Websites))
+					insertedDomain := Top50Websites[randomIndex]
+					m := new(dns.Msg)
+					m.SetQuestion(dns.Fqdn(insertedDomain), dns.TypeA)
+					log.WithFields(log.Fields{
+						"originalQuestion": requestMessage.Question[0].Name,
+						"insertedQuestion": m.Question[0].Name,
+						"insertedDomain":   insertedDomain}).Debug("ResolverDoH: This is the Inserted Question")
+					go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, m, net, resultChannel, doID, true)
+				}
+			}
 
 		} else {
 			go routine_DoLookup(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID, false)
-			insertion=true
-			if insertion{
-			    for i:=0; i<insertionFactor;i++{
+			insertion = true
+			if insertion {
+				for i := 0; i < insertionFactor; i++ {
 
-                    randomIndex := rand.Intn(len(Top50Websites))
-                    insertedDomain := Top50Websites[randomIndex]
-                    m := new(dns.Msg)
-                    m.SetQuestion(dns.Fqdn(insertedDomain), dns.TypeA)
-                    log.WithFields(log.Fields{
-                        "originalQuestion": requestMessage.Question[0].Name,
-                        "insertedQuestion": m.Question[0].Name,
-                        "insertedDomain": insertedDomain}).Debug("Resolver: This is the Inserted Question")
-                    go routine_DoLookup(nameserver, dnsClient, &waitGroup, m, net, resultChannel, doID, true)
-                }
-            }
+					randomIndex := rand.Intn(len(Top50Websites))
+					insertedDomain := Top50Websites[randomIndex]
+					m := new(dns.Msg)
+					m.SetQuestion(dns.Fqdn(insertedDomain), dns.TypeA)
+					log.WithFields(log.Fields{
+						"originalQuestion": requestMessage.Question[0].Name,
+						"insertedQuestion": m.Question[0].Name,
+						"insertedDomain":   insertedDomain}).Debug("Resolver: This is the Inserted Question")
+					go routine_DoLookup(nameserver, dnsClient, &waitGroup, m, net, resultChannel, doID, true)
+				}
+			}
 		}
 
 		// check for response or interval tick
@@ -628,7 +616,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 				"question": question}).Debug("Resolver: WaitGroup done for all lookup queries")
 		}
 	} else {
-		//racing is false so we just wait for go routines to finish
+		// racing is false so we just wait for go routines to finish
 		log.WithFields(log.Fields{
 			"id": doID}).Debug("Resolver: Racing disabled, Waiting for lookup queries to finish.")
 		waitGroup.Wait() // wait for all the goroutines to finish
@@ -636,7 +624,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 			"id": doID}).Debug("Resolver: Racing disabled, All lookup queries have finished.")
 	}
 
-	//go routines have finished we check if we get anything on resultChannel otherwise it's a serve fail
+	// go routines have finished we check if we get anything on resultChannel otherwise it's a serve fail
 	select {
 	case resultMessage := <-resultChannel:
 		// at least one succeeded
@@ -656,21 +644,16 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 // Lookup performs dns lookup at the specific resolver for the given message
 // Returns dns response message
 func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int, _proxy bool,
-	ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool, Decentralized bool,BestResolvers []string,DNSDistribution map[string][]int64,DNSTime int,Top50Websites []string, Filter bloom.BloomFilter) (message *dns.Msg, err error) {
+	ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool, Decentralized bool, BestResolvers []string, DNSDistribution map[string][]int64, DNSTime int, Top50Websites []string, Filter bloom.BloomFilter) (message *dns.Msg, err error) {
 	nameservers := resolver.Config.Servers
 	dohEnabled := true
 	experiment := false
-	//    if (handler.DoHEnabled && handler.Experiment){
-	// 	dnsServersToQuery=handler.DoHServersToTest
-	// }else if (!handler.DoHEnabled && handler.Experiment){
-	// 	dnsServersToQuery=handler.DNSServersToTest
-	// }
-	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID, dohEnabled, experiment, _proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized,BestResolvers,DNSDistribution,DNSTime, Top50Websites, Filter)
+
+	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID, dohEnabled, experiment, _proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter)
 }
 
 // Nameservers return the array of nameservers, with port number appended.
 // '#' in the name is treated as port separator, as with dnsmasq.
-
 func (resolver *Resolver) Nameservers() (nameservers []string) {
 	list := resolver.Config.Servers
 	port := resolver.Config.Port

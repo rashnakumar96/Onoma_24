@@ -49,7 +49,6 @@ func DhcpGetNumberOfInterfaces() (numberOfInterfaces int) {
 		tmp, err1 := utils.RunCommand(commandName, arguments...)
 		err = err1
 		combinedOutput = string(tmp)
-		fmt.Printf("combinedOutput: %s\n", combinedOutput)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"command": commandName,
@@ -62,11 +61,10 @@ func DhcpGetNumberOfInterfaces() (numberOfInterfaces int) {
 		tmp, err1 := exec.Command("bash", "-c", commandName).Output()
 		err = err1
 		combinedOutput = string(tmp[:len(tmp)])
-		fmt.Printf("combinedOutput: %s\n", combinedOutput)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"command": commandName,
-				"error":   err.Error()}).Error("Unable to run.")
+				"error":   err.Error()}).Debug("Unable to run.")
 			return 0 // fail
 		}
 		// For linux, enable now end
@@ -75,7 +73,6 @@ func DhcpGetNumberOfInterfaces() (numberOfInterfaces int) {
 		tmp, err1 := exec.Command(`cmd`, `/C`, `wmic nic get NetConnectionID`).Output()
 		err = err1
 		combinedOutput = strconv.Itoa(len(strings.Split(string(tmp[:len(tmp)]), "\n")))
-		fmt.Printf("combinedOutput: %s\n", combinedOutput)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"command": commandName,
@@ -137,7 +134,7 @@ func DhcpGetDNSServersForInterface(networkInterface string) (dnsServersForInterf
 
 	if err != nil {
 		log.WithFields(log.Fields{
-			"error": err.Error()}).Error("Unable to get info about local DNS servers.")
+			"error": err.Error()}).Debug("Unable to get info about local DNS servers.")
 		return []string{}
 	}
 

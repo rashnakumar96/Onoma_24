@@ -82,13 +82,6 @@ func (c *MemoryCache) Get(key string) (*dns.Msg, error) {
 		return nil, KeyNotFound{key}
 	}
 
-	// if mesg.Expire.Before(time.Now()) {
-	//     fmt.Println("THE KEY HAS EXPIRED: ",mesg)
-	//     log.WithFields(log.Fields{
-	//            		"mesg": mesg}).Debug("The msg has expired")
-	// 	c.Remove(key)
-	// 	return nil, KeyExpired{key}
-	// }
 	log.WithFields(log.Fields{
 		"mesg": mesg.Msg,
 		"key":  key}).Debug("GET MSG FOR KEY")

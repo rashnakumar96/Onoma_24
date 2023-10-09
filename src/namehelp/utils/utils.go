@@ -30,9 +30,9 @@ const (
 )
 
 type IPInfoResponse struct {
-	Ip string `json:"ip"`
+	Ip       string `json:"ip"`
 	Hostname string `json:"hostname"`
-	Country string `json:"country"`
+	Country  string `json:"country"`
 }
 
 func UnionStringLists(list1 []string, list2 []string) []string {
@@ -129,7 +129,7 @@ func RunCommand(name string, arguments ...string) (combinedOutputString string, 
 			"command":  name,
 			"argument": arguments,
 			"output":   combinedOutput,
-			"error":    err.Error()}).Error("Command failed")
+			"error":    err.Error()}).Debug("Command failed")
 		return combinedOutputString, err
 	}
 
@@ -342,7 +342,7 @@ func ReadFromResolverConfig(ipAddr string, country string) map[string][]string {
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("Error opening file:", err)
+		fmt.Println("No best resolver config exists yet", err)
 		return nil
 	}
 	defer file.Close()
@@ -350,20 +350,20 @@ func ReadFromResolverConfig(ipAddr string, country string) map[string][]string {
 	// Read the file content
 	fileContent, err := ioutil.ReadAll(file)
 	if err != nil {
-		fmt.Println("Error reading file:", err)
+		log.Debug("Error reading file:", err)
 		return nil
 	}
 
 	var config map[string]map[string][]string
 
 	if err := json.Unmarshal(fileContent, &config); err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
+		log.Debug("Error unmarshaling JSON:", err)
 		return nil
 	}
 
 	resolvers, ok := config[ipAddr]
 	if !ok {
-		log.Warn("resolvers config for this ip doesn't exist")
+		log.Debug("resolvers config for this ip doesn't exist")
 		return nil
 	}
 
