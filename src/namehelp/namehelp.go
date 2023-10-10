@@ -232,7 +232,7 @@ func (program *Program) runOnoma(ipAddr string) {
 
 			utils.FlushLocalDnsCache()
 
-			newIpInfo, err := utils.GetPublicIPInfo()
+			newIpInfo, err := utils.QueryPublicIpInfo()
 			if err != nil {
 				log.Error("Error getting local IP info:", err)
 				continue
@@ -1081,10 +1081,10 @@ func (program *Program) restoreOldDNSServers(oldDNSServers map[string][]string) 
 	err = nil
 	if runtime.GOOS == "darwin" {
 		for networkInterface, dnsServerList := range oldDNSServers {
-			log.Info("dnsServerList [%v] length [%d]\n", dnsServerList, len(dnsServerList))
+			log.Infof("dnsServerList %v length %d\n", dnsServerList, len(dnsServerList))
 			argumentList := append([]string{"-setdnsservers", networkInterface}, dnsServerList...)
 
-			log.Info("Running networksetup %v\n", argumentList)
+			log.Infof("Running networksetup %s\n", argumentList)
 			output, thisError := utils.RunCommand("networksetup", argumentList...)
 			if thisError != nil {
 				log.Error("output [%s] error [%s]\n", output, thisError.Error())
@@ -1245,14 +1245,9 @@ func main() {
 
 	// wait for signal from run until shut down completed
 	<-namehelpProgram.shutdownChan
-	e := os.Remove(filepath.Join(srcDir, "dat"))
+	e := os.Remove(filepath.Join(srcDir, "analysis", "ipInfo.json"))
 	if e != nil {
-		log.Info("error removing dat file")
-	}
-	e = os.Remove(filepath.Join(srcDir, "dat1"))
-	if e != nil {
-		log.Info("error removing dat1 file")
-
+		log.Info("error removing ipInfo file")
 	}
 
 	*serviceFlag = "uninstall"
