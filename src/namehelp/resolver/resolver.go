@@ -476,7 +476,7 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 
 			ipInfo, err := utils.GetPublicIPInfo()
 			if err != nil {
-				log.Error("Error getting local IP info:", err)
+				log.Debug("Error getting local IP info:", err)
 				ipInfo = &utils.IPInfoResponse{Country: "US", Ip: "8.8.8.8"}
 			}
 

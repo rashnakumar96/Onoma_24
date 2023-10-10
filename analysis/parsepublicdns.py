@@ -8,8 +8,7 @@ import dns.resolver
 import statistics
 import matplotlib.pyplot as plt
 import subprocess
-import math
-
+import requests
 
 def make_json(csvFilePath, jsonFilePath):
     data = {}
@@ -44,7 +43,7 @@ def selectpublicDNSResolvers():
     countries = ["US", "AR", "DE", "IN"]
     publicdns = json.load(open("data/publicDNSCountryLatest.json"))
     publicdnsIPs = ["8.8.8.8", "1.1.1.1", "9.9.9.9"]
-    bigPublicDnsProviders = ["GOOGLE", "ULTRADNS", "CLOUDFLARENET"]
+    bigPublicDnsProviders = ["GOOGLE", "ULTRADNS", "CLOUDFLARENET", "OPENDNS"]
     publicDNS = {}
     for ip in publicdns:
         if publicdns[ip]["country_code"] in countries and float(
@@ -61,7 +60,7 @@ def selectpublicDNSResolvers():
         for ip in publicdns:
             if ip in publicDNS[cc] and publicdns[ip]["as_org"] not in bigPublicDnsProviders:
                 removeList.append(ip)
-        print(cc, "origin len: ", len(publicDNS[cc]), " remove len:", len(removeList))
+        # print(cc, "origin len: ", len(publicDNS[cc]), " remove len:", len(removeList))
         if len(publicDNS[cc]) - len(removeList) >= 30:
             publicDNS[cc] = list(set(publicDNS[cc]) - set(removeList))
         publicDNS[cc] = random.sample(publicDNS[cc], 30)
@@ -69,8 +68,56 @@ def selectpublicDNSResolvers():
     with open("data/publicDNSMeasurementCountries.json", 'w', encoding='utf-8') as jsonf:
         jsonf.write(json.dumps(publicDNS, indent=4))
 
-    for cc in countries:
-        print(cc, len(publicDNS[cc]))
+
+def testDoHResolvers(country):
+    # doh_urls=["https://dns.quad9.net:5053/dns-query","https://cloudflare-dns.com/dns-query","https://dns.google/resolve"]
+    # doh_urls = [
+    #     "Google": "8.8.8.8/resolve",
+    #     "Cloudflare": "1.1.1.1/dns-query",
+    #     "Quad9": "9.9.9.9:5053/dns-query"
+    # ]
+
+    doh_urls = ["https://8.8.8.8/resolve", "https://1.1.1.1/dns-query", "https://9.9.9.9:5053/dns-query"]
+
+    top500sites = json.load(open("data/alexaTop500SitesPerCountry.json"))
+    resTimesPerResolver = json.load(open("analysis/measurements/"+country+"/resTimesPerResolver.json"))
+
+    try:
+        subprocess.run(["sudo", "dscacheutil", "-flushcache"], check=True)
+        print("DNS cache flushed successfully on macOS.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error flushing DNS cache on macOS: {e}")
+
+    top50sites = top500sites[country][:50]
+    headers = {
+        "accept": "application/dns-json"
+    }
+    for doh_url in doh_urls:
+        for site in top50sites:
+            if site == "microsoftonline.com":
+                continue
+            # Construct the query parameters
+            params = {
+                "name": site,
+                "type": "A"  # You can change the type to AAAA for IPv6 records
+            }
+            # Specify the headers to indicate the accept header for JSON
+
+            # Make the DoH request
+            start_time = time.time()
+            response = requests.get(doh_url, params=params, headers=headers, verify=False)
+            end_time = time.time()
+
+            # Check if the request was successful (HTTP status code 200)
+            if response.status_code == 200:
+                resolution_time_ms = (end_time - start_time) * 1000
+                if doh_url not in resTimesPerResolver:
+                    resTimesPerResolver[doh_url]=[]
+                resTimesPerResolver[doh_url].append(resolution_time_ms)
+            else:
+                print(f"Failed to resolve {site}. Status code: {response.status_code}")
+    with open("analysis/measurements/"+country+"/resTimesPerResolver.json", 'w', encoding='utf-8') as jsonf:
+        jsonf.write(json.dumps(resTimesPerResolver, indent=4))
 
 
 def configBestResolvers(country):
@@ -572,6 +619,5 @@ def selectBestResolverstoShard(currentIpAddr, country):
 currentIpAddr = sys.argv[1]
 country = sys.argv[2]
 configBestResolvers(country)
+testDoHResolvers(country)
 selectBestResolverstoShard(currentIpAddr, country)
-
-# select resolvers from the file, resolve 50 domains and record the resolution times.

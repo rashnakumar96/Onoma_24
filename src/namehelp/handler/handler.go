@@ -180,7 +180,18 @@ func NewHandler(oldDNSServers map[string][]string) *DNSQueryHandler {
 			highSpread := config["high_spread"]
 			res := append(bestResolvers, highSpread...)
 			for i := 0; i < len(res); i++ {
-				resolver.Client.AddUpstream(res[i], res[i], 53)
+				if strings.Contains(res[i], "/") { // doH
+					splitStrs := strings.Split(res[i], "/")
+					name := "Google"
+					if strings.Contains(res[i], "https://") && len(splitStrs) == 3 {
+						name = splitStrs[1]
+					} else if len(splitStrs) == 2 {
+						name = splitStrs[0]
+					}
+					resolver.Client.AddUpstream(name, res[i], 443)
+				} else {
+					resolver.Client.AddUpstream(res[i], res[i], 53)
+				}
 			}
 		}
 

@@ -299,6 +299,34 @@ func UnFullyQualifyDomainName(s string) string {
 }
 
 func GetPublicIPInfo() (*IPInfoResponse, error) {
+	var ipInfo *IPInfoResponse
+	// read ip info from file, if no file exist, query and write to the file
+	fileName := "ipInfo.json"
+	filePath := filepath.Join(GetSrcDir(), "analysis", fileName)
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		log.Info("No Ip Info file exists yet")
+		ipInfo, _ = QueryPublicIpInfo()
+		return ipInfo, nil
+	}
+	defer file.Close()
+
+	// Read the file content
+	fileContent, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Debug("Error reading file:", err)
+		return nil, nil
+	}
+
+	if err := json.Unmarshal(fileContent, &ipInfo); err != nil {
+		return nil, err
+	}
+
+	return ipInfo, nil
+}
+
+func QueryPublicIpInfo() (*IPInfoResponse, error) {
 	url := "https://ipinfo.io"
 	resp, err := http.Get(url)
 	if err != nil {
@@ -318,6 +346,16 @@ func GetPublicIPInfo() (*IPInfoResponse, error) {
 	var ipInfo *IPInfoResponse
 	if err := json.Unmarshal(body, &ipInfo); err != nil {
 		return nil, err
+	}
+
+	fileName := "ipInfo.json"
+	filePath := filepath.Join(GetSrcDir(), "analysis", fileName)
+
+	// Write the JSON-encoded data to a file
+	err = ioutil.WriteFile(filePath, body, 0644)
+	if err != nil {
+		log.Info("Error writing JSON to file:", err)
+		return nil, nil
 	}
 
 	return ipInfo, nil
@@ -342,7 +380,7 @@ func ReadFromResolverConfig(ipAddr string, country string) map[string][]string {
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("No best resolver config exists yet", err)
+		log.Info("No best resolver config exists yet")
 		return nil
 	}
 	defer file.Close()

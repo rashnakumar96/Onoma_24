@@ -278,20 +278,6 @@ func (program *Program) runConfigTest(currentIpAddr string, country string) {
 		args := []string{dir, currentIpAddr, country}
 		cmd := exec.Command("python", args...)
 
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"configTest": stdout}).Error("Failed to create stdout pipe")
-			return
-		}
-
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"configTest": stderr}).Error("Failed to create stderr pipe")
-			return
-		}
-
 		if err := cmd.Start(); err != nil {
 			log.WithFields(log.Fields{
 				"configTest": err}).Error("Failed to start the RunConfigTest")
