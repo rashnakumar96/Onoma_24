@@ -9,7 +9,8 @@ installer/
 
 pkg/
 
-src/github.com
+/src/github.com/*/
+!/src/github.com/alexthemonk/
 src/golang.org
 src/gopkg.in
 src/go.mongodb.org

@@ -1,13 +1,3 @@
-//go:generate go get -u github.com/alexthemonk/DoH_Proxy/
-//go:generate go get -u github.com/kardianos/osext/
-//go:generate go get -u github.com/kardianos/service/
-//go:generate go get -u github.com/miekg/dns/
-//go:generate go get -u github.com/sirupsen/logrus/
-//go:generate go get -u go.mongodb.org/mongo-driver/mongo
-//go:generate go get -u gopkg.in/natefinch/lumberjack.v2
-//go:generate go get github.com/bobesa/go-domain-util/domainutil
-//go:generate go get -u github.com/bits-and-blooms/bloom
-
 package main
 
 import (
@@ -15,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"hash/fnv"
 	"io"
 	"io/ioutil"
@@ -42,7 +33,6 @@ import (
 	"github.com/kardianos/service"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var backupHosts = []string{}
@@ -191,8 +181,6 @@ func (program *Program) run() {
 		return
 	}
 
-	log.Info("Current IP info: ", ipinfo)
-
 	go program.runConfigTest(ipinfo.Ip, ipinfo.Country)
 
 	program.runOnoma(ipinfo.Ip)
@@ -260,11 +248,42 @@ func (program *Program) runConfigTest(currentIpAddr string, country string) {
 		args := []string{dir, currentIpAddr, country}
 		cmd := exec.Command("python", args...)
 
-		if err := cmd.Start(); err != nil {
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
 			log.WithFields(log.Fields{
-				"configTest": err}).Error("Failed to start the RunConfigTest")
+				"configTest": stdout}).Error("Failed to create stdout pipe")
 			return
 		}
+
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"configTest": stderr}).Debug("Failed to create stderr pipe")
+			return
+		}
+
+		if err := cmd.Start(); err != nil {
+			log.WithFields(log.Fields{
+				"configTest": err}).Debug("Failed to start the RunConfigTest")
+			return
+		}
+
+		// Create channels to capture and log output
+		stdoutScanner := bufio.NewScanner(stdout)
+		stderrScanner := bufio.NewScanner(stderr)
+
+		// Start goroutines to capture and log output
+		go func() {
+			for stdoutScanner.Scan() {
+				log.Debug("Python stdout: " + stdoutScanner.Text())
+			}
+		}()
+
+		go func() {
+			for stderrScanner.Scan() {
+				log.Debug("Python stderr: " + stderrScanner.Text())
+			}
+		}()
 
 		// Wait for the command to finish
 		if err := cmd.Wait(); err != nil {
@@ -332,7 +351,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 				continue
 			}
 		} else {
-			log.Info("Namehelp: publicDNSServers FileFound")
+			log.Debug("Namehelp: publicDNSServers FileFound")
 			break
 		}
 	}
