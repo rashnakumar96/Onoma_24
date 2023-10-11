@@ -10,7 +10,7 @@ sacrificing privacy or performance.
 
 - This README provides instructions for installation, building, running, and uninstalling Ónoma.
 
-## Installation
+## Installation on MAC
 
 ### Go Installation
 
@@ -25,6 +25,14 @@ go version
 brew update
 brew install python
 python3 --version
+```
+
+### Python Virtual Env & dependency installation
+```bash
+sudo pip install virtualenv
+virtualenv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ## Build Ónoma

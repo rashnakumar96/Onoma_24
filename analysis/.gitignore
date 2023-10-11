@@ -2,6 +2,8 @@
 !publicDNSServers.json
 
 *.txt
+!requirements.txt
+
 *.png
 har
 nohup.out
