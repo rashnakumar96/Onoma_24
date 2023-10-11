@@ -4,7 +4,7 @@ WORKDIR /app
 ADD . /app
 ENV GOPATH=/app
 RUN pwd
-RUN go get github.com/alexthemonk/DoH_Proxy/
+RUN go get github.com/zyalm/DoH_Proxy/
 RUN go get github.com/kardianos/osext/
 RUN go get github.com/kardianos/service/
 RUN go get github.com/miekg/dns/

@@ -1,9 +1,33 @@
-# Sub Rosa
-More software engineering version of Name-Secure
+# Ónoma
 
-[Sub Rosa](https://en.wikipedia.org/wiki/Sub_rosa)
+**Ónoma** is an end-system resolver that enables users to leverage the benefits of third-party DNS services without 
+sacrificing privacy or performance.
 
-## Build
+## Introduction
+- **Ónoma** avoids DNS-based user-reidentification by inserting and sharding requests across
+  resolvers, and improves performance by running resolution races among resolvers and reinstating the
+  client-resolver proximity assumption content delivery networks rely on.
+
+- This README provides instructions for installation, building, running, and uninstalling Ónoma.
+
+## Installation
+
+### Go Installation
+
+```bash
+brew update
+brew install go
+go version
+```
+
+### Python installation
+```bash
+brew update
+brew install python
+python3 --version
+```
+
+## Build Ónoma
 ```
 export GOPATH=`pwd`
 export GO111MODULE=auto
@@ -25,22 +49,4 @@ sudo chmod -R 777 bin/test/namehelp.log
 ### To uninstall:
 ```
 sudo ./bin/test/namehelp --service uninstall
-```
-
-## Build app for MacOS
-The app is based on Electron framework
-From the project home directory
-```
-cd Sub-Rosa/
-npm make-mac
-```
-In the current directory a new folder ```out``` will be created
-The app will be in ```out/Sub-Rosa-darwin-x64/``` directory
-The package of the app will be in ```out/make/``` directory
-
-### To run app without building
-From the project home directory
-```
-cd Sub-Rosa/
-npm start
 ```

@@ -1,5 +1,6 @@
 package main
 
+//go:generate go get -u github.com/zyalm/DoH_Proxy/
 //go:generate go get -u github.com/kardianos/osext/
 //go:generate go get -u github.com/kardianos/service/
 //go:generate go get -u github.com/miekg/dns/
@@ -10,7 +11,5 @@ package main
 //go:generate go get -u github.com/bits-and-blooms/bloom
 
 //go:generate go build -o bin/test/namehelp namehelp
-//go:generate go get github.com/cloudflare/odoh-client-go
-//go:generate go build -o bin/test/odoh-client github.com/cloudflare/odoh-client-go/cmd
 
 func main() {}

@@ -16,11 +16,11 @@ import (
 	"namehelp/settings"
 	"namehelp/utils"
 
-	proxy "github.com/alexthemonk/DoH_Proxy"
 	bloom "github.com/bits-and-blooms/bloom"
 	domainutil "github.com/bobesa/go-domain-util/domainutil"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
+	proxy "github.com/zyalm/DoH_Proxy"
 )
 
 // Client for resolver proxy that translate DNS to DoH
@@ -643,7 +643,8 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 
 		secondld := domainutil.DomainPrefix(requestMessage.Question[0].Name)
 		if secondld != "" && !TopSitesBloomFilter.Test([]byte(secondld)) {
-			go routine_DoLookup_oDoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID, false)
+			// todo: send to oblivious DoH
+			// go routine_DoLookup_oDoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID, false)
 		} else {
 			// add to waitGroup and launch goroutine to do lookup
 			// if doh enabled use that otherwise use dnslookup
