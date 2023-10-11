@@ -9,14 +9,9 @@ package main
 //go:generate go get -u gopkg.in/natefinch/lumberjack.v2
 //go:generate go get github.com/bobesa/go-domain-util/domainutil
 //go:generate go get -u github.com/bits-and-blooms/bloom
+//go:generate go get github.com/cloudflare/odoh-client-go
 
 //go:generate go build -o bin/test/namehelp namehelp
-
-// For Building other OS on MacOS
-/*
-//go:generate env GOOS=darwin GOARCH=amd64 go build -o Sub-Rosa/src/bin/MacOS/namehelp namehelp
-//go:generate env GOOS=windows GOARCH=amd64 go build -o Sub-Rosa/src/bin/Windows/namehelp.exe namehelp
-//go:generate env GOOS=linux GOARCH=amd64 go build -o Sub-Rosa/src/bin/Linux/namehelp namehelp
-*/
+//go:generate go build -o bin/test/odoh-client github.com/cloudflare/odoh-client-go/cmd
 
 func main() {}

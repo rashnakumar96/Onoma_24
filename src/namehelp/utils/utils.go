@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bits-and-blooms/bloom"
+	"github.com/bobesa/go-domain-util/domainutil"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -11,6 +14,8 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,7 +37,7 @@ const (
 type IPInfoResponse struct {
 	Ip       string `json:"ip"`
 	Hostname string `json:"hostname"`
-	Country  string `json:"country"`
+	Country  string `json:"country_iso"`
 }
 
 func UnionStringLists(list1 []string, list2 []string) []string {
@@ -327,7 +332,7 @@ func GetPublicIPInfo() (*IPInfoResponse, error) {
 }
 
 func QueryPublicIpInfo() (*IPInfoResponse, error) {
-	url := "https://ipinfo.io"
+	url := "https://ipconfig.io/json"
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -441,4 +446,134 @@ func RandomChoice(slice []string) string {
 
 	// Return the randomly chosen element
 	return slice[randomIndex]
+}
+
+func SendQueryToOdoh() {
+	filter := SetBloomFilterForTopMillionWebsites()
+	domain := "ying.com"
+	if filter.Test([]byte(domain)) {
+		fmt.Println("is in top million websites")
+		return
+	} else {
+		fmt.Println("not in top million websites")
+		routine_DoLookup_oDoH(domain)
+	}
+}
+
+func SetBloomFilterForTopMillionWebsites() *bloom.BloomFilter {
+	fileName := "top_million_websites.json"
+	filePath := filepath.Join(GetSrcDir(), "data", fileName)
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		log.Error("Error opening file:", filePath)
+		return nil
+	}
+	defer file.Close()
+
+	// Read the file content
+	fileContent, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Debug("Error reading file:", err)
+		return nil
+	}
+
+	var topMillionWebsites []string
+
+	if err := json.Unmarshal(fileContent, &topMillionWebsites); err != nil {
+		log.Debug("Error unmarshaling JSON:", err)
+		return nil
+	}
+
+	filter := bloom.NewWithEstimates(uint(len(topMillionWebsites)), 0.0001)
+
+	for _, website := range topMillionWebsites {
+		secondld := domainutil.DomainPrefix(website)
+		filter.Add([]byte(secondld))
+	}
+
+	return filter
+}
+
+func ConvertODoHResponseToDNSMessage(responseMessage string) (*dns.Msg, error) {
+	msg := new(dns.Msg)
+
+	pattern := `opcode: (\w+), status: (\w+), id: (\d+)`
+
+	// Compile the regular expression
+	re := regexp.MustCompile(pattern)
+
+	// Find the matches in the DNS string
+	matches := re.FindStringSubmatch(responseMessage)
+
+	if len(matches) < 4 {
+		return nil, errors.New("unable to extract opcode, status, and ID")
+	}
+
+	// Extract and print the values
+	opcode := matches[1]
+	status := matches[2]
+	id := matches[3]
+
+	// Create and add the DNS header to the message
+	tmpId, _ := strconv.Atoi(id)
+	msg.Id = uint16(tmpId)
+	msg.Opcode = dns.StringToOpcode[opcode]
+	msg.Rcode = dns.StringToRcode[status]
+
+	return msg, nil
+}
+
+func routine_DoLookup_oDoH(qname string) {
+	path := filepath.Join("../../../bin", "test")
+	command := "./" + path + "/odoh-client"
+	args := []string{"odoh", "--domain", qname, "--dnstype", "AAAA", "--target", "odoh.cloudflare-dns.com"}
+
+	// Create the command
+	cmd := exec.Command(command, args...)
+
+	log.Info("cmd is: ===========", cmd)
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"oDoH": err}).Error("Failed to create stdout pipe")
+		return
+	}
+
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		log.WithFields(log.Fields{
+			"oDoH": err}).Error("Failed to send oDoH request")
+		return
+	}
+
+	var stdoutBuffer strings.Builder
+
+	stdoutScanner := bufio.NewScanner(stdout)
+
+	go func() {
+		for stdoutScanner.Scan() {
+			stdoutBuffer.WriteString(stdoutScanner.Text())
+			stdoutBuffer.WriteString("\n") // Add a newline between lines
+		}
+	}()
+
+	if err := cmd.Wait(); err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			exitStatus := exitError.ExitCode()
+			log.WithFields(log.Fields{
+				"oDoH": exitStatus}).Error("oDoH execution failed with exit code")
+			return
+		} else {
+			log.WithFields(log.Fields{
+				"oDoH": err}).Error("oDoH execution failed")
+			return
+		}
+	}
+
+	responseMessage, _ := ConvertODoHResponseToDNSMessage(stdoutBuffer.String())
+	log.Info("response message is:::::::::", responseMessage)
+
+	return
 }

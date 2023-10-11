@@ -19,8 +19,10 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"namehelp/handler"
+	"namehelp/reporter"
+	"namehelp/utils"
 	"net"
-	// 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -33,13 +35,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	// "namehelp/network"
-
-	"namehelp/reporter"
-
-	"namehelp/handler"
-	"namehelp/utils"
 
 	bloom "github.com/bits-and-blooms/bloom"
 	domainutil "github.com/bobesa/go-domain-util/domainutil"
@@ -124,7 +119,6 @@ var namehelpProgram *Program
 var srcDir string
 
 // init is called before main when starting a program.
-// initialize loggers
 func init() {
 	// Configures the log settings in this function.
 	//
@@ -147,7 +141,6 @@ func init() {
 	mw := io.MultiWriter(os.Stdout, ljack)
 	log.SetOutput(mw)
 	log.SetFormatter(&log.TextFormatter{ForceColors: true})
-	// Only log the Info level or above.
 	log.SetLevel(log.InfoLevel)
 
 	srcDir = path.Dir(path.Dir(exeDir))
@@ -168,12 +161,9 @@ func (program *Program) Start(s service.Service) error {
 
 // Stop is the Service.Interface method invoked when run with "--service stop"
 func (program *Program) Stop(s service.Service) error {
-
-	// Stop should not block. Return with a few seconds.
 	log.Debug("Namehelp: program.Stop(service) invoked")
 	go func() {
 		for signalChannel == nil {
-			// Make sure that shutdown channel has been initialized.
 		}
 		log.Info("Namehelp: Sending SIGINT on signalChannel")
 		signalChannel <- syscall.SIGINT
@@ -184,7 +174,6 @@ func (program *Program) Stop(s service.Service) error {
 
 // run is the main process running
 func (program *Program) run() {
-	// Starting the heartbeat
 	go program.heartbeat(3600)
 
 	log.Debug("Namehelp: program.run() invoked.")
@@ -225,13 +214,11 @@ func (program *Program) runOnoma(ipAddr string) {
 	// TODO run aquarium fmeasurements
 	interval := 300 * time.Second
 
-	// Start a goroutine to periodically check the IP address
 	go func() {
 		for {
 			time.Sleep(interval)
 
 			utils.FlushLocalDnsCache()
-
 			newIpInfo, err := utils.QueryPublicIpInfo()
 			if err != nil {
 				log.Error("Error getting local IP info:", err)
@@ -240,12 +227,8 @@ func (program *Program) runOnoma(ipAddr string) {
 
 			if newIpInfo.Ip != ipAddr {
 				log.Infof("Network switch detected. New IP address: %s\n", newIpInfo.Ip)
-
-				// Update the IP address for future comparisons
 				ipAddr = newIpInfo.Ip
-
 				stopConfigSignalChan <- struct{}{}
-
 				time.Sleep(interval)
 
 				go program.runConfigTest(ipAddr, newIpInfo.Country)
@@ -259,7 +242,6 @@ func (program *Program) runOnoma(ipAddr string) {
 	log.WithFields(log.Fields{
 		"signal": thisSignal.String()}).Debug("Namehelp: Signal received")
 
-	// restore original DNS settings
 	program.restoreOldDNSServers(program.oldDNSServers)
 
 	log.Info("Namehelp: Shutdown complete. Exiting.")
@@ -369,8 +351,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 	handler.PDNSServers = publicDNSServers
 
 	program.initializeDNSServers()
-	//     load top500 sites in bloom filter and top50 to randomly pick from in privacy enabled setting
-	//     topAlexaSites := filepath.Join(srcDir,"Top500sites.txt")
+
 	filter := bloom.NewWithEstimates(50, 0.0001)
 
 	websites := []string{"google.com", "youtube.com", "tmall.com", "qq.com", "sohu.com", "taobao.com", "baidu.com",
@@ -398,17 +379,16 @@ func (program *Program) launchNamehelpDNSServer() error {
 	}
 	handler.Top50Websites = websites
 	handler.Filter = *filter
+	handler.TopSitesBloomFilter = *utils.SetBloomFilterForTopMillionWebsites()
+
 	log.WithFields(log.Fields{
 		"bloomfilter": *filter,
 		"top50Sites":  websites}).Debug("Namehelp: These are the top 50 sites")
 
-	// start DNS servers for UDP and TCP requests
 	go program.startDNSServer(program.udpServer)
 	go program.startDNSServer(program.tcpServer)
-	// this go func does the testing as soon as SubRosa is started
 	// TODO: change this to per-trigger base
 
-	//run SubRosa with No Privacy Enabled,but Racing enabled(SubRosaNP) until measurements start
 	handler.DNSDistribution = make(map[string][]int64)
 	handler.DNSDistributionPerformance = make(map[string][]string)
 

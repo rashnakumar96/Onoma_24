@@ -15,7 +15,6 @@ import (
 	"namehelp/settings"
 	"namehelp/utils"
 	"net"
-	// "net/url"
 	"os"
 	"os/exec"
 	"strconv"
@@ -52,6 +51,7 @@ var BestResolvers []string
 var _mutex = &sync.Mutex{}
 var Top50Websites []string
 var Filter bloom.BloomFilter
+var TopSitesBloomFilter bloom.BloomFilter
 
 // DNSQueryHandlerSettings specifies settings for query handlers
 type DNSQueryHandlerSettings struct {
@@ -433,15 +433,11 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 	}
 
 	if isEnabledCache {
-		// check cache
 		cacheKey := cache.KeyGen(question)
 		message, whichCache, isHit := handler.checkCache(question, cacheKey, IPQuery, doID)
 
 		if isHit {
-			// handle different types of hit, then return
 			if whichCache == &handler.cache {
-				// positive cache
-				// we need this copy in case of concurrent modification of Id
 				messageCopy := *message
 				messageCopy.Id = dnsQueryMessage.Id
 				log.WithFields(log.Fields{
@@ -451,7 +447,6 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 			} else if whichCache == &handler.negativeCache {
 				log.WithFields(log.Fields{
 					"question": question}).Debug("Handler: Hit in negative cache")
-				// negative cache
 				return nil, false
 			} else {
 				log.WithFields(log.Fields{
@@ -482,7 +477,7 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 	_mutex.Unlock()
 
 	_startTime := time.Now()
-	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter)
+	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter, TopSitesBloomFilter)
 	_elapsedTime := time.Since(_startTime)
 	performanceTime := strconv.FormatInt(_elapsedTime.Nanoseconds()/1e6, 10) + " ms"
 	_dnsquestion := dnsQueryMessage.Question[0]
@@ -494,7 +489,7 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 		// TODO need to handle the error better (see ^^)
 		log.WithFields(log.Fields{
 			"id":    doID,
-			"error": err.Error()}).Error("Handler: Error occured: LookupAtNameservers")
+			"error": err.Error()}).Debug("Handler: Error occured: LookupAtNameservers")
 		return nil, false
 	}
 
@@ -553,7 +548,7 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 				// if there is an error, we should be able to just provide the simple answer
 				log.WithFields(log.Fields{
 					"question": question.String()[1:],
-					"error":    err.Error()}).Warn("Handler: Error asking authoritative nameserver. Using original DNS answer as response.")
+					"error":    err.Error()}).Debug("Handler: Error asking authoritative nameserver. Using original DNS answer as response.")
 
 				return answerMessage, true
 			} else {
@@ -657,7 +652,7 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 		_mutex.Unlock()
 
 		_startTime := time.Now()
-		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter)
+		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter, TopSitesBloomFilter)
 		_elapsedTime := time.Since(_startTime)
 		performanceTime := strconv.FormatInt(_elapsedTime.Nanoseconds()/1e6, 10) + " ms"
 		_dnsquestion := requestAuthoritativeServer.Question[0]
@@ -799,7 +794,7 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 		if err != nil {
 			log.WithFields(log.Fields{
 				"id":    doID,
-				"error": err.Error()}).Warn("Handler: Direct resolution failed")
+				"error": err.Error()}).Debug("Handler: Direct resolution failed")
 			return nil, err
 		}
 		handler.cacheAnswer(requestAFromAuthoritativeServer.Question[0], directResolutionResult, handler.whichIPVersion(requestAFromAuthoritativeServer.Question[0]), doID)
@@ -920,7 +915,7 @@ func (handler *DNSQueryHandler) doDirectResolutionOfCname(Net string, answerMess
 	_mutex.Unlock()
 
 	_startTime := time.Now()
-	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter)
+	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter, TopSitesBloomFilter)
 	_elapsedTime := time.Since(_startTime)
 	performanceTime := strconv.FormatInt(_elapsedTime.Nanoseconds()/1e6, 10) + " ms"
 	_dnsquestion := requestAuthoritativeServer.Question[0]
@@ -986,7 +981,7 @@ func (handler *DNSQueryHandler) doDirectResolutionOfCname(Net string, answerMess
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id":    doID,
-			"error": err.Error()}).Error("Handler: Direct resolution failed")
+			"error": err.Error()}).Debug("Handler: Direct resolution failed")
 	}
 
 	return directResolutionResult, err
