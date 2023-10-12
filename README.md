@@ -10,12 +10,12 @@ sacrificing privacy or performance.
 
 - This README provides instructions for installation, building, running, and uninstalling Ónoma.
 
-## Installation on MAC
+## For installation on MAC follow these instructions
 
 ### Go Installation
 
 ```bash
-brew updat
+brew update
 brew install go
 go version
 ```
