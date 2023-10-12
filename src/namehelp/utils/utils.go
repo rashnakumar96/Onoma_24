@@ -382,7 +382,7 @@ func ReadFromResolverConfig(ipAddr string, country string) map[string][]string {
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		log.Info("No best resolver config exists yet")
+		log.Debug("No best resolver config exists yet")
 		return nil
 	}
 	defer file.Close()
@@ -463,7 +463,7 @@ func GetUniqueWebsites() []string {
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		log.Info("User hasn't defined unique websites yet.")
+		log.Debug("User hasn't defined unique websites yet.")
 		return []string{}
 	}
 	defer file.Close()
