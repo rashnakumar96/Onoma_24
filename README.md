@@ -15,7 +15,7 @@ sacrificing privacy or performance.
 ### Go Installation
 
 ```bash
-brew update
+brew updat
 brew install go
 go version
 ```
