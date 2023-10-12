@@ -1,6 +1,7 @@
 package main
 
 //go:generate go get -u github.com/zyalm/DoH_Proxy/
+//go:generate go get -u github.com/zyalm/odoh-client-go/
 //go:generate go get -u github.com/kardianos/osext/
 //go:generate go get -u github.com/kardianos/service/
 //go:generate go get -u github.com/miekg/dns/

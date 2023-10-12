@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"github.com/bobesa/go-domain-util/domainutil"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -57,19 +56,16 @@ func TestPathExists(t *testing.T) {
 	assert.False(t, check, "%s should not exist.", check)
 }
 
-func TestSetBloomFilterForTopMillionWebsites(t *testing.T) {
-	filter := SetBloomFilterForTopMillionWebsites()
-	domain := "gateway.icloud.com"
-	secondld := domainutil.DomainPrefix(domain)
-
-	assert.True(t, filter.Test([]byte(secondld)))
-}
-
 func TestQueryPublicIpInfo(t *testing.T) {
 	ipInfo, _ := QueryPublicIpInfo()
 	print(ipInfo.Country)
 }
 
-func TestSendQueryToOdoh(t *testing.T) {
-	SendQueryToOdoh()
+func TestGetObliviousDnsRequest(t *testing.T) {
+	GetObliviousDnsRequest()
+}
+
+func TestCheckUniqueWebsites(t *testing.T) {
+	website := "goodgames.com.au"
+	assert.True(t, CheckUniqueWebsites(website))
 }

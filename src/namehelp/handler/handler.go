@@ -51,7 +51,6 @@ var BestResolvers []string
 var _mutex = &sync.Mutex{}
 var Top50Websites []string
 var Filter bloom.BloomFilter
-var TopSitesBloomFilter bloom.BloomFilter
 
 // DNSQueryHandlerSettings specifies settings for query handlers
 type DNSQueryHandlerSettings struct {
@@ -477,7 +476,7 @@ func (handler *DNSQueryHandler) PerformDNSQuery(Net string, dnsQueryMessage *dns
 	_mutex.Unlock()
 
 	_startTime := time.Now()
-	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter, TopSitesBloomFilter)
+	answerMessage, err = handler.resolver.LookupAtNameservers(Net, dnsQueryMessage, dnsServersToQuery, doID, DoHEnabled, Experiment, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter)
 	_elapsedTime := time.Since(_startTime)
 	performanceTime := strconv.FormatInt(_elapsedTime.Nanoseconds()/1e6, 10) + " ms"
 	_dnsquestion := dnsQueryMessage.Question[0]
@@ -652,7 +651,7 @@ func (handler *DNSQueryHandler) doSimpleDirectResolutionOfCname(
 		_mutex.Unlock()
 
 		_startTime := time.Now()
-		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter, TopSitesBloomFilter)
+		_responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter)
 		_elapsedTime := time.Since(_startTime)
 		performanceTime := strconv.FormatInt(_elapsedTime.Nanoseconds()/1e6, 10) + " ms"
 		_dnsquestion := requestAuthoritativeServer.Question[0]
@@ -915,7 +914,7 @@ func (handler *DNSQueryHandler) doDirectResolutionOfCname(Net string, answerMess
 	_mutex.Unlock()
 
 	_startTime := time.Now()
-	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter, TopSitesBloomFilter)
+	responseAuthoritativeServer, err := handler.resolver.Lookup(Net, requestAuthoritativeServer, doID, Proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter)
 	_elapsedTime := time.Since(_startTime)
 	performanceTime := strconv.FormatInt(_elapsedTime.Nanoseconds()/1e6, 10) + " ms"
 	_dnsquestion := requestAuthoritativeServer.Question[0]

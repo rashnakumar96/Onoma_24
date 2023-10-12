@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"gopkg.in/natefinch/lumberjack.v2"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 	"hash/fnv"
 	"io"
 	"io/ioutil"
@@ -351,7 +351,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 				continue
 			}
 		} else {
-			log.Debug("Namehelp: publicDNSServers FileFound")
+			log.Info("Namehelp: publicDNSServers FileFound")
 			break
 		}
 	}
@@ -398,11 +398,10 @@ func (program *Program) launchNamehelpDNSServer() error {
 	}
 	handler.Top50Websites = websites
 	handler.Filter = *filter
-	handler.TopSitesBloomFilter = *utils.SetBloomFilterForTopMillionWebsites()
 
 	log.WithFields(log.Fields{
 		"bloomfilter": *filter,
-		"top50Sites":  websites}).Debug("Namehelp: These are the top 50 sites")
+		"top50Sites":  websites}).Info("Namehelp: These are the top 50 sites")
 
 	go program.startDNSServer(program.udpServer)
 	go program.startDNSServer(program.tcpServer)

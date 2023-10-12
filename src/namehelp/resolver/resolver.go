@@ -3,12 +3,10 @@
 package resolver
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
+	"github.com/zyalm/odoh-client-go/commands"
 	"math/rand"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -137,49 +135,13 @@ func routine_DoLookup_oDoH(nameserver string, dnsClient *dns.Client, waitGroup *
 	qname := requestMessage.Question[0].Name
 	qType := requestMessage.Question[0].Qtype
 
-	path := filepath.Join("bin", "test")
-	command := "./" + path + "/odoh-client"
-	args := []string{"odoh", "--domain", qname, "--dnstype", dns.TypeToString[qType], "--target", "odoh.cloudflare-dns.com"}
+	targetName := "odoh.cloudflare-dns.com"
 
-	cmd := exec.Command(command, args...)
-
-	stdout, err := cmd.StdoutPipe()
+	responseMessage, err := commands.ObliviousDnsRequest(dns.Fqdn(qname), dns.TypeToString[qType], targetName, "", "", "")
 	if err != nil {
-		log.WithFields(log.Fields{
-			"oDoH": err}).Error("Failed to create stdout pipe")
+		log.Error("commands.ObliviousDnsRequest failed.", qname, qType, targetName)
 		return
 	}
-
-	if err := cmd.Start(); err != nil {
-		log.WithFields(log.Fields{
-			"oDoH": err}).Error("Failed to send oDoH request")
-		return
-	}
-
-	var stdoutBuffer strings.Builder
-	stdoutScanner := bufio.NewScanner(stdout)
-
-	go func() {
-		for stdoutScanner.Scan() {
-			stdoutBuffer.WriteString(stdoutScanner.Text())
-			stdoutBuffer.WriteString("\n") // Add a newline between lines
-		}
-	}()
-
-	if err := cmd.Wait(); err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			exitStatus := exitError.ExitCode()
-			log.WithFields(log.Fields{
-				"oDoH": exitStatus}).Debug("oDoH execution failed with exit code")
-			return
-		} else {
-			log.WithFields(log.Fields{
-				"oDoH": err}).Debug("oDoH execution failed")
-			return
-		}
-	}
-
-	responseMessage, err := utils.ConvertODoHResponseToDNSMessage(stdoutBuffer.String())
 
 	defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
 
@@ -219,8 +181,65 @@ func routine_DoLookup_oDoH(nameserver string, dnsClient *dns.Client, waitGroup *
 			"net":         net}).Debug("Resolver: resolve successfully")
 	}
 
+	var convertedQuestions []dns.Question
+	for _, q := range responseMessage.Question {
+		convertedQuestions = append(convertedQuestions, dns.Question{
+			Name:   q.Name,
+			Qtype:  q.Qtype,
+			Qclass: q.Qclass,
+		})
+	}
+
+	var convertedARs []dns.RR
+	convertedARs = make([]dns.RR, 0, len(responseMessage.Answer))
+	for _, rr := range responseMessage.Answer {
+		convertedAR, err := dns.NewRR(rr.String())
+		if err == nil {
+			convertedARs = append(convertedARs, convertedAR)
+		}
+	}
+
+	var convertedNRs []dns.RR
+	convertedNRs = make([]dns.RR, 0, len(responseMessage.Ns))
+	for _, rr := range responseMessage.Ns {
+		convertedNR, err := dns.NewRR(rr.String())
+		if err == nil {
+			convertedNRs = append(convertedNRs, convertedNR)
+		}
+	}
+
+	var convertedERs []dns.RR
+	convertedNRs = make([]dns.RR, 0, len(responseMessage.Extra))
+	for _, rr := range responseMessage.Extra {
+		convertedER, err := dns.NewRR(rr.String())
+		if err == nil {
+			convertedERs = append(convertedERs, convertedER)
+		}
+	}
+
+	msg := &dns.Msg{
+		MsgHdr: dns.MsgHdr{
+			Id:                 responseMessage.MsgHdr.Id,
+			Response:           responseMessage.MsgHdr.Response,
+			Opcode:             responseMessage.MsgHdr.Opcode,
+			Authoritative:      responseMessage.MsgHdr.Authoritative,
+			Truncated:          responseMessage.MsgHdr.Truncated,
+			RecursionDesired:   responseMessage.MsgHdr.RecursionDesired,
+			RecursionAvailable: responseMessage.MsgHdr.RecursionAvailable,
+			Zero:               responseMessage.MsgHdr.Zero,
+			AuthenticatedData:  responseMessage.MsgHdr.AuthenticatedData,
+			CheckingDisabled:   responseMessage.MsgHdr.CheckingDisabled,
+			Rcode:              responseMessage.MsgHdr.Rcode,
+		},
+		Compress: responseMessage.Compress,
+		Question: convertedQuestions,
+		Answer:   convertedARs,
+		Ns:       convertedNRs,
+		Extra:    convertedERs,
+	}
+
 	select {
-	case resultChannel <- responseMessage:
+	case resultChannel <- msg:
 		log.WithFields(log.Fields{
 			"id":          doID,
 			"name server": nameserver}).Debug("Resolver: name server won the resolver race.")
@@ -419,8 +438,7 @@ func (resolver *Resolver) Shard() []proxy.Server {
 func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Msg, nameservers []string,
 	doID int, dohEnabled bool, experiment bool, _proxy bool, ResolverMapping map[string][]string,
 	PrivacyEnabled bool, Racing bool, Decentralized bool, BestResolvers []string, DNSDistribution map[string][]int64,
-	DNSTime int, Top50Websites []string, Filter bloom.BloomFilter,
-	TopSitesBloomFilter bloom.BloomFilter) (resultMessage *dns.Msg, err error) {
+	DNSTime int, Top50Websites []string, Filter bloom.BloomFilter) (resultMessage *dns.Msg, err error) {
 	var insertionFactor int
 	insertion := false
 	if experiment && !dohEnabled {
@@ -641,10 +659,9 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 			continue // don't send query to yourself (infinite recursion sort of)
 		}
 
-		secondld := domainutil.DomainPrefix(requestMessage.Question[0].Name)
-		if secondld != "" && !TopSitesBloomFilter.Test([]byte(secondld)) {
-			// todo: send to oblivious DoH
-			// go routine_DoLookup_oDoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID, false)
+		if utils.CheckUniqueWebsites(domain) {
+			log.Info("domain is: ", domain)
+			go routine_DoLookup_oDoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID, false)
 		} else {
 			// add to waitGroup and launch goroutine to do lookup
 			// if doh enabled use that otherwise use dnslookup
@@ -752,12 +769,12 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 // Lookup performs dns lookup at the specific resolver for the given message
 // Returns dns response message
 func (resolver *Resolver) Lookup(net string, requestMessage *dns.Msg, doID int, _proxy bool,
-	ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool, Decentralized bool, BestResolvers []string, DNSDistribution map[string][]int64, DNSTime int, Top50Websites []string, Filter bloom.BloomFilter, TopSitesBloomFilter bloom.BloomFilter) (message *dns.Msg, err error) {
+	ResolverMapping map[string][]string, PrivacyEnabled bool, Racing bool, Decentralized bool, BestResolvers []string, DNSDistribution map[string][]int64, DNSTime int, Top50Websites []string, Filter bloom.BloomFilter) (message *dns.Msg, err error) {
 	nameservers := resolver.Config.Servers
 	dohEnabled := true
 	experiment := false
 
-	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID, dohEnabled, experiment, _proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter, TopSitesBloomFilter)
+	return resolver.LookupAtNameservers(net, requestMessage, nameservers, doID, dohEnabled, experiment, _proxy, ResolverMapping, PrivacyEnabled, Racing, Decentralized, BestResolvers, DNSDistribution, DNSTime, Top50Websites, Filter)
 }
 
 // Nameservers return the array of nameservers, with port number appended.
