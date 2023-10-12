@@ -11,8 +11,8 @@ require (
 	github.com/miekg/dns v1.1.56
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.7.0
-	github.com/zyalm/DoH_Proxy v0.0.0-20231011231922-246d969868ab
-	github.com/zyalm/odoh-client-go v0.0.0-20231012040609-fe834bbb6829
+	github.com/zyalm/DoH_Proxy v0.0.0-20231012074210-69d54540691f
+	github.com/zyalm/odoh-client-go v0.0.0-20231012041642-ea9b64a04910
 	go.mongodb.org/mongo-driver v1.12.1
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
@@ -37,7 +37,7 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
-	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
+	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/net v0.17.0 // indirect

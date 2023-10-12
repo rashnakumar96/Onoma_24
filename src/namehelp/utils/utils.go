@@ -485,9 +485,9 @@ func GetUniqueWebsites() []string {
 
 func CheckUniqueWebsites(website string) bool {
 	uniqueWebsites := GetUniqueWebsites()
+	secondld := domainutil.DomainPrefix(strings.TrimSuffix(website, "."))
 	for _, site := range uniqueWebsites {
-		if domainutil.DomainPrefix(website) == domainutil.DomainPrefix(site) {
-			log.Info("unique domain name is: ", site)
+		if secondld == strings.ToLower(domainutil.DomainPrefix(site)) {
 			return true
 		}
 	}

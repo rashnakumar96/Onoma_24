@@ -5,20 +5,18 @@ package resolver
 import (
 	"errors"
 	"fmt"
-	"github.com/zyalm/odoh-client-go/commands"
-	"math/rand"
-	"strings"
-	"sync"
-	"time"
-
-	"namehelp/settings"
-	"namehelp/utils"
-
 	bloom "github.com/bits-and-blooms/bloom"
 	domainutil "github.com/bobesa/go-domain-util/domainutil"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 	proxy "github.com/zyalm/DoH_Proxy"
+	"github.com/zyalm/odoh-client-go/commands"
+	"math/rand"
+	"namehelp/settings"
+	"namehelp/utils"
+	"strings"
+	"sync"
+	"time"
 )
 
 // Client for resolver proxy that translate DNS to DoH
@@ -56,76 +54,6 @@ func waitTimeout(waitGroup *sync.WaitGroup, timeoutDuration time.Duration) bool 
 		return false // completed normally (waitGroup done waiting)
 	case <-time.After(timeoutDuration):
 		return true // timed out
-	}
-}
-
-// routine_DoLookup performs dns lookup using go routine
-func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.WaitGroup,
-	requestMessage *dns.Msg, net string, resultChannel chan *dns.Msg, doID int, insertion bool) {
-
-	qname := requestMessage.Question[0].Name
-	qType := requestMessage.Question[0].Qtype
-
-	responseMessage, rtt, err := dnsClient.Exchange(requestMessage, nameserver)
-	if insertion == true {
-		log.WithFields(log.Fields{
-			"id":          doID,
-			"query":       qname,
-			"name server": nameserver}).Debug("Resolver: This is the inserted query, no response needed")
-		return
-	}
-	defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
-	if err != nil {
-		log.WithFields(log.Fields{
-			"id":          doID,
-			"query":       qname,
-			"error":       err.Error(),
-			"name server": nameserver}).Debug("Resolver: DNS Client Exchange Socket error")
-		return
-	}
-
-	// If SERVFAIL happens, should return immediately and try another upstream resolver.
-	// However, other Error codes like NXDOMAIN are a clear response stating
-	// that it has been verified no such domain exists and asking other resolvers
-	// would make no sense. See more about #20
-	if responseMessage != nil && responseMessage.Rcode != dns.RcodeSuccess {
-		// failure
-		log.WithFields(log.Fields{
-			"id":          doID,
-			"query":       qname,
-			"name server": nameserver}).Debug("Resolver: Failed to get a valid answer for query from nameserver")
-		if responseMessage.Rcode == dns.RcodeServerFailure {
-			// SERVFAIL: don't provide response because other DNS servers may have better luck
-			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Debug("Resolver: ServFail")
-			return
-		} else {
-			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Debug("Resolver: NXDOMAIN ERROR")
-		}
-	} else {
-		// success
-		log.WithFields(log.Fields{
-			"id":          doID,
-			"domain name": utils.UnFullyQualifyDomainName(qname),
-			"query type":  dns.TypeToString[qType],
-			"name server": nameserver,
-			"net":         net,
-			"tll":         rtt}).Debug("Resolver: resolve successfully")
-	}
-
-	// use select statement with default to try the send without blocking
-	select {
-	// try to send response on channel
-	case resultChannel <- responseMessage:
-		log.WithFields(log.Fields{
-			"id":          doID,
-			"name server": nameserver}).Debug("Resolver: name server won the resolver race.")
-	default:
-		// if another goroutine already sent on channel and the message is not yet read
-		// we simply return in order to invoke the deferred waitGroup.Done() call
-		log.WithFields(log.Fields{
-			"id":          doID,
-			"name server": nameserver}).Debug("Resolver: name server DID NOT won the resolver race.")
-		return
 	}
 }
 
@@ -247,6 +175,76 @@ func routine_DoLookup_oDoH(nameserver string, dnsClient *dns.Client, waitGroup *
 		log.WithFields(log.Fields{
 			"id":          doID,
 			"name server": nameserver}).Debug("Resolver: name server DID NOT win the resolver race.")
+		return
+	}
+}
+
+// routine_DoLookup performs dns lookup using go routine
+func routine_DoLookup(nameserver string, dnsClient *dns.Client, waitGroup *sync.WaitGroup,
+	requestMessage *dns.Msg, net string, resultChannel chan *dns.Msg, doID int, insertion bool) {
+
+	qname := requestMessage.Question[0].Name
+	qType := requestMessage.Question[0].Qtype
+
+	responseMessage, rtt, err := dnsClient.Exchange(requestMessage, nameserver)
+	if insertion == true {
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"query":       qname,
+			"name server": nameserver}).Debug("Resolver: This is the inserted query, no response needed")
+		return
+	}
+	defer waitGroup.Done() // when this goroutine finishes, notify the waitGroup
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"query":       qname,
+			"error":       err.Error(),
+			"name server": nameserver}).Debug("Resolver: DNS Client Exchange Socket error")
+		return
+	}
+
+	// If SERVFAIL happens, should return immediately and try another upstream resolver.
+	// However, other Error codes like NXDOMAIN are a clear response stating
+	// that it has been verified no such domain exists and asking other resolvers
+	// would make no sense. See more about #20
+	if responseMessage != nil && responseMessage.Rcode != dns.RcodeSuccess {
+		// failure
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"query":       qname,
+			"name server": nameserver}).Debug("Resolver: Failed to get a valid answer for query from nameserver")
+		if responseMessage.Rcode == dns.RcodeServerFailure {
+			// SERVFAIL: don't provide response because other DNS servers may have better luck
+			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Debug("Resolver: ServFail")
+			return
+		} else {
+			log.WithFields(log.Fields{"Rcode": responseMessage.Rcode}).Debug("Resolver: NXDOMAIN ERROR")
+		}
+	} else {
+		// success
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"domain name": utils.UnFullyQualifyDomainName(qname),
+			"query type":  dns.TypeToString[qType],
+			"name server": nameserver,
+			"net":         net,
+			"tll":         rtt}).Debug("Resolver: resolve successfully")
+	}
+
+	// use select statement with default to try the send without blocking
+	select {
+	// try to send response on channel
+	case resultChannel <- responseMessage:
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"name server": nameserver}).Debug("Resolver: name server won the resolver race.")
+	default:
+		// if another goroutine already sent on channel and the message is not yet read
+		// we simply return in order to invoke the deferred waitGroup.Done() call
+		log.WithFields(log.Fields{
+			"id":          doID,
+			"name server": nameserver}).Debug("Resolver: name server DID NOT won the resolver race.")
 		return
 	}
 }
@@ -659,12 +657,12 @@ func (resolver *Resolver) LookupAtNameservers(net string, requestMessage *dns.Ms
 			continue // don't send query to yourself (infinite recursion sort of)
 		}
 
-		if utils.CheckUniqueWebsites(domain) {
-			log.Info("domain is: ", domain)
+		// add to waitGroup and launch goroutine to do lookup
+		// if doh enabled use that otherwise use dnslookup
+		if utils.CheckUniqueWebsites(requestMessage.Question[0].Name) {
+			log.Info("Matched user defined unique website ", requestMessage.Question[0].Name)
 			go routine_DoLookup_oDoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID, false)
 		} else {
-			// add to waitGroup and launch goroutine to do lookup
-			// if doh enabled use that otherwise use dnslookup
 			if dohEnabled {
 				go routine_DoLookup_DoH(nameserver, dnsClient, &waitGroup, requestMessage, net, resultChannel, doID, false)
 				insertion = true

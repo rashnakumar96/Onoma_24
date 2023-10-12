@@ -66,6 +66,6 @@ func TestGetObliviousDnsRequest(t *testing.T) {
 }
 
 func TestCheckUniqueWebsites(t *testing.T) {
-	website := "goodgames.com.au"
+	website := "mobile-gtalk.l.google.com"
 	assert.True(t, CheckUniqueWebsites(website))
 }

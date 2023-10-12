@@ -181,6 +181,8 @@ func (program *Program) run() {
 		return
 	}
 
+	log.Debug("Current IP info: ", ipinfo)
+
 	go program.runConfigTest(ipinfo.Ip, ipinfo.Country)
 
 	program.runOnoma(ipinfo.Ip)
@@ -258,13 +260,13 @@ func (program *Program) runConfigTest(currentIpAddr string, country string) {
 		stderr, err := cmd.StderrPipe()
 		if err != nil {
 			log.WithFields(log.Fields{
-				"configTest": stderr}).Debug("Failed to create stderr pipe")
+				"configTest": stderr}).Error("Failed to create stderr pipe")
 			return
 		}
 
 		if err := cmd.Start(); err != nil {
 			log.WithFields(log.Fields{
-				"configTest": err}).Debug("Failed to start the RunConfigTest")
+				"configTest": stdout}).Error("Failed to create stdout pipe")
 			return
 		}
 
@@ -1246,6 +1248,11 @@ func main() {
 	e := os.Remove(filepath.Join(srcDir, "analysis", "ipInfo.json"))
 	if e != nil {
 		log.Info("error removing ipInfo file")
+	}
+
+	e = os.Remove(filepath.Join(srcDir, "data", "publicDNSMeasurementCountries.json"))
+	if e != nil {
+		log.Info("error removing publicDNSMeasurementCountries file")
 	}
 
 	*serviceFlag = "uninstall"
