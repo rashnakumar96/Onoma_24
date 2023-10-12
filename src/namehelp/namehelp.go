@@ -403,7 +403,7 @@ func (program *Program) launchNamehelpDNSServer() error {
 
 	log.WithFields(log.Fields{
 		"bloomfilter": *filter,
-		"top50Sites":  websites}).Info("Namehelp: These are the top 50 sites")
+		"top50Sites":  websites}).Debug("Namehelp: These are the top 50 sites")
 
 	go program.startDNSServer(program.udpServer)
 	go program.startDNSServer(program.tcpServer)
